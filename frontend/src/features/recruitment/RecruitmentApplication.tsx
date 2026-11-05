@@ -1,13 +1,15 @@
-import { AdditionalResponsibility } from './AdditionalResponsibility';
 import { recruitmentOutcome } from './outcome';
+import { useOtherClub } from '../clubOperations/leaving/useOtherClub';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import './recruitment-offers.css';
 import { StaffScopePicker, type StaffScopeSelection } from '../clubOperations/StaffScopePicker';
 import { appointmentScope, scopePayload } from '../clubOperations/api';
+import { jobHome } from '../clubOperations/people/inviteLinkApi';
+import { promptEmailConfirmation } from '../../components/auth/emailConfirmationPrompt';
 
 export interface RecruitmentReceipt {
  id: number; clubId: number; clubName: string; applicantName: string; role: string; status: string;
@@ -22,21 +24,24 @@ const date = (s?: string | null) => s ? new Date(s).toLocaleDateString() : 'Not 
 
 export function RecruitmentApplication({ applicationId, initial, onChanged }: {applicationId: number; initial?: RecruitmentReceipt; onChanged?: () => void}) {
  const { refreshNavigationCapabilities } = useAuth();
+ const startJob = useNavigate();
  const [receipt,setReceipt] = useState(initial ?? null),[error,setError] = useState(''),[loading,setLoading] = useState(!initial),[busy,setBusy] = useState(false);
  const [confirm,setConfirm] = useState<'accept'|'decline'|'withdraw'|'cancel'|null>(null),[offering,setOffering] = useState(false);
  const lock=useRef(false);
+ const other=useOtherClub();
  const load=useCallback(async()=>{setLoading(true);try {setReceipt((await apiClient.get<RecruitmentReceipt>(`/recruitment/applications/${applicationId}`)).data);setError('');} catch(e){setError(extractApiErrorMessage(e,'Could not load this application.'));}finally{setLoading(false);}},[applicationId]);
  useEffect(()=>{if(!initial)void load();},[initial,load]);
- async function run(action:()=>Promise<unknown>) {
+ async function run(action:()=>Promise<unknown>,next?:string) {
   if(lock.current)return;lock.current=true;setBusy(true);setError('');
-  try {await action();setConfirm(null);setOffering(false);await load();await refreshNavigationCapabilities();onChanged?.();}
-  catch(e){setError(extractApiErrorMessage(e,'The action could not be completed. Reload the receipt before retrying.'));}
+  try {await action();setConfirm(null);setOffering(false);await load();await refreshNavigationCapabilities();onChanged?.();if(next)startJob(next);}
+  catch(e){if(other.catchOther(e,()=>void run(action,next))||promptEmailConfirmation(e))return;setError(extractApiErrorMessage(e,'The action could not be completed. Reload the receipt before retrying.'));}
   finally{lock.current=false;setBusy(false);}
  }
  if(!receipt)return <section className="recruitment-offer" aria-label="Recruitment application">{loading?<p role="status">Loading application…</p>:<p role="alert">{error}<button type="button" onClick={()=>void load()}>Retry</button></p>}</section>;
  const r=receipt,o=r.offer;
  return <article className="recruitment-offer" id={`recruitment-application-${r.id}`} aria-label={`${r.clubName} application`}>
   <header><div><small>{r.role==='PLAYER'?'Player recruitment':'Coaching recruitment'}</small><h3>{r.jobTitle || r.clubName}</h3><p>{r.clubName} · {r.applicantName}</p></div><strong className="recruitment-outcome" data-status={r.status}>{recruitmentOutcome(r.status)}</strong></header>
+  {other.notice}
   {error&&<p role="alert">{error} <button type="button" disabled={busy} onClick={()=>void load()}>Reload receipt</button></p>}
   {r.unavailableReason&&<p className="recruitment-notice">{r.unavailableReason}</p>}
   {r.status==='PENDING'&&<p>The club will review this request. Any offer requires the applicant’s response before access begins.</p>}
@@ -47,17 +52,17 @@ export function RecruitmentApplication({ applicationId, initial, onChanged }: {a
    </dl>{o.message&&<p>{o.message}</p>}<p className="recruitment-muted">This records a club responsibility and app access. Employment terms and qualifications are handled separately.</p></section>}
   {!o&&r.decisionMessage&&<p>{r.decisionMessage}</p>}
   {r.role==='PLAYER'&&o&&<p>{r.admissionCaseId?'This answer is retained for the older request. Continue the named group arrangement; its terms and participation permission require separate confirmation.':'Acceptance records the old trial request. Club participation and any required guardian confirmation remain separate steps. Staff must arrange an actual named group.'}{r.activeElsewhere?' Your existing active playing club remains unchanged.':''}</p>}
-  {r.status==='ACCEPTED'&&<p className="recruitment-notice">{r.appointment?`Recorded appointment: ${r.appointment.status.toLowerCase()}. Manage it in Club operations.`:r.playingRelationship?`Current playing relationship: ${r.playingRelationship.status.toLowerCase()}.${r.playingRelationship.requires_parental_consent&&r.playingRelationship.parental_consent_status!=='CONFIRMED'?' Guardian consent is still required.':''}`:'This acceptance is retained in your history. Current access depends on your present club responsibilities.'}</p>}
+  {r.status==='ACCEPTED'&&<p className="recruitment-notice">{r.appointment?`Your job: ${r.appointment.status.toLowerCase()}.`:r.playingRelationship?`Current playing relationship: ${r.playingRelationship.status.toLowerCase()}.${r.playingRelationship.requires_parental_consent&&r.playingRelationship.parental_consent_status!=='CONFIRMED'?' Guardian consent is still required.':''}`:'This acceptance is retained in your history. Current access depends on your present club responsibilities.'}</p>}
   <div className="recruitment-actions">
    {r.role==='PLAYER'&&<Link to={r.admissionDestination??'/admissions'}>{r.admissionCaseId?'Continue named group arrangement':'Continue existing request in Joining football'}</Link>}
    {r.canRespond&&<><button type="button" disabled={busy} className="recruitment-primary" onClick={()=>setConfirm('accept')}>Review acceptance</button><button type="button" disabled={busy} onClick={()=>setConfirm('decline')}>Decline offer</button></>}
    {r.canOffer&&!offering&&<button type="button" disabled={busy} className="recruitment-primary" onClick={()=>setOffering(true)}>Prepare offer</button>}
    {r.canCancelOffer&&<button type="button" disabled={busy} onClick={()=>setConfirm('cancel')}>Cancel offer</button>}
    {r.canWithdraw&&<button type="button" disabled={busy} onClick={()=>setConfirm('withdraw')}>Withdraw application</button>}
-   {r.appointment&&<Link to="/club-operations">Manage appointment</Link>}
+   {r.appointment&&<Link to="/requests">Manage appointment</Link>}
    <Link to={`/clubs/${r.clubId}`}>View club</Link>
   </div>
-  {confirm&&<section className="recruitment-confirm" aria-label="Confirm recruitment response"><h4>{confirm==='accept'?'Accept this responsibility and its listed access?':confirm==='decline'?'Decline this offer?':confirm==='cancel'?'Cancel this unanswered offer?':'Withdraw this application?'}</h4><p>{confirm==='accept'?'Your response will be recorded. Existing responsibilities remain in place.':'This ends this request without ending any existing club relationship.'}</p><div className="recruitment-actions"><button type="button" disabled={busy} className="recruitment-primary" onClick={()=>void run(()=>confirm==='withdraw'?apiClient.post(`/clubs/${r.clubId}/applications/${r.id}/cancel`):confirm==='cancel'?apiClient.post(`/recruitment/applications/${r.id}/cancel-offer`):apiClient.post(`/recruitment/applications/${r.id}/respond`,{accept:confirm==='accept'}))}>{busy?'Saving…':confirm==='accept'?'Accept offer':'Confirm'}</button><button type="button" disabled={busy} onClick={()=>setConfirm(null)}>Keep reviewing</button></div></section>}
+  {confirm&&<section className="recruitment-confirm" aria-label="Confirm recruitment response"><h4>{confirm==='accept'?'Accept this responsibility and its listed access?':confirm==='decline'?'Decline this offer?':confirm==='cancel'?'Cancel this unanswered offer?':'Withdraw this application?'}</h4><p>{confirm==='accept'?'Your response will be recorded. Existing responsibilities remain in place.':'This ends this request without ending any existing club relationship.'}</p><div className="recruitment-actions"><button type="button" disabled={busy} className="recruitment-primary" onClick={()=>void run(()=>confirm==='withdraw'?apiClient.post(`/clubs/${r.clubId}/applications/${r.id}/cancel`):confirm==='cancel'?apiClient.post(`/recruitment/applications/${r.id}/cancel-offer`):apiClient.post(`/recruitment/applications/${r.id}/respond`,{accept:confirm==='accept'}),confirm==='accept'&&r.role==='COACH'?jobHome(r.clubId,o?.specialism??'COACH'):undefined)}>{busy?'Saving…':confirm==='accept'?'Accept offer':'Confirm'}</button><button type="button" disabled={busy} onClick={()=>setConfirm(null)}>Keep reviewing</button></div></section>}
   {offering&&<OfferForm receipt={r} busy={busy} onCancel={()=>setOffering(false)} onSubmit={body=>void run(()=>apiClient.post(`/recruitment/applications/${r.id}/offer`,body))}/>}
  </article>;
 }
@@ -88,7 +93,7 @@ export function RecruitmentInbox({onChanged}:{onChanged?:()=>void}) {
  const [rows,setRows]=useState<RecruitmentReceipt[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[revision,setRevision]=useState(0);
  useEffect(()=>{const c=new AbortController();void apiClient.get<RecruitmentReceipt[]>('/recruitment/applications',{signal:c.signal}).then(x=>{setRows(x.data);setError('');}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load applications.'));}).finally(()=>{if(!c.signal.aborted)setLoading(false);});return()=>c.abort();},[revision]);
  useEffect(()=>{const id=new URLSearchParams(location.search).get('applicationId');if(id&&!loading)document.getElementById(`recruitment-application-${id}`)?.scrollIntoView({block:'center'});},[loading,rows]);
- return <section className="recruitment-inbox" aria-label="Applications and offers"><h2>Applications and offers</h2><p>Review each offer before a new club responsibility begins.</p>{loading&&<p role="status">Loading applications…</p>}{error&&<p role="alert">{error}<button type="button" onClick={()=>setRevision(n=>n+1)}>Retry</button></p>}{!loading&&!error&&!rows.length&&<p>No applications yet. Discover a club or an open role to get started.</p>}{rows.map(r=><RecruitmentApplication key={`${revision}:${r.id}`} applicationId={r.id} initial={r} onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}<InvitationHistory/><AdditionalResponsibility onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/></section>;
+ return <section className="recruitment-inbox" aria-label="Applications and offers"><h2>Applications and offers</h2><p>Review each offer before a new club responsibility begins.</p>{loading&&<p role="status">Loading applications…</p>}{error&&<p role="alert">{error}<button type="button" onClick={()=>setRevision(n=>n+1)}>Retry</button></p>}{!loading&&!error&&!rows.length&&<p>No applications yet. Discover a club or an open role to get started.</p>}{rows.map(r=><RecruitmentApplication key={`${revision}:${r.id}`} applicationId={r.id} initial={r} onChanged={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}<InvitationHistory/></section>;
 }
 function InvitationHistory() {
  const [rows,setRows]=useState<{id:number;clubName:string;role:string;status:string}[]>([]),[error,setError]=useState(''),[retry,setRetry]=useState(0);

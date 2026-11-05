@@ -7,6 +7,7 @@ import { ScheduleScore } from '../../matchHistory/ScheduleResult';
 import { formatDate, formatTime } from '../../../utils/formatting';
 import { kindOf } from './scheduleEvents';
 import './schedule-board.css';
+import { ScheduleDirections } from './ScheduleDirections';
 
 const visibility = (value: ScheduleWorkspaceEvent['visibility']) => value === 'CLUB_ONLY' ? 'Club members' : value === 'SCHEDULED_PUBLICATION' ? 'Published later' : visibilityCopy[value];
 
@@ -15,11 +16,12 @@ export function EventDetailsDialog({ event, onClose }: { event: ScheduleWorkspac
     const kind = kindOf(event);
     const match = event.eventType === 'MATCH' || event.eventType === 'FRIENDLY';
     return <Dialog open title={event.title} description={event.subtitle ?? undefined} onClose={onClose} closeLabel="Close event details"
-        footer={event.matchExchangeId ? <ButtonLink variant="primary" to={`/match-exchange/${event.matchExchangeId}`}>Open match page</ButtonLink> : undefined}>
+        footer={event.matchExchangeId ? <ButtonLink variant="primary" to={`/matches/${event.matchExchangeId}`}>Open match page</ButtonLink> : undefined}>
         <div className="gk-event-details">
             <div className="gk-chips"><Badge tone={kind.badge}>{kind.label}</Badge><Badge>{visibility(event.visibility)}</Badge>{event.status.toLowerCase() === 'cancelled' && <Badge tone="danger">Cancelled</Badge>}</div>
             <p className="gk-row"><CalendarDays size={18} aria-hidden="true" /><span>{formatDate(event.startsAt, { weekday: 'long', day: 'numeric', month: 'long' })}, {formatTime(event.startsAt)}–{formatTime(event.endsAt)}</span></p>
             {event.locationText && <p className="gk-row"><MapPin size={18} aria-hidden="true" /><span>{event.locationText}</span></p>}
+            {event.status.toUpperCase() !== 'CANCELLED' && <ScheduleDirections place={event.locationText} lat={event.locationLat} lng={event.locationLng} />}
             {match && <ScheduleScore event={event} />}
             {event.description && <p className="gk-event-details__notes">{event.description}</p>}
             {match && event.status.toLowerCase() !== 'cancelled' && <JourneyLauncher eventId={event.eventId} />}

@@ -20,7 +20,11 @@ export interface Opponent { id: number; name: string; logoUrl?: string | null; c
 export interface InvitedReferee { id: number; name: string; fee: number; currency: string; acceptsVolunteer: boolean; acceptsPaid: boolean }
 export interface Draft {
     opponent: Opponent | null; targetSquadId: number; squadId: number;
+    /** Inviting a club that is not in GrassKickZ: its name, typed. */
+    outside?: string | null;
     date: string; time: string; minutes: number | null; format: string | null;
+    /** An open challenge's window: its last day and the time the match must be over by (`date`/`time` open it). */
+    dateTo?: string; timeTo?: string;
     ground: GroundChoice; referee: RefereeChoice; refereeName: string;
     /** The person picked the ground themselves; until then the club's own ground is the starting choice. */
     groundTouched?: boolean;
@@ -125,9 +129,14 @@ export function hostingOf(draft: Pick<Draft, 'ground' | 'hosting'>): Hosting {
 export function automaticTitle(draft: Draft, squad: Squad | undefined, mode: Mode) {
     const kind = draft.matchType === 'COMPETITIVE' ? 'match' : 'friendly';
     if (!squad) return '';
-    if (mode === 'open') return `${squad.name} looking for a ${draft.date ? `${weekday(draft.date)} ` : ''}${kind}`;
-    return draft.opponent ? `${squad.name} v ${draft.opponent.name}` : `${squad.name} ${kind}`;
+    if (mode === 'open') return `${squad.name} looking for a ${draft.date && (draft.dateTo ?? draft.date) === draft.date ? `${weekday(draft.date)} ` : ''}${kind}`;
+    const opponent = draft.opponent?.name ?? draft.outside?.trim();
+    return opponent ? `${squad.name} v ${opponent}` : `${squad.name} ${kind}`;
 }
+/** The form asks for a window of days and times instead of one kick-off: an open challenge, posted or being edited. */
+export const windowed = (draft: Pick<Draft, 'timeTo'>, mode: Mode) => mode === 'open' || (mode === 'edit' && Boolean(draft.timeTo));
+const minutesOfDay = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400000);
 export function groundLocation(ground: GroundChoice) {
     if (ground.kind === 'OURS' || ground.kind === 'THEIRS' || ground.kind === 'OTHER') {
         const venue = ground.ground;
@@ -140,9 +149,11 @@ export function buildTerms(draft: Draft, squad: Squad, mode: Mode, revision = 0)
     const ageGroup = playedAge(draft, squad);
     const startsAt = `${draft.date}T${draft.time}`;
     const choice = hostingOf(draft);
+    // An open challenge's listing spans its window: from the first day's opening to the last day's close.
+    const endsAt = windowed(draft, mode) ? `${draft.dateTo || draft.date}T${draft.timeTo}` : addMinutes(startsAt, draft.minutes ?? defaultMinutes(ageGroup));
     return {
         squadId: squad.id, title: (draft.title.trim() || automaticTitle(draft, squad, mode)).slice(0, 140), description: draft.note.trim(),
-        startsAt, endsAt: addMinutes(startsAt, draft.minutes ?? defaultMinutes(ageGroup)), timezone: draft.timezone,
+        startsAt, endsAt, timezone: draft.timezone,
         ...groundLocation(draft.ground), ageGroup, level: draft.level, format: draft.format ?? defaultFormat(ageGroup),
         venuePreference: choice === 'HOME' || choice === 'AWAY' ? choice : 'EITHER', refereeRequired: draft.referee !== 'NONE',
         requestId: draft.requestId, revision,
@@ -153,8 +164,12 @@ const OFFICIAL_MODE: Record<RefereeChoice, OfficialMode> = { US: 'LATER', THEM: 
 const paid = (draft: Draft) => (draft.referee === 'INVITE' || draft.referee === 'OPEN') && draft.volunteer === false;
 export function buildArrangement(draft: Draft, squad: Squad, mode: Mode): Arrangement {
     const officialMode = OFFICIAL_MODE[draft.referee];
+    const outside = mode === 'direct' && !draft.opponent && draft.outside?.trim() ? draft.outside.trim() : null;
+    const window = mode === 'open';
     return {
-        match: buildTerms(draft, squad, mode), targetClubId: mode === 'direct' ? draft.opponent?.id ?? null : null, targetSquadId: mode === 'direct' && draft.targetSquadId ? draft.targetSquadId : null,
+        match: buildTerms(draft, squad, mode), targetClubId: mode === 'direct' ? draft.opponent?.id ?? null : null,
+        targetSquadId: mode === 'direct' && draft.opponent && draft.targetSquadId > 0 ? draft.targetSquadId : null, outsideOpponent: outside,
+        windowFrom: window ? draft.time : null, windowTo: window ? draft.timeTo ?? null : null, matchMinutes: window ? draft.minutes ?? defaultMinutes(playedAge(draft, squad)) : null,
         bookingId: null, matchType: draft.matchType, hostingChoice: hostingOf(draft), officialMode,
         officialResponsibility: draft.referee === 'THEM' ? 'OPPONENT' : 'HOST', refereeId: officialMode === 'INVITE' ? draft.invited?.id ?? null : null,
         externalRefereeName: officialMode === 'EXTERNAL' ? draft.refereeName.trim() : null,
@@ -168,8 +183,9 @@ export const draftStarted = (draft: Partial<Draft>) => Boolean(draft.date || dra
 /** One honest sentence above Send: who gets what, and that nothing is agreed yet. */
 export function whatHappens(mode: Mode, draft: Draft, targetSquadName: string | null) {
     const referee = draft.referee === 'INVITE' && draft.invited ? ` ${mt('{name} is invited to referee.', { name: draft.invited.name })}` : draft.referee === 'OPEN' ? ` ${mt('Referees nearby can apply.')}` : '';
-    if (mode === 'open') return `${mt('Shown in Open matches. Squads offer to play; you choose.')}${referee}`;
+    if (mode === 'open') return `${mt('Shown in World’s open challenges. Squads answer with a kick-off inside your window; you choose one.')}${referee}`;
     if (mode === 'edit') return mt('If the change affects an agreed opponent, referee or ground, you see who is affected before anything is saved.');
+    if (!draft.opponent && draft.outside?.trim()) return `${mt('Goes straight into your squad’s week. {club} isn’t in GrassKickZ, so nothing waits for them.', { club: draft.outside.trim() })}${referee}`;
     const whom = draft.opponent ? `${draft.opponent.name}${targetSquadName ? ` · ${targetSquadName}` : ''}` : mt('the club you choose');
     return `${mt('Invites {team}. Nothing is agreed until they accept.', { team: whom })}${referee}`;
 }
@@ -178,13 +194,18 @@ export function whatHappens(mode: Mode, draft: Draft, targetSquadName: string | 
 export type Problems = Partial<Record<'opponent' | 'squad' | 'date' | 'time' | 'length' | 'ground' | 'referee' | 'timezone', string>>;
 export function problemsWith(draft: Draft, mode: Mode, now: Date): Problems {
     const out: Problems = {};
-    if (mode === 'direct' && !draft.opponent) out.opponent = 'Search for the club you want to play.';
+    const window = windowed(draft, mode);
+    if (mode === 'direct' && !draft.opponent && !draft.outside?.trim()) out.opponent = 'Search for the club you want to play.';
     if (!draft.squadId) out.squad = 'Choose the squad that will play.';
     if (!validZone(draft.timezone)) out.timezone = 'Choose a valid time zone, such as Asia/Tbilisi.';
-    if (!draft.date) out.date = 'Choose the match day.';
-    if (!draft.time) out.time = 'Choose the kick-off time.';
-    else if (draft.date && !out.timezone && `${draft.date}T${draft.time}` <= localStamp(now, draft.timezone)) out.date = 'Kick-off must be in the future.';
-    if (draft.minutes != null && !(Number.isInteger(draft.minutes) && draft.minutes >= MIN_LENGTH && draft.minutes <= MAX_LENGTH)) out.length = 'A match lasts from 20 minutes to 12 hours.';
+    if (!draft.date) out.date = window ? 'Choose the first day you can play.' : 'Choose the match day.';
+    else if (window && draft.dateTo && (draft.dateTo < draft.date || daysBetween(draft.date, draft.dateTo) > 13)) out.date = 'Choose up to 14 days, the last one after the first.';
+    if (!draft.time) out.time = window ? 'Choose when you can start.' : 'Choose the kick-off time.';
+    else if (window && !draft.timeTo) out.time = 'Choose the time the match must be over by.';
+    else if (window && minutesOfDay(draft.timeTo!) - minutesOfDay(draft.time) < (draft.minutes ?? defaultMinutes(draft.ageGroup || 'SENIOR'))) out.time = 'Leave room for the whole match between the two times.';
+    else if (draft.date && !out.timezone && `${draft.date}T${draft.time}` <= localStamp(now, draft.timezone)) out.date = window ? 'The window must open in the future.' : 'Kick-off must be in the future.';
+    if (draft.minutes != null && !(Number.isInteger(draft.minutes) && draft.minutes >= MIN_LENGTH && draft.minutes <= (window ? 240 : MAX_LENGTH)))
+        out.length = window ? 'An open challenge’s match lasts from 20 minutes to 4 hours.' : 'A match lasts from 20 minutes to 12 hours.';
     const g = draft.ground;
     if (g.kind === 'OTHER' && !g.ground) out.ground = 'Search for the venue, or choose another option.';
     // A listed ground with no city on record (the server needs one) asks for it rather than being refused.
@@ -222,7 +243,9 @@ export function draftFromMatch(m: Match): Draft {
     const minutes = minutesBetween(m.starts_at, m.ends_at);
     return {
         opponent: m.opponent_club_id && m.opponent_name ? { id: m.opponent_club_id, name: m.opponent_name } : null, targetSquadId: m.target_squad_id ?? 0, squadId: m.squad_id,
-        date: m.starts_at.slice(0, 10), time: m.starts_at.slice(11, 16), minutes: minutes > 0 ? minutes : null, format: m.format,
+        date: m.starts_at.slice(0, 10), time: m.starts_at.slice(11, 16), format: m.format,
+        // An open challenge keeps its window: the last day, the closing time and its match length.
+        ...(m.window_from && m.window_to ? { dateTo: m.ends_at.slice(0, 10), timeTo: m.ends_at.slice(11, 16), minutes: m.match_minutes ?? null } : { minutes: minutes > 0 ? minutes : null }),
         ground, hosting, ageGroup: m.age_group || null, referee: m.referee_required ? 'US' : 'NONE', refereeName: '', note: m.description ?? '', title: m.title, matchType: 'FRIENDLY',
         level: m.level, timezone: m.timezone, requestId: crypto.randomUUID(),
     };

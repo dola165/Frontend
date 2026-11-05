@@ -1,4 +1,4 @@
-import { OpportunityLink } from '../ui/OpportunityLink';
+import { HomeLinks } from './HomeLinks';
 import { MotionPanel } from '../ui/MotionPanel';
 import { MotionDisclosure } from '../ui/MotionDisclosure';
 import { MessageText } from '../chat/MessageText';
@@ -114,13 +114,7 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
             <aside className="home-side-rail home-side-rail--right hidden xl:block" aria-label={copy('Store, jobs, fundraising and contacts', 'მაღაზია, სამუშაო, ფონდები და კონტაქტები')}>
                 <div className="home-side-scroll space-y-5">
                     {/* The global store, jobs and fundraising: plain names here, "Club store" and friends only on a club's page. */}
-                    <nav className="home-rail-card home-opportunities-card" aria-label={copy('Store, jobs and fundraising', 'მაღაზია, სამუშაო და ფონდების მოზიდვა')}>
-                        <div className="space-y-2.5 p-3">
-                            <OpportunityLink kind="store" to="/store" description={copy('Kit & merchandise from clubs', 'ფორმა და ნივთები კლუბებისგან')} />
-                            <OpportunityLink kind="jobs" to="/jobs" description={copy('Work and volunteer in football', 'იმუშავეთ ან იყავით მოხალისე ფეხბურთში')} />
-                            <OpportunityLink kind="campaigns" to="/campaigns" description={copy('Support club projects', 'დაუჭირეთ მხარი კლუბის პროექტებს')} />
-                        </div>
-                    </nav>
+                    <HomeLinks variant="rail" />
 
                     <section aria-labelledby="contacts-heading" className="home-rail-card home-contacts-card">
                         <div className="flex items-center border-b border-[var(--feed-card-border)] px-2 pb-3">

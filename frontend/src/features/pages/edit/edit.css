@@ -4,7 +4,6 @@
 .gk .gk-editbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); min-height: 44px; margin: var(--gk-2) 0 var(--gk-3); padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
 .gk .gk-editbar[data-editing] { border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); box-shadow: inset 0 0 0 1px var(--gk-accent-soft); }
 .gk .gk-editbar__draft { display: inline-flex; align-items: center; gap: var(--gk-2); font-weight: 600; }
-.gk .gk-editbar__claim { display: inline-flex; align-items: center; gap: var(--gk-2); color: var(--gk-text-2); }
 .gk .gk-editbar__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gk-warning); flex-shrink: 0; }
 .gk .gk-editbar__dot--live { background: var(--gk-accent); }
 .gk .gk-editbar__saved { min-width: 48px; color: var(--gk-text-2); }
@@ -64,9 +63,9 @@
 .gk .gk-tray__label { width: 100%; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
 
 /* The split panel: the choices on one side, the live result on the other; one column on a phone. */
-.gk .gk-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
-.gk .gk-split__preview { position: sticky; top: var(--gk-2); }
-@media (max-width: 760px) { .gk .gk-split { grid-template-columns: minmax(0, 1fr); } .gk .gk-split__preview { position: static; } }
+.gk .gk-splitpanel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gk-5); align-items: start; }
+.gk .gk-splitpanel__preview { position: sticky; top: var(--gk-2); }
+@media (max-width: 760px) { .gk .gk-splitpanel { grid-template-columns: minmax(0, 1fr); } .gk .gk-splitpanel__preview { position: static; } }
 .gk .gk-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .gk .gk-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: var(--swatch); cursor: pointer; }
 .gk .gk-swatch[aria-pressed='true'] { border-color: var(--gk-text); box-shadow: 0 0 0 2px var(--gk-bg); }
@@ -95,7 +94,7 @@
 
 /* The age-group builder: one row per age, Boys / Girls / Mixed as chips; the squads as small cards. */
 .gk .gk-fee__some { gap: var(--gk-2); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .gk-split__choices { min-width: 0; }
+.gk .gk-splitpanel__choices { min-width: 0; }
 
 /* The teams pop-up: a row per birth year with Boys · Girls · Both; each team a compact identity row. */
 .gk .gk-yearrows { display: grid; gap: 2px; }

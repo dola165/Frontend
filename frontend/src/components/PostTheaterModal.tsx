@@ -1,13 +1,16 @@
+import { apiClient } from '../api/axiosConfig';
+import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../utils/authStorage';
+import { PostDialog } from './feed/PostDialogs';
+import { PostComments, type SubmitComment } from './feed/PostComments';
 import { ReactionButton } from './feed/ReactionButton';
 import { ReactionSummary } from './feed/ReactionSummary';
 import { selectedReaction, type Reaction } from './feed/reactions';
 import { MediaImage } from './ui/MediaImage';
 import { MediaVideo } from './ui/MediaVideo';
-import { useEffect, useId, useRef, useState } from 'react';
-import { X, MessageCircle, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { X, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FeedPostDto, CommentDto } from './feed/FeedPost';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
-import { extractApiErrorMessage } from '../utils/apiError';
 import { useDialogFocus } from './workspace/useDialogFocus';
 import { createPortal } from 'react-dom';
 import { usePanelMotion } from './ui/usePanelMotion';
@@ -17,7 +20,7 @@ interface PostTheaterModalProps {
     post: FeedPostDto | null;
     onClose: () => void;
     commentsData?: CommentDto[];
-    onSubmitComment: (postId: number, content: string) => void | Promise<void>;
+    onSubmitComment: SubmitComment;
     onReactionChange?: (postId: number, reaction: Reaction | null) => void | Promise<void>;
     onLikeToggle: (postId: number) => void | Promise<void>;
     likePending?: boolean;
@@ -28,7 +31,44 @@ interface PostTheaterModalProps {
     initialMediaIndex?: number;
 }
 
-export const PostTheaterModal = (props: PostTheaterModalProps) => props.isOpen && props.post ? <PostTheaterContent {...props} /> : null;
+export const PostTheaterModal = (props: PostTheaterModalProps) => {
+    const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    return props.isOpen && props.post ? <VerifiedPostMedia key={`${session}:${props.post.id}:${props.initialMediaIndex ?? 0}`} {...props} /> : null;
+};
+
+function VerifiedPostMedia(props: PostTheaterModalProps) {
+    const id = props.post!.id;
+    const [openingPost] = useState(props.post);
+    const [verifiedComments, setVerifiedComments] = useState<CommentDto[]>([]);
+    const [post, setPost] = useState<FeedPostDto | null>(null), [error, setError] = useState(false);
+    const request = useRef<AbortController | null>(null);
+    const readProjection = useCallback(async () => {
+        request.current?.abort();
+        const abort = new AbortController(), session = getAuthSessionId(); request.current = abort;
+        const current = () => !abort.signal.aborted && request.current === abort && isCurrentAuthSession(session);
+        try {
+            const [{ data }, comments] = await Promise.all([apiClient.get<FeedPostDto>(`/posts/${id}`, { signal: abort.signal }), apiClient.get<CommentDto[]>(`/posts/${id}/comments`, { signal: abort.signal })]);
+            if (!current()) return;
+            if (data?.id !== id || !Array.isArray(comments.data)) throw Error('Invalid post projection');
+            setPost(data); setVerifiedComments(comments.data); setError(false);
+            return comments.data;
+        } catch {
+            if (current()) { setPost(null); setError(true); }
+        }
+    }, [id]);
+    const reload = useCallback(() => { setPost(null); setError(false); return readProjection(); }, [readProjection]);
+    useEffect(() => { void readProjection(); return () => request.current?.abort(); }, [readProjection]);
+    useEffect(() => {
+        const refresh = () => { if (document.visibilityState !== 'hidden') void reload(); };
+        const changed = (event: Event) => { if ((event as CustomEvent<number>).detail === id) refresh(); };
+        window.addEventListener('pageshow', refresh); document.addEventListener('visibilitychange', refresh);
+        window.addEventListener('gk-post-comments-changed', changed); window.addEventListener('gk-post-comment-created', changed);
+        return () => { window.removeEventListener('pageshow', refresh); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('gk-post-comments-changed', changed); window.removeEventListener('gk-post-comment-created', changed); };
+    }, [id, reload]);
+    if (!post) return <PostDialog title="Open post media" onClose={props.onClose}><p role={error ? 'alert' : 'status'}>{error ? 'This post is unavailable or could not load. Your comment draft is kept.' : 'Checking current post access…'}</p>{error && <button type="button" onClick={() => void reload()}>Retry</button>}</PostDialog>;
+    const supplied = props.post!;
+    return <PostTheaterContent {...props} onRetryComments={reload} commentsData={verifiedComments} commentsError={null} commentsLoading={false} post={supplied === openingPost ? post : { ...post, likeCount: supplied.likeCount, isLikedByMe: supplied.isLikedByMe, myReaction: supplied.myReaction, reactionCount: supplied.reactionCount, reactionCounts: supplied.reactionCounts }} />;
+}
 
 const PostTheaterContent = ({
     isOpen,
@@ -45,10 +85,8 @@ const PostTheaterContent = ({
     onRetryComments,
     initialMediaIndex = 0,
 }: PostTheaterModalProps) => {
-    const [commentInput, setCommentInput] = useState("");
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [commentPending, setCommentPending] = useState(false);
-    const [commentError, setCommentError] = useState('');
+    const mediaCount = post?.mediaUrls?.length || (post?.image ? 1 : 0);
+    const [currentIndex, setCurrentIndex] = useState(() => Math.max(0, Math.min(initialMediaIndex, mediaCount - 1)));
     const dialogRef = useRef<HTMLDivElement>(null);
     const closeRef = useRef<HTMLButtonElement>(null);
     const titleId = useId();
@@ -56,10 +94,6 @@ const PostTheaterContent = ({
     const onClose = motion.close;
     useDialogFocus(isOpen && post !== null, dialogRef, onClose, closeRef);
 
-    const mediaCount = post?.mediaUrls?.length || (post?.image ? 1 : 0);
-    useEffect(() => {
-        if (isOpen) setCurrentIndex(Math.max(0, Math.min(initialMediaIndex, mediaCount - 1)));
-    }, [isOpen, post?.id, initialMediaIndex, mediaCount]);
 
     useEffect(() => {
         if (!isOpen || mediaCount < 2) return;
@@ -87,21 +121,6 @@ const PostTheaterContent = ({
         return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    const handleCommentSubmit = async () => {
-        const submittedContent = commentInput.trim();
-        if (!submittedContent || commentPending) return;
-        setCommentPending(true);
-        setCommentError('');
-        try {
-            await onSubmitComment(post.id, submittedContent);
-            setCommentInput((current) => current.trim() === submittedContent ? '' : current);
-        } catch (error) {
-            setCommentError(extractApiErrorMessage(error, 'Comment could not be posted. Your draft is still here.'));
-        } finally {
-            setCommentPending(false);
-        }
-    };
-
     const handleNext = (e: React.MouseEvent) => {
         e.stopPropagation();
         setCurrentIndex((prev) => (prev + 1) % mediaList.length);
@@ -118,7 +137,7 @@ const PostTheaterContent = ({
 
     return createPortal(
         <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} data-closing={motion.closing} className="app-motion-portal app-motion-backdrop fixed inset-0 z-[9999] flex items-center justify-center bg-[color:var(--color-overlay)]/85 p-2 backdrop-blur-sm sm:p-6" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-            <button ref={closeRef} type="button" onClick={onClose} aria-label="Close post viewer" className="absolute top-4 left-4 z-50 rounded-full bg-[color:var(--color-ink)]/10 p-2 text-[color:var(--color-on-accent)] backdrop-blur-md transition-colors hover:bg-[color:var(--color-danger)]">
+            <button ref={closeRef} type="button" onClick={onClose} aria-label="Close post viewer" className="absolute top-4 left-4 z-50 rounded-full bg-[color:var(--color-ink)]/10 p-2 text-[color:var(--color-on-media)] backdrop-blur-md transition-colors hover:bg-[color:var(--color-danger)]">
                 <X className="h-6 w-6" />
             </button>
 
@@ -147,7 +166,7 @@ const PostTheaterContent = ({
                     )}
                 </div>
 
-                <div className="post-theater-details flex min-h-0 w-full flex-1 flex-col overflow-y-auto border-l border-[color:var(--color-border)]/[0.06] bg-[var(--color-overlay)] lg:h-full lg:w-[400px] lg:shrink-0 lg:flex-none lg:overflow-hidden xl:w-[450px]">
+                <div className="post-theater-details flex min-h-0 w-full flex-1 flex-col overflow-y-auto border-l border-[color:var(--color-border)]/[0.06] bg-[var(--color-surface)] lg:h-full lg:w-[400px] lg:shrink-0 lg:flex-none lg:overflow-hidden xl:w-[450px]">
                     <div className="shrink-0 border-b border-[color:var(--color-border)]/[0.06] p-5">
                         <div className="mb-4 flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[var(--color-accent)] text-sm font-semibold text-[var(--color-on-accent)] ">
@@ -175,81 +194,9 @@ const PostTheaterContent = ({
                         </div>
                     </div>
 
-                    <div className="shrink-0 space-y-4 p-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-                        {commentsError ? (
-                            <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
-                                <span className="text-xs font-medium text-[color:var(--color-danger)]">{commentsError}</span>
-                                {onRetryComments && (
-                                    <button type="button" onClick={() => onRetryComments(post.id)} className="rounded-full border border-[color:var(--color-danger)]/30 px-4 py-2 text-xs font-semibold text-[color:var(--color-danger)] transition-colors hover:bg-[color:var(--color-danger)]/10">
-                                        Retry comments
-                                    </button>
-                                )}
-                            </div>
-                        ) : commentsLoading ? (
-                            <div className="flex justify-center py-10"><span className="text-xs font-medium text-[var(--color-secondary)]">Loading comments...</span></div>
-                        ) : !commentsData ? (
-                            <div className="flex flex-col items-center gap-3 py-10 text-center">
-                                <span className="text-xs font-medium text-[var(--color-secondary)]">Comments are unavailable.</span>
-                                {onRetryComments && (
-                                    <button type="button" onClick={() => onRetryComments(post.id)} className="rounded-full border border-[color:var(--color-border)]/10 px-4 py-2 text-xs font-semibold text-[var(--color-secondary)] transition-colors hover:bg-[color:var(--color-ink)]/5 hover:text-[color:var(--color-text)]">
-                                        Load comments
-                                    </button>
-                                )}
-                            </div>
-                        ) : commentsData.length === 0 ? (
-                            <div className="flex justify-center py-10"><span className="text-xs font-medium text-[var(--color-secondary)]">No comments yet.</span></div>
-                        ) : (
-                            commentsData.map(comment => { const author = comment.authorName ?? 'Member'; return (
-                                <div key={comment.id} className="flex gap-3">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-secondary)]">
-                                        {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={author} className="h-full w-full object-cover" />
-                                        ) : (
-                                            author.substring(0, 2).toUpperCase()
-                                        )}
-                                    </div>
-                                    <div className="flex-1 rounded-xl bg-[var(--color-surface)] p-3">
-                                        <div className="mb-1 flex items-center gap-2">
-                                            <span className="text-sm font-semibold text-[var(--color-text)]">{author}</span>
-                                            <span className="text-xs text-[var(--color-muted)]">{formatTime(comment.createdAt)}</span>
-                                        </div>
-                                        <p className="text-sm text-[var(--color-muted)]">{comment.content}</p>
-                                    </div>
-                                </div>
-                            ); })
-                        )}
-                    </div>
-
-                    <div className="shrink-0 border-t border-[color:var(--color-border)]/[0.06] bg-[var(--color-surface)] p-4">
-                        <div className="relative flex gap-2">
-                            <input
-                                id={`post-theater-comment-${post.id}`}
-                                type="text"
-                                aria-label={`Write a comment on ${post.clubName || post.authorName}'s post`}
-                                placeholder="Write a comment..."
-                                value={commentInput}
-                                onChange={(e) => {
-                                    setCommentInput(e.target.value);
-                                    setCommentError('');
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        void handleCommentSubmit();
-                                    }
-                                }}
-                                className="w-full rounded-full border border-[color:var(--color-border)]/[0.06] bg-[var(--color-surface)] py-3 pl-5 pr-12 text-sm text-[var(--color-text)] outline-none transition-colors focus:border-[var(--color-accent)]"
-                            />
-                            <button
-                                aria-label="Post comment"
-                                onClick={() => void handleCommentSubmit()}
-                                disabled={!commentInput.trim() || commentPending}
-                                className="absolute right-1.5 top-1.5 bottom-1.5 rounded-full bg-[var(--color-accent)] px-3 text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent)] disabled:opacity-40"
-                            >
-                                <Send className="h-4 w-4" />
-                            </button>
-                        </div>
-                        {(commentError || likeError) && <p role="alert" className="mt-2 text-xs font-medium text-[color:var(--color-danger)]">{commentError || likeError}</p>}
+                    <div className="min-h-0 overflow-y-auto">
+                        <PostComments postId={post.id} author={post.clubName || post.authorName} inputId={`post-theater-comment-${post.id}`} comments={commentsData} error={commentsError} loading={commentsLoading} retry={onRetryComments} submit={onSubmitComment} />
+                        {likeError && <p role="alert">{likeError}</p>}
                     </div>
                 </div>
             </div>

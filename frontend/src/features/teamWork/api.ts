@@ -1,5 +1,6 @@
 import { apiClient } from '../../api/axiosConfig';
-import type { Commit, Repo } from './upToDate';
+import type { Commit } from './upToDate';
+import type { Seen, Versions } from './whichVersion';
 
 /** The pipeline: planned → in progress → needs your look → accepted → live; blocked sits beside it, cancelled after its end. */
 export const STATUSES = ['PLANNED', 'IN_PROGRESS', 'NEEDS_LOOK', 'ACCEPTED', 'LIVE', 'BLOCKED', 'CANCELLED'] as const;
@@ -20,7 +21,9 @@ export type EndUnit = 'DAYS' | 'WEEKS' | 'MONTHS';
 
 /** When a task is expected to end: an exact day, about N units from the start, possibly a month, or not known. */
 export interface WorkEnd { kind: EndKind; date?: string | null; amount?: number | null; unit?: EndUnit | null }
-export interface Person { id: number | null; name: string | null }
+import type { CommentActions, Person, WorkComment, WorkMedia } from '../../components/work/types';
+export type { CommentActions, Person, WorkComment, WorkMedia } from '../../components/work/types';
+export { FILE_EXTENSIONS, FILE_LIMIT_MB, VIDEO_LIMIT_MB, VIDEO_TYPES } from '../../components/work/types';
 /** Another task named from this one. */
 export interface WorkRef { id: number; key: string; title: string; status: WorkStatus }
 export interface WorkLink { kind: LinkKind; task: WorkRef }
@@ -37,8 +40,8 @@ export interface WorkItem {
     people: Person[]; mediaCount: number; commentCount: number; small: boolean;
     doneMeans: string | null; tested: string | null; commits: string | null; priority: Priority | null; requestedBy: Person | null;
     links: WorkLink[]; waitingOn: WorkRef[]; openQuestions: number;
-    /** The task's team chat, if it has one, and how many messages it holds. */
-    chatId?: number | null; chatMessages?: number;
+    /** The task's team chat, if it has one, and how many messages it holds; `chatPrivate`: its chat is for chosen people you are not in. */
+    chatId?: number | null; chatMessages?: number; chatPrivate?: boolean;
 }
 export interface WorkUpdate {
     id: number; author: Person | null; at: string; previousStatus: WorkStatus | null; status: WorkStatus | null;
@@ -46,16 +49,17 @@ export interface WorkUpdate {
     /** Done by Agent Dola for the author, after they approved its preview. */
     byDola?: boolean;
 }
-/** A picture, a video or any other file; `name` is the file's own name (files only). */
-export interface WorkMedia { id: number; kind: 'IMAGE' | 'VIDEO' | 'FILE'; url: string; contentType: string; sizeBytes: number; uploadedBy: Person | null; createdAt: string; canDelete: boolean; name?: string | null }
-export interface WorkComment { id: number; author: Person | null; body: string; createdAt: string; editedAt: string | null; canEdit: boolean; byDola?: boolean }
 export interface WorkSwitch { itemId: number; title: string; at: string }
 /** Every task, the trail, and the team with each person's responsibility. */
 export interface Board { items: WorkItem[]; trail: WorkSwitch[]; canManageTeam: boolean; team: Member[] }
 /** What a plan or a task is for, changed: the old purpose stays beside the new one. */
 export interface PurposeChange { id: number; author: Person | null; at: string; previous: string | null; purpose: string | null; byDola?: boolean }
 /** A task opened: its history, steps, questions, the live commits naming its key, files, comments and how its purpose changed. */
-export interface Detail { item: WorkItem; updates: WorkUpdate[]; steps: WorkItem[]; questions: WorkQuestion[]; foundCommits: Commit[]; media: WorkMedia[]; comments: WorkComment[]; purposeChanges: PurposeChange[] }
+export interface Detail { item: WorkItem; updates: WorkUpdate[]; steps: WorkItem[]; questions: WorkQuestion[]; foundCommits: Commit[]; media: WorkMedia[]; comments: WorkComment[]; purposeChanges: PurposeChange[]; handoff?: Handoff | null }
+/** What the last person working on a task wrote for whoever continues; a pasted report sets it. */
+export interface Handoff { text: string; by: Person | null; at: string }
+/** Everything someone with no memory of the project needs to continue a task, and how many files come with it. */
+export interface Brief { key: string; text: string; files: number; fileBytes: number }
 /** Whether a plan is being worked on now, comes later, or is finished. */
 export type PlanStatus = 'NOW' | 'LATER' | 'FINISHED';
 /** The plan another plan is part of. */
@@ -74,16 +78,23 @@ export const openCount = (plan: Plan) => plan.taskCount - plan.done - (plan.canc
 export interface PlanChange { id: number; author: Person | null; at: string; message: string; byDola?: boolean }
 export interface WorkNode { item: WorkItem; steps: WorkItem[] }
 /** A plan opened: its tasks, the plans that are its steps (in order), its history and how its purpose changed. */
-export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean }
-/** Someone on the team, with their one-line responsibility ("Agent Dola") and their Now note, with when they changed it. */
-export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean; responsibility?: string | null; now?: string | null; nowAt?: string | null }
+export interface PlanView { plan: Plan; tasks: WorkNode[]; steps: Plan[]; changes: PlanChange[]; purposeChanges: PurposeChange[]; trail: WorkSwitch[]; team: Person[]; canManageTeam: boolean; media?: WorkMedia[] }
+/**
+ * Someone on the team, with their one-line responsibility ("Agent Dola") and their Now note, with when they changed it.
+ * `mail`: their notices also reach an inbox they confirmed; which inbox only they see.
+ */
+export interface Member { userId: number; name: string | null; email: string; admin: boolean; addedAt: string | null; pending: boolean; responsibility?: string | null; now?: string | null; nowAt?: string | null; mail?: boolean }
+/** Where your own notices are emailed: the inbox, whether its link was opened, and when the link went out. */
+export interface Mail { address: string | null; confirmed: boolean; linkSentAt: string | null }
+/** "Notify": who was told, who was asked a few minutes ago and so left alone, and the task as it is now. */
+export interface Asked { told: Person[]; justAsked: Person[]; detail: Detail }
 /** What a person is doing, in their own words (only they change it), with teammates' comments under it, oldest first. */
 export interface NowNote { person: Person; body: string | null; updatedAt: string | null; canEdit: boolean; comments: WorkComment[] }
 export interface Invite { userId: number; email: string; token: string; expiresAt: string }
 export interface PasteLine { line: number; action: 'NEW' | 'UPDATED' | 'MOVED' | 'UNCHANGED' | 'DELETED'; title: string; parent: string | null; detail: string | null }
 export interface PasteResult { created: number; updated: number; moved: number; unchanged: number; deleted: number; lines: PasteLine[]; problems: string[]; applied: boolean; view: PlanView | null }
 /** One thing a report sets: the field, what happens to it and the value. */
-export interface ReportLine { field: 'status' | 'branch' | 'pr' | 'commits' | 'percent' | 'tested' | 'question' | 'summary'; action: 'SET' | 'SAME' | 'ADDED'; detail: string }
+export interface ReportLine { field: 'status' | 'branch' | 'pr' | 'commits' | 'percent' | 'tested' | 'question' | 'summary' | 'handoff'; action: 'SET' | 'SAME' | 'ADDED'; detail: string; key?: string }
 export interface ReportResult { lines: ReportLine[]; problems: string[]; applied: boolean; detail: Detail | null }
 
 export interface NewWork {
@@ -115,7 +126,21 @@ export const changePlan = (id: number, change: { version: number; name?: string;
 /** A plan as a step of another: one parent at most, never a cycle. */
 export const addPlanStep = (id: number, planId: number) => data(apiClient.post<PlanView>(`${base}/plans/${id}/steps`, { planId }));
 export const removePlanStep = (id: number, childId: number) => data(apiClient.delete<PlanView>(`${base}/plans/${id}/steps/${childId}`));
+/** What is dropped on a plan goes the way it goes on a task: a picture as a form, a video or a file as the request body, streamed to storage. */
+export const addPlanPicture = (planId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<PlanView>(`${base}/plans/${planId}/pictures`, form)); };
+export const addPlanVideo = (planId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<PlanView>(`${base}/plans/${planId}/videos`, file, {
+    headers: { 'Content-Type': file.type }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
+}));
+export const addPlanFile = (planId: number, file: File, onProgress?: (share: number) => void) => data(apiClient.post<PlanView>(`${base}/plans/${planId}/files`, file, {
+    params: { name: file.name }, headers: { 'Content-Type': 'application/octet-stream' }, timeout: 0, onUploadProgress: event => { if (event.total) onProgress?.(event.loaded / event.total); },
+}));
+export const deletePlanMedia = (planId: number, mediaId: number) => data(apiClient.delete<PlanView>(`${base}/plans/${planId}/media/${mediaId}`));
+export const planPlayLink = (planId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/plans/${planId}/media/${mediaId}/play`));
 export const pasteIntoPlan = (id: number, text: string, apply: boolean) => data(apiClient.post<PasteResult>(`${base}/plans/${id}/paste`, { text, apply }));
+/** Copy for AI: the task as a brief for someone with no memory of the project. */
+export const fetchBrief = (itemId: number, signal?: AbortSignal) => data(apiClient.get<Brief>(`${base}/items/${itemId}/brief`, { signal }));
+/** The brief and the task's files as one zip. */
+export const fetchBriefPackage = (itemId: number) => data(apiClient.get<Blob>(`${base}/items/${itemId}/brief/package`, { responseType: 'blob', timeout: 0 }));
 /** A worker's report onto a task: a preview first, then apply. */
 export const pasteReport = (itemId: number, text: string, apply: boolean) => data(apiClient.post<ReportResult>(`${base}/items/${itemId}/report`, { text, apply }));
 export const askQuestion = (itemId: number, text: string, options: string[]) => data(apiClient.post<Detail>(`${base}/items/${itemId}/questions`, { text, options }));
@@ -125,8 +150,6 @@ export const deleteQuestion = (questionId: number) => data(apiClient.delete<Deta
 export const addComment = (itemId: number, body: string) => data(apiClient.post<WorkComment[]>(`${base}/items/${itemId}/comments`, { body }));
 export const editComment = (id: number, body: string) => data(apiClient.patch<WorkComment[]>(`${base}/comments/${id}`, { body }));
 export const deleteComment = (id: number) => data(apiClient.delete<WorkComment[]>(`${base}/comments/${id}`));
-/** Where a thread of comments saves (a task's, a Now note's); each call answers with the whole thread. */
-export interface CommentActions { add: (body: string) => Promise<WorkComment[]>; edit: (id: number, body: string) => Promise<WorkComment[]>; remove: (id: number) => Promise<WorkComment[]> }
 /** The thread under a task. */
 export const itemComments = (itemId: number): CommentActions => ({ add: body => addComment(itemId, body), edit: editComment, remove: deleteComment });
 export const addPicture = (itemId: number, file: File) => { const form = new FormData(); form.append('file', file); return data(apiClient.post<Detail>(`${base}/items/${itemId}/pictures`, form)); };
@@ -141,9 +164,20 @@ export const addFile = (itemId: number, file: File, onProgress?: (share: number)
 export const deleteMedia = (itemId: number, mediaId: number) => data(apiClient.delete<Detail>(`${base}/items/${itemId}/media/${mediaId}`));
 /** A ten-minute link a video element can stream from. */
 export const playLink = (itemId: number, mediaId: number) => data(apiClient.get<{ url: string; expiresAt: string }>(`${base}/items/${itemId}/media/${mediaId}/play`));
-/** The commits baked into the running backend (the web app carries its own, see upToDate.ts). */
-export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<{ backend: Repo }>(`${base}/versions`, { signal }));
+/** The running backend's build and history, the releases and where it stands, the live release and what this person last looked at (the web app carries its own build, see whichVersion.ts). */
+export const fetchVersions = (signal?: AbortSignal) => data(apiClient.get<Versions>(`${base}/versions`, { signal }));
+/** Remembers the version this person is looking at now, for "new since you last looked". */
+export const saveSeen = (seen: Omit<Seen, 'at'>) => data(apiClient.put<Seen>(`${base}/versions/seen`, seen));
 export const fetchTeam = (signal?: AbortSignal) => data(apiClient.get<Member[]>(`${base}/team`, { signal }));
+/**
+ * Someone on the team list who cannot use the team chats now, and why: left out of them (no account, not active, under
+ * 18 by their birth date) or in them with a step of their own first (`inChats`).
+ */
+export interface OutsideChats {
+    email: string; userId: number | null; name: string | null; accountState: string | null; inChats: boolean;
+    reason: 'NO_ACCOUNT' | 'NOT_ACTIVE' | 'UNDER_18' | 'DOB_REQUIRED' | 'ONBOARDING_REQUIRED' | 'PASSWORD_CHANGE_REQUIRED';
+}
+export const fetchOutsideChats = (signal?: AbortSignal) => data(apiClient.get<OutsideChats[]>(`${base}/team/outside-chats`, { signal }));
 export const addMember = (email: string) => data(apiClient.post<{ members: Member[]; invite: Invite | null }>(`${base}/team`, { email }));
 export const newInvite = (userId: number) => data(apiClient.post<Invite>(`${base}/team/${userId}/invite`));
 export const removeMember = (userId: number) => data(apiClient.delete<Member[]>(`${base}/team/${userId}`));
@@ -156,12 +190,14 @@ export const writeNow = (userId: number, body: string) => data(apiClient.put<Now
 export const addNowComment = (userId: number, body: string) => data(apiClient.post<NowNote>(`${base}/team/${userId}/now/comments`, { body }));
 export const editNowComment = (id: number, body: string) => data(apiClient.patch<NowNote>(`${base}/now-comments/${id}`, { body }));
 export const deleteNowComment = (id: number) => data(apiClient.delete<NowNote>(`${base}/now-comments/${id}`));
-
-export const VIDEO_LIMIT_MB = 90;
-export const VIDEO_TYPES = ['video/mp4', 'video/webm'];
-export const FILE_LIMIT_MB = 25;
-/** What "Add file" takes besides pictures and videos, by extension. */
-export const FILE_EXTENSIONS = ['pdf', 'txt', 'md', 'csv', 'log', 'json', 'zip', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+export const fetchMail = (signal?: AbortSignal) => data(apiClient.get<Mail>(`${base}/mail`, { signal }));
+/** Sends the confirming link to this inbox; nothing is emailed there until it is opened. */
+export const setMail = (address: string) => data(apiClient.put<Mail>(`${base}/mail`, { address }));
+export const removeMail = () => data(apiClient.delete<Mail>(`${base}/mail`));
+/** The link from the inbox, without signing in: the token is the proof. */
+export const confirmMail = (token: string) => data(apiClient.post<{ address: string }>('/auth/notification-email/confirm', { token }));
+/** Tells these teammates the task needs their attention, with one optional line. */
+export const askAttention = (itemId: number, people: number[], line: string) => data(apiClient.post<Asked>(`${base}/items/${itemId}/attention`, { people, line: line || undefined }));
 
 /** What the paste box accepts, shown as its example. */
 export const PASTE_EXAMPLE = `plan: Registration and roles
@@ -183,7 +219,13 @@ summary: Sign-up with a code works; the parent step is next.
 tested: unit tests and npm run check green; signed up on a phone.
   Not run: the e-mail provider in test mode (no key on this PC).
 question: Should the code expire after 10 minutes or 30? | 10 | 30
-question: Is the parent step needed for 16–17 too?`;
+question: Is the parent step needed for 16–17 too?
+handoff: For whoever continues, on as many lines as it takes: what really works, what's left,
+each branch and how to run it, what was tried and dropped, the exact next thing to do.
+
+report: GK-13
+status: needs your look
+summary: The parent step is built; it needs a look.`;
 
 /** The tasks of the week the board opened with, approximate; a system admin loads them once. */
 export const STARTER_WORK: NewWork[] = [

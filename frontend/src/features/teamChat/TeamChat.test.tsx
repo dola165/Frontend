@@ -1,5 +1,5 @@
 import '../../i18n';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -9,6 +9,7 @@ import { DiscussButton } from './DiscussButton';
 import type { LiveHandlers } from './liveChat';
 import { TeamChatNavItem } from './TeamChatNavItem';
 import { TeamChatPage } from './TeamChatPage';
+import { useTeamChat } from './useTeamChat';
 
 vi.mock('./api', async importOriginal => ({
     ...await importOriginal<typeof api>(), fetchHome: vi.fn(), fetchUnread: vi.fn(), fetchTasks: vi.fn(), createChat: vi.fn(), fetchState: vi.fn(),
@@ -94,7 +95,9 @@ it('lists the chats, unread first with their task key and status, and opens the 
     expect(await screen.findByText('Morning')).toBeInTheDocument();
     expect(where()).toHaveTextContent('chat=50');
     const list = screen.getByRole('navigation', { name: 'Chats' });
-    const rows = within(list).getAllByRole('listitem');
+    // Media comes first, above the chats.
+    expect(within(list).getAllByRole('listitem')[0]).toHaveTextContent('Media');
+    const rows = within(list).getAllByRole('listitem').filter(row => row.classList.contains('tc-chatrow'));
     expect(rows[0]).toHaveTextContent('GK-12');
     expect(rows[0]).toHaveTextContent('Registration');
     expect(rows[0]).toHaveTextContent('Talking');
@@ -134,6 +137,42 @@ it('puts the New line where the unread messages start', async () => {
     expect(line.compareDocumentPosition(screen.getByText('@Gio'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 });
 
+it('opens a chat with unread messages where they start, not at a newest page that may not hold the first', async () => {
+    vi.mocked(api.fetchState).mockImplementation(async () => stateOf(registration(), { firstUnreadId: 2, unreadCount: 1 }));
+    mount();
+    await screen.findByText('Morning');
+    expect(api.fetchPage).toHaveBeenCalledWith(50, { around: 2 });
+});
+
+it('brings a message jumped to into view once: new messages afterwards never pull the view back to it', async () => {
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrolled;
+    mount('/team-work/chat?chat=50&message=1');
+    await screen.findByText('Morning');
+    await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(1));
+    vi.mocked(api.fetchChanges).mockResolvedValue({ messages: [message(3, { content: 'Pizza at seven' })], revision: 4, more: false });
+    await waitFor(() => expect(live).not.toBeNull());
+    act(() => live?.onChanged());
+    expect(await screen.findByText('Pizza at seven')).toBeInTheDocument();
+    vi.mocked(api.fetchChanges).mockResolvedValue({ messages: [message(4, { content: 'And cola' })], revision: 5, more: false });
+    act(() => live?.onChanged());
+    expect(await screen.findByText('And cola')).toBeInTheDocument();
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    Element.prototype.scrollIntoView = original;
+});
+
+it('never loses a read: what is seen while another read is on its way is marked next', async () => {
+    const answers: Array<() => void> = [];
+    vi.mocked(api.markRead).mockImplementation(() => new Promise(resolve => answers.push(() => resolve({ firstUnreadId: null, unreadCount: 0 }))));
+    const { result } = renderHook(() => useTeamChat(50, null));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => { result.current.read(5); result.current.read(9); });
+    expect(api.markRead).toHaveBeenCalledTimes(1);
+    await act(async () => { answers[0](); });
+    await waitFor(() => expect(api.markRead).toHaveBeenLastCalledWith(50, 9));
+});
+
 it('does not exist for someone off the team', async () => {
     vi.mocked(api.fetchHome).mockRejectedValue({ response: { status: 404 } });
     mount();
@@ -159,14 +198,14 @@ it('starts a chat from a task, or about a general topic', async () => {
     await user.type(within(dialog).getByRole('searchbox'), 'map');
     expect(within(dialog).queryByText('Jobs page')).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: /GK-30.*Map markers/ }));
-    expect(api.createChat).toHaveBeenCalledWith({ taskId: 30 });
+    expect(api.createChat).toHaveBeenCalledWith({ taskId: 30, people: null });
     await waitFor(() => expect(where()).toHaveTextContent('chat=60'));
 
     await user.click(screen.getByRole('button', { name: 'Start a chat' }));
     dialog = await screen.findByRole('dialog', { name: 'Start a chat' });
     await user.click(within(dialog).getByRole('tab', { name: 'General topic' }));
     await user.type(within(dialog).getByRole('textbox'), 'Friday pizza{Enter}');
-    expect(api.createChat).toHaveBeenLastCalledWith({ name: 'Friday pizza' });
+    expect(api.createChat).toHaveBeenLastCalledWith({ name: 'Friday pizza', people: null });
     await waitFor(() => expect(where()).toHaveTextContent('chat=61'));
 });
 
@@ -264,24 +303,26 @@ it('shows Recently deleted with the day each chat goes, and saves files from the
     expect(api.keepFiles).toHaveBeenCalledWith(50, [9]);
 });
 
-it('shows this chat’s media or every chat’s, by person and kind, and leads back to its message', async () => {
+it('shows this chat’s media by person and kind, leads back to its message, and on to all media', async () => {
     const user = userEvent.setup();
     vi.mocked(api.fetchShared).mockResolvedValue({
-        more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 51, chatName: 'Friday plan', sender: gio, createdAt: minute(1) }],
+        more: false, items: [{ attachment: file(9, 'budget.pdf'), messageId: 40, chatId: 50, chatName: 'Registration', sender: gio, createdAt: minute(1) }],
     });
     mount();
     await screen.findByText('Morning');
     await waitFor(() => expect(api.fetchShared).toHaveBeenCalledWith({ chat: 50, kind: null, from: null }, expect.anything()));
-    await user.click(within(panel()).getByRole('button', { name: 'All chats' }));
-    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: null, kind: null, from: null }, expect.anything()));
+    // The panel keeps this chat's media only: everything else is on the Media page.
+    expect(within(panel()).queryByRole('button', { name: 'All chats' })).not.toBeInTheDocument();
     await user.selectOptions(within(panel()).getByRole('combobox', { name: 'Shared by' }), '2');
-    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: null, kind: null, from: 2 }, expect.anything()));
+    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: 50, kind: null, from: 2 }, expect.anything()));
     await user.click(within(panel()).getByRole('button', { name: 'Files' }));
-    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: null, kind: 'FILE', from: 2 }, expect.anything()));
-    expect(where()).toHaveTextContent('mall=1');
-    await user.click(await within(panel()).findByRole('button', { name: /Gio · Friday plan/ }));
-    await waitFor(() => expect(where()).toHaveTextContent('chat=51'));
-    expect(where()).toHaveTextContent('message=40');
+    await waitFor(() => expect(api.fetchShared).toHaveBeenLastCalledWith({ chat: 50, kind: 'FILE', from: 2 }, expect.anything()));
+    expect(where()).toHaveTextContent('mkind=FILE');
+    await user.click(await within(panel()).findByRole('button', { name: 'Show in chat' }));
+    await waitFor(() => expect(where()).toHaveTextContent('message=40'));
+    await user.click(within(panel()).getByRole('button', { name: 'All media' }));
+    await waitFor(() => expect(where()).toHaveTextContent('view=media'));
+    expect(where()).toHaveTextContent('in=chat-50');
 });
 
 it('sends a message once, even when the first try got no answer', async () => {

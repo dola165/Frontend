@@ -3,6 +3,14 @@ import { normalizeNavigationCapabilities, workspaceLinks } from '../navigationCa
 const entry = (id: string, type: string, contextId: unknown = 7) => ({ id, context: { type, id: contextId, label: 'Academy' } });
 
 describe('server navigation contract', () => {
+    it('keeps the job workspace chooser scoped to each club without accepting a supplied destination', () => {
+        const projection = normalizeNavigationCapabilities({ version: 1, workspaces: [
+            { ...entry('club.job-workspaces', 'club', 21), path: '/clubs/99/work' },
+            entry('club.job-workspaces', 'club', 22), entry('club.job-workspaces', 'user'),
+            entry('club.job-workspaces', 'club', 21), entry('club.job-workspaces', 'club', -1),
+        ] }, 7);
+        expect(workspaceLinks(projection).map(link => link.path)).toEqual(['/clubs/21/work', '/clubs/22/work']);
+    });
     it('keeps organization settings reachable in their explicit authorized context', () => {
         const projection = normalizeNavigationCapabilities({ version: 1, workspaces: [
             entry('organization.settings', 'organization', 35), entry('organization.settings', 'user'),
@@ -34,7 +42,7 @@ describe('server navigation contract', () => {
             entry('referee.workspace', 'user'), entry('tournament.create', 'organization', 35),
         ] }, 7);
         const links = workspaceLinks(projection);
-        expect(links.map(link => link.path)).toEqual(['/parent', '/clubs/21/workspace', '/clubs/22/workspace', '/referees/me', '/world/tournaments?peek=draw-o35']);
+        expect(links.map(link => link.path)).toEqual(['/parent', '/clubs/21/office', '/clubs/22/office', '/referees/me', '/world/tournaments?peek=draw-o35']);
         expect(new Set(links.map(link => link.key)).size).toBe(5);
     });
 
@@ -46,13 +54,13 @@ describe('server navigation contract', () => {
             entry('club.workspace', 'club', 1.5), entry('club.workspace', 'club', Number.MAX_SAFE_INTEGER + 1),
             entry('future.workspace', 'club'), entry('__proto__', 'club'), null,
         ] }, 7);
-        expect(workspaceLinks(projection).map(link => link.path)).toEqual(['/clubs/21/workspace']);
+        expect(workspaceLinks(projection).map(link => link.path)).toEqual(['/clubs/21/office']);
     });
 
     it('uses only known destinations, never a supplied URL or role label', () => {
         const projection = normalizeNavigationCapabilities({ version: 1, role: 'SYSTEM_ADMIN', workspaces: [
             { ...entry('club.workspace', 'club'), path: 'https://attacker.invalid', context: { type: 'club', id: 7, label: 'SYSTEM_ADMIN' } },
         ] }, 7);
-        expect(workspaceLinks(projection)).toEqual([{ key: 'club.workspace:club:7', capability: 'club.workspace', path: '/clubs/7/workspace', label: 'Workspace — SYSTEM_ADMIN' }]);
+        expect(workspaceLinks(projection)).toEqual([{ key: 'club.workspace:club:7', capability: 'club.workspace', path: '/clubs/7/office', label: 'Club office — SYSTEM_ADMIN' }]);
     });
 });

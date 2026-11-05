@@ -79,8 +79,13 @@ export const DELETE_FORBIDDEN: [string, string] = [
 export const RESTORE_FORBIDDEN: [string, string] = [
     'Only the person who started this chat or a team admin can restore it.', 'ჩატის აღდგენა შეუძლია მხოლოდ მის დამწყებს ან გუნდის ადმინს.',
 ];
-/** Why changing a message is refused: only the person who wrote it may. */
-export const WRITER_FORBIDDEN: [string, string] = ['Only the person who wrote it can change or delete it.', 'შეცვლა ან წაშლა მხოლოდ ავტორს შეუძლია.'];
+/** Why changing a message is refused: only the person who wrote it may (and a moderator may delete it). */
+export const WRITER_FORBIDDEN: [string, string] = ['Only the person who wrote it can change it; they or a moderator can delete it.', 'შეცვლა მხოლოდ ავტორს შეუძლია; წაშლა ავტორს ან მოდერატორს.'];
+/** Why a task's chat does not open: it is for the people chosen for it. */
+export const CHAT_PRIVATE: [string, string] = [
+    'This task’s chat is for the people chosen for it; whoever started it, or a team admin, can add you.',
+    'ამ საქმის ჩატი არჩეული ხალხისთვისაა; დაგამატებთ მისი დამწყები ან გუნდის ადმინი.',
+];
 
 /**
  * What went wrong, in our words (the server's own words are English). `forbidden` is the true reason a 403 has for
@@ -98,3 +103,8 @@ export function problem(copy: Copy, error: unknown, what: [en: string, ka: strin
     if (status >= 500) return copy(`${what[0]} The server had a problem; try again.`, `${what[1]} სერვერზე შეფერხებაა; სცადეთ ხელახლა.`);
     return copy(`${what[0]} Check it and try again.`, `${what[1]} შეამოწმეთ და სცადეთ ხელახლა.`);
 }
+
+/** Who chooses the people of a chat, for those who may not: the person who started it or a team admin. */
+export const onlyManagers = (copy: Copy, chat: Pick<ChatSummary, 'createdBy'>) => chat.createdBy?.name
+    ? copy(`Only ${chat.createdBy.name}, who started it, or a team admin chooses who is in it.`, `ვინ არის ჩატში, ირჩევს მხოლოდ მისი დამწყები (${chat.createdBy.name}) ან გუნდის ადმინი.`)
+    : copy('Only a team admin chooses who is in it.', 'ვინ არის ჩატში, ირჩევს მხოლოდ გუნდის ადმინი.');

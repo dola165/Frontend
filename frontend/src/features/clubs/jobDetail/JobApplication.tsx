@@ -7,6 +7,8 @@ import { createClubApplication } from '../api';
 import { useJobsOpportunitiesCopy } from '../jobsOpportunitiesCopy';
 import type { JobDetailState, JobViewerStatus } from './useJobDetail';
 import './job-application.css';
+import type { Job } from '../../jobs/api';
+import { PublicJobResponses } from '../../jobs/PublicJobResponses';
 
 const LIVE = ['PENDING', 'OFFERED', 'ACCEPTED', 'EXPIRED'];
 
@@ -45,6 +47,8 @@ export function JobApplication({ id, status, detail }: { id: number; status: Job
             setBusy(false);
         }
     };
+    if (job && !job.requiredRole && (job as Job).applyMethod === 'IN_APP')
+        return <PublicJobResponses job={job as Job} onListingChanged={detail.retryJob} />;
     return <>
         {checking ? (
             <p role="status">{copy('checkingApplication')}</p>
@@ -66,7 +70,7 @@ export function JobApplication({ id, status, detail }: { id: number; status: Job
                     ) : entry.error ? (
                         <p role="alert">{entryCopy.copy('Eligibility could not load.', 'მოთხოვნის უფლება ვერ შემოწმდა.')} <button type="button" onClick={entry.reload}>{entryCopy.copy('Retry eligibility', 'ხელახლა შემოწმება')}</button></p>
                     ) : entry.data && !entry.allowed ? (
-                        <p role="status">{entryCopy.reason(entry.data)} <Link to={entry.data.reason === 'IDENTITY_REQUIRED' ? `/account/roles?next=${encodeURIComponent(here.pathname + here.search)}` : '/account?tab=profile'}>{entry.data.reason === 'IDENTITY_REQUIRED' ? entryCopy.copy('Add football identity', 'ფეხბურთის როლის დამატება') : entryCopy.copy('Review account and requests', 'ანგარიშისა და მოთხოვნების ნახვა')}</Link></p>
+                        <p role="status">{entryCopy.reason(entry.data)} <Link to={entry.data.reason === 'IDENTITY_REQUIRED' ? `/account/football?next=${encodeURIComponent(here.pathname + here.search)}` : '/account?tab=profile'}>{entry.data.reason === 'IDENTITY_REQUIRED' ? entryCopy.copy('Add football identity', 'ფეხბურთის როლის დამატება') : entryCopy.copy('Review account and requests', 'ანგარიშისა და მოთხოვნების ნახვა')}</Link></p>
                     ) : (
                         <form onSubmit={submit} className="jobs-application-form">
                             <h2>{copy('applyTitle')}</h2>

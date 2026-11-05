@@ -179,7 +179,7 @@ export const FIRST_TIPS: readonly FirstTip[] = [
     },
     {
         id: 'arrange-match', action: true, ask: ASK.createMatch,
-        places: [{ path: '/world/*', query: { peek: 'arrange-*' } }, { path: '/my-squads', query: { arrange: true } }],
+        places: [{ path: '/world/*', query: { do: 'arrange_match' } }, { path: '/my-squads', query: { arrange: true } }],
         title: w('Arrange a match', 'მატჩის შეთანხმება'),
         body: w('Invite a club to play, or post an open match that anyone can propose to. Choose your squad, the day, time and ground; once the other side accepts, the match is on both calendars.',
             'მოიწვიეთ კლუბი სათამაშოდ, ან გამოაქვეყნეთ ღია მატჩი, რომელზეც ნებისმიერს შეუძლია შემოთავაზება. აირჩიეთ შემადგენლობა, დღე, დრო და მოედანი; როგორც კი მეორე მხარე დათანხმდება, მატჩი ორივეს კალენდარში აღმოჩნდება.'),
@@ -365,8 +365,8 @@ export const FIRST_TIPS: readonly FirstTip[] = [
     {
         id: 'start-fundraiser', action: true, places: [{ path: '/campaigns/new' }], ask: ASK.fundraiser, askFor: 'staff',
         title: w('Start a fundraiser', 'თანხის შეგროვების დაწყება'),
-        body: w('Three screens: what it’s for and how much you need, a title and your story, then where donations go. Donations are made on GoFundMe; the page here tells your story and shows the progress.',
-            'სამი ეკრანი: რისთვის და რამდენი გჭირდებათ, სათაური და თქვენი ამბავი, შემდეგ — სად გადაირიცხება თანხა. შემოწირულობა GoFundMe-ზე ხდება; აქაური გვერდი თქვენს ამბავს ყვება და პროგრესს აჩვენებს.'),
+        body: w('One form: the title, the story and what the money is for. It saves as a draft with its own project, and goes public when you publish it. GrassKickZ takes no payments; supporters ask your club how to give.',
+            'ერთი ფორმა: სათაური, ამბავი და რას მოხმარდება თანხა. ჯერ მონახაზად შეინახება საკუთარ პროექტთან ერთად და გამოქვეყნების შემდეგ საჯარო ხდება. GrassKickZ გადახდებს არ იღებს; გულშემატკივრები თქვენს კლუბს ეკითხებიან, როგორ დაეხმარონ.'),
     },
     {
         id: 'club-settings', places: workspaceTab('settings'), ask: ASK.clubPage,

@@ -3,9 +3,9 @@ import { isAxiosError } from 'axios';
 import { extractApiErrorMessage } from "../../utils/apiError";
 import { get } from "./api";
 import { useMatchCopy } from './copy';
-export function useLoad<T>(path: string) {
+export function useLoad<T>(path: string): { data: T | undefined; error: string; status?: number; reload: () => void } {
   const [result, setResult] = useState<{ path: string; data: T }>();
-  const [failure, setFailure] = useState({ path: "", message: "" });
+  const [failure, setFailure] = useState<{ path: string; message: string; status?: number }>({ path: "", message: "" });
   const [revision, setRevision] = useState(0);
   useEffect(() => {
     const c = new AbortController();
@@ -26,6 +26,7 @@ export function useLoad<T>(path: string) {
           setFailure({
             path,
             message: extractApiErrorMessage(e, "Could not load this page."),
+            status: isAxiosError(e) ? e.response?.status : undefined,
           });
       }).finally(() => { loading = false; });
     };
@@ -38,6 +39,8 @@ export function useLoad<T>(path: string) {
   return {
     data: result?.path === path ? result.data : undefined,
     error: failure.path === path ? failure.message : "",
+    /** The failed read's HTTP status: 403 or 404 means "not yours", anything else "Couldn't load · Try again". */
+    status: failure.path === path ? failure.status : undefined,
     reload: () => setRevision((v) => v + 1),
   };
 }

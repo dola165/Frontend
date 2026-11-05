@@ -69,13 +69,8 @@
 .gk.gk-match .gk-match-manage__body .mx-panel + .mx-panel { padding-top: var(--gk-4); border-top: 1px solid var(--gk-line); }
 .gk .gk-mx:empty { display: none; }
 .gk .gk-match-share .mx-button { width: auto; align-self: flex-start; }
-/* Result reporting keeps its own markup; its disclosure reads like the others. */
-.gk.gk-match .mx-result-management { padding: 0 var(--gk-5); border-radius: var(--gk-r-lg); }
-.gk.gk-match .mx-result-management > summary { display: flex; align-items: center; gap: var(--gk-3); min-height: 52px; font-weight: 600; cursor: pointer; list-style: none; }
-.gk.gk-match .mx-result-management > summary::-webkit-details-marker { display: none; }
-.gk.gk-match .mx-result-management > summary::before { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid var(--gk-text-2); border-bottom: 2px solid var(--gk-text-2); transform: rotate(-45deg); transition: transform .15s var(--gk-ease); }
-.gk.gk-match .mx-result-management[open] > summary::before { transform: rotate(45deg); }
-.gk.gk-match .mx-result-management[open] { padding-bottom: var(--gk-5); }
+/* The score record sits in one calm box like the other sections. */
+.gk.gk-match .gk-match-score { padding: var(--gk-5); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
 
 /* Embedded match tools that keep their own markup (results, appointments, coordination, players,
    broadcasts, preparation) take design-system styling from here until each is rebuilt. The scope is

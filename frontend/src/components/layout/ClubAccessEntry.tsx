@@ -9,7 +9,7 @@ import { ConnectedWork } from './ConnectedWork';
 
 /**
  * `/my-club`: a person with one club goes straight to it; without a club they see `children`.
- * Someone still connected to several clubs (from before the one-club rule) chooses here; navigation always says "My Club".
+ * Someone still connected to several clubs (from before the one-club rule) chooses here; Home's left side says "My club".
  */
 export function ClubAccessEntry({ children }: { children: ReactNode }) {
   const { user, sessionId } = useAuth();
@@ -23,5 +23,5 @@ export function ClubAccessEntry({ children }: { children: ReactNode }) {
 }
 function ClubGallery({ clubs }: { clubs: ClubAccess[] }) {
   const { t } = useTranslation();
-  return <main className="my-club-gallery"><header><h1>{t('experience.clubs.title', 'Your clubs')}</h1><p>{t('experience.clubs.description', 'Choose a club to view its profile or open the workspace for your responsibilities.')}</p></header><ConnectedWork /><div>{clubs.map(club => <article key={club.id}><div className="my-club-card-cover"><Shield size={42} /></div><section><h2>{club.name}</h2><p>{club.relationships.join(' · ')}</p><div><Link to={`/clubs/${club.id}`}>{t('experience.clubs.profile', 'View profile')}</Link>{club.canOpenWorkspace && <Link to={`/clubs/${club.id}/workspace`}>{t('experience.clubs.workspace', 'Open workspace')}</Link>}</div></section></article>)}</div></main>;
+  return <main className="my-club-gallery"><header><h1>{t('experience.clubs.title', 'Your clubs')}</h1><p>{t('experience.clubs.description', 'Choose a club to view its page or open its Club office.')}</p></header><ConnectedWork /><div>{clubs.map(club => <article key={club.id}><div className="my-club-card-cover"><Shield size={42} /></div><section><h2>{club.name}</h2><p>{club.relationships.join(' · ')}</p><div><Link to={`/clubs/${club.id}`}>{t('experience.clubs.profile', 'View profile')}</Link>{club.canOpenWorkspace && <Link to={`/clubs/${club.id}/office`}>{t('experience.clubs.workspace', 'Club office')}</Link>}</div></section></article>)}</div></main>;
 }

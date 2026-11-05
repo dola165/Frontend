@@ -14,6 +14,7 @@ import { SearchRow } from './SearchRow';
 import { groupName } from './searchWords';
 import { useTeamSearch } from './useTeamSearch';
 import '../../design/dialog.css';
+import '../../components/work/work.css';
 import '../teamWork/team-work.css';
 import './team-search.css';
 
@@ -198,11 +199,11 @@ function SearchPalette({ query, onQuery, me, where, onClose }: { query: string; 
                     <input type="checkbox" role="switch" className="gk-switch" checked={deleted} onChange={event => setDeleted(event.target.checked)} />
                     {copy('Show deleted', 'წაშლილების ჩვენება')}
                 </label>}
-                {asked && status === 'ready' && missState === 'idle' && <button type="button" className="tw-link-button" onClick={() => void sayMissed()}>{copy('Not what I was looking for', 'ეს არ არის, რასაც ვეძებდი')}</button>}
+                {asked && status === 'ready' && missState === 'idle' && <button type="button" className="work-link-button" onClick={() => void sayMissed()}>{copy('Not what I was looking for', 'ეს არ არის, რასაც ვეძებდი')}</button>}
                 {missState === 'sending' && <span className="gk-faint">{copy('Saving…', 'ინახება…')}</span>}
                 {missState === 'kept' && <span className="tw-search-dialog__kept" role="status">{copy('Thanks. Now open what you were looking for — search will learn from it.', 'მადლობა. ახლა გახსენით ის, რასაც ეძებდით — ძიება ამით ისწავლის.')}</span>}
                 {missState === 'failed' && <span className="gk-notice gk-notice--danger" role="alert">{copy('That couldn’t be saved.', 'ვერ შეინახა.')}</span>}
-                {options?.seesMissed && <button type="button" className="tw-link-button tw-search-dialog__missed" onClick={() => setMissed(true)}>{copy('What search missed', 'რა ვერ იპოვა ძიებამ')}</button>}
+                {options?.seesMissed && <button type="button" className="work-link-button tw-search-dialog__missed" onClick={() => setMissed(true)}>{copy('What search missed', 'რა ვერ იპოვა ძიებამ')}</button>}
             </div>
         </section>
         {missed && <MissedList onClose={() => setMissed(false)} onOpen={open} />}

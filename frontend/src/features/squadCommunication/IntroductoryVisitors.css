@@ -4,6 +4,8 @@
 .introductory-visitors > article { padding: 16px; border: 1px solid var(--fc-border); border-radius: 8px; background: var(--fc-card-bg); overflow-wrap: anywhere; }
 .introductory-visitors > article + article { margin-top: 12px; }
 .introductory-visitors article > strong { font-size: 14px; font-weight: 650; }
+/* A visit the family booked themselves: the trial colour, as on the week board. */
+.introductory-visitors__first { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--color-pink) 14%, transparent); color: var(--color-pink); font-size: 12px; font-weight: 650; }
 .introductory-visitors article > p { margin: 8px 0; color: var(--fc-text-secondary); font-size: 13px; line-height: 1.6; }
 .introductory-visitors article > p[role=status] { margin-bottom: 0; color: var(--fc-accent); font-weight: 650; }
 .introductory-visitors article > label { display: grid; gap: 8px; margin: 16px 0 10px; font-size: 13px; line-height: 1.5; }

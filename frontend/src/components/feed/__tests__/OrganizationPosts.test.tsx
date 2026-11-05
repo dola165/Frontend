@@ -43,7 +43,7 @@ it('does not fetch organization0 while the page is unavailable', () => {
 it('loads the live organization feed and exposes posting only to confirmed owner/admin authority', () => {
     const first=open(<OrganizationPage />);expect(state.feed).toHaveBeenCalledWith('/posts/organization/7002');
     expect(screen.getByRole('textbox', { name: 'Create a page post' })).toBeInTheDocument();first.unmount();
-    state.page = makePage({ status: 'LIVE', viewer: { role: 'COACH', canEdit: true, editable: 'ALL', canClaim: false } });
+    state.page = makePage({ status: 'LIVE', viewer: { role: 'COACH', canEdit: true, editable: 'ALL' } });
     open(<OrganizationPage />);expect(screen.queryByRole('textbox', { name: 'Create a page post' })).toBeNull();
 });
 
@@ -87,7 +87,7 @@ it('generic first-post action holds its exact request across remount and marks P
 
 it('a draft first-post action has no publication control and sends nothing', () => {
     state.page = makePage({ status: 'DRAFT' });open(<LivePanel />);
-    expect(screen.getByText('Publish this page before posting.')).toBeInTheDocument();expect(screen.queryByRole('button', { name: 'Post it' })).toBeNull();expect(state.post).not.toHaveBeenCalled();
+    expect(screen.getByText('This page is private. Review it before publishing again.')).toBeInTheDocument();expect(screen.queryByRole('button', { name: 'Post it' })).toBeNull();expect(state.post).not.toHaveBeenCalled();
 });
 
 it('retains the existing club first-post request', async () => {

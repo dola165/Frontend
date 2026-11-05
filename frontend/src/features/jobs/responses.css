@@ -1,0 +1,11 @@
+.gk-job-responses { display: grid; gap: 1rem; margin-block: 1.5rem; min-width: 0; }
+.gk-job-responses h2 { font-size: 1.2rem; }
+.gk-job-response { padding: 1rem; border: 1px solid var(--gk-line); border-radius: 12px; display: grid; gap: .75rem; min-width: 0; overflow-wrap: anywhere; }
+.gk-job-response h3, .gk-job-response p { margin: 0; }
+.gk-job-response p { white-space: pre-wrap; }
+.gk-job-response__history { padding-left: 1.25rem; max-height: 24rem; overflow-y: auto; display: grid; gap: .75rem; }
+.gk-job-response__history small { color: var(--gk-text-3); }
+.gk-job-response__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.gk-job-response button, .gk-job-responses a { min-height: 44px; }
+.gk-job-responses a { display: inline-flex; align-items: center; }
+.gk-job-response textarea { width: 100%; min-width: 0; resize: vertical; }

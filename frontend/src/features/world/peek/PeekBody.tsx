@@ -14,7 +14,6 @@ const KINDS: Record<DrawerKind, ComponentType<{ id: string }>> = {
     venue: lazy(() => import('./VenuePeek')),
     trial: lazy(() => import('./TrialPeek')),
     group: lazy(() => import('./GroupPeek')),
-    arrange: lazy(() => import('./ArrangePeek')),
     organiser: lazy(() => import('./OrganiserPeek')),
     draw: lazy(() => import('./DrawPeek')),
 };

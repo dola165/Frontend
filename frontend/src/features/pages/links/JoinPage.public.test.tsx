@@ -1,35 +1,83 @@
 import '../../../i18n';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { JoinPage } from './JoinPage';
-import { fetchJoinLink, type JoinLink } from '../api';
+import { fetchJoinLink, sendJoin, type JoinLink, type JoinSent } from '../api';
+import { fetchJoiningChildren } from '../../parents/api';
 
-const auth = vi.hoisted(() => ({ sessionId: 'anon', isAuthenticated: false, isBootstrapping: false }));
+const auth = vi.hoisted(() => ({ sessionId: 'anon', isAuthenticated: false, isBootstrapping: false, user: null as null | { fullName: string; dob: string | null } }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../api', () => ({ fetchJoinLink: vi.fn(), sendJoin: vi.fn() }));
 vi.mock('../../parents/api', () => ({ fetchJoiningChildren: vi.fn() }));
+/** Add child makes the card (Parent Hub's own form); here it makes Luka at once. */
+vi.mock('../../parents/AddChild', () => ({ AddChild: ({ onCreated }: { onCreated: (id: number) => void }) => <button type="button" onClick={() => { kids.list = [luka]; onCreated(7); }}>Create the child’s card</button> }));
 
 const code = 'k'.repeat(43);
-const link: JoinLink = { code, page: { ref: { type: 'club', id: 10 }, name: 'Test FC', town: 'Tbilisi', crestUrl: null, profilePath: '/clubs/10', live: true }, squad: { id: 91, name: 'U12 mixed', ageGroup: 'U12', gender: 'MIXED' } };
-const show = () => render(<MemoryRouter initialEntries={[`/join/${code}`]}><Routes><Route path="/join/:code" element={<JoinPage />} /></Routes></MemoryRouter>);
-beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); auth.isAuthenticated = false; auth.isBootstrapping = false; vi.mocked(fetchJoinLink).mockResolvedValue(link); });
+const link: JoinLink = { code, page: { ref: { type: 'club', id: 10 }, name: 'Test FC', town: 'Tbilisi', crestUrl: null, profilePath: '/clubs/10', live: true }, squad: { id: 91, name: 'U12 mixed', ageGroup: 'U12', youthUnder: 12, gender: 'MIXED' } };
+const sent: JoinSent = { id: 500, status: 'OPEN', squadId: 91, squadName: 'U12 mixed', clubName: 'Test FC', coachName: 'Giorgi Coach', childName: 'Luka', destination: '/admissions/inquiries/500', nextTraining: { title: 'Training', startsAt: '2026-10-27T13:00:00Z', endsAt: '2026-10-27T14:30:00Z' } };
+const luka = { playerId: 7, identity: { fullName: 'Luka Beridze', dateOfBirth: '2015-05-01' }, clubs: [] };
+const kids = vi.hoisted(() => ({ list: [] as unknown[] }));
+const show = (entry = `/join/${code}`) => render(<MemoryRouter initialEntries={[entry]}><Routes><Route path="/join/:code" element={<JoinPage />} /></Routes></MemoryRouter>);
+const signIn = (dob: string | null) => { auth.isAuthenticated = true; auth.user = { fullName: 'Nino Beridze', dob }; };
+beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); auth.isAuthenticated = false; auth.isBootstrapping = false; auth.user = null; vi.mocked(fetchJoinLink).mockResolvedValue(link);
+    kids.list = []; vi.mocked(fetchJoiningChildren).mockImplementation(async () => ({ children: kids.list }) as never); });
 afterEach(cleanup);
 
-it('shows the club and squad to a visitor and sends them to sign in with the link as the way back', async () => {
+it('asks who is joining before sign-in, then signs in and comes straight back to the same choice', async () => {
     show();
     expect(await screen.findByRole('link', { name: 'Test FC' })).toHaveAttribute('href', '/clubs/10');
-    expect(screen.getAllByText('U12 mixed · Tbilisi').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'Sign in to ask to join' })).toHaveAttribute('href', `/login?next=${encodeURIComponent(`/join/${code}`)}`);
-    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute('href', `/signup?next=${encodeURIComponent(`/join/${code}`)}`);
-    expect(screen.queryByRole('button', { name: /I am a parent/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /My child/ }));
+    const back = `/join/${code}?who=child`;
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', `/login?next=${encodeURIComponent(back)}`);
+    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute('href', `/signup?next=${encodeURIComponent(back)}`);
 });
 
-it('asks who is joining once the visitor is signed in', async () => {
-    auth.isAuthenticated = true;
-    show();
-    expect(await screen.findByRole('button', { name: /I am a parent/ })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Sign in to ask to join' })).not.toBeInTheDocument();
+it('my child: the only child is chosen at once, then "Sent to coach Giorgi" with the next training', async () => {
+    signIn('1985-04-02');
+    kids.list = [luka];
+    vi.mocked(sendJoin).mockResolvedValue(sent);
+    show(`/join/${code}?who=child`);
+    expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Send for Luka' }));
+    // The chosen child's own card goes with the request: the server never makes a second one.
+    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, { who: 'PARENT', playerId: luka.playerId, consent: true, requestId: expect.stringMatching(/^[0-9a-f-]{36}$/) }));
+    expect(await screen.findByText('Sent to coach Giorgi')).toBeInTheDocument();
+    expect(screen.getByText('Next training')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Follow your request' })).toHaveAttribute('href', '/admissions/inquiries/500');
+});
+
+it('a parent with no child yet makes the card first, and the new child is chosen', async () => {
+    signIn('1985-04-02');
+    vi.mocked(sendJoin).mockResolvedValue(sent);
+    show(`/join/${code}?who=child`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Create the child’s card' }));
+    expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Send for Luka' }));
+    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, expect.objectContaining({ who: 'PARENT', playerId: expect.any(Number) })));
+});
+
+it('asks a grown-up choosing Me for a youth squad whether they are joining for their child', async () => {
+    signIn('1985-04-02');
+    show(`/join/${code}?who=me`);
+    expect(await screen.findByText('Joining for your child?')).toBeInTheDocument();
+    expect(screen.getByText('U12 mixed is for players under 12.')).toBeInTheDocument();
+    expect(sendJoin).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, my child' }));
+    expect(await screen.findByRole('button', { name: 'Create the child’s card' })).toBeInTheDocument();
+});
+
+it('a teen choosing Me sends their own request without retyping anything', async () => {
+    signIn(`${new Date().getFullYear() - 15}-01-01`);
+    vi.mocked(fetchJoinLink).mockResolvedValue({ ...link, squad: { ...link.squad, name: 'U16', ageGroup: 'U16', youthUnder: 16 } });
+    vi.mocked(sendJoin).mockResolvedValue({ ...sent, coachName: null, squadName: 'U16' });
+    show(`/join/${code}?who=me`);
+    expect(await screen.findByText('Under 18: a parent or guardian confirms the joining terms.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Send my request' }));
+    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, { who: 'PLAYER', consent: true, requestId: expect.any(String) }));
+    expect(await screen.findByText('Sent to Test FC')).toBeInTheDocument();
 });
 
 it('keeps the skeleton while the session is still being restored', async () => {
@@ -37,5 +85,72 @@ it('keeps the skeleton while the session is still being restored', async () => {
     show();
     await screen.findByRole('status');
     expect(fetchJoinLink).toHaveBeenCalled();
-    expect(screen.queryByRole('link', { name: 'Sign in to ask to join' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /My child/ })).not.toBeInTheDocument();
+});
+
+it('an account under 18 joins only as itself: no "My child", and a child link explains why', async () => {
+    signIn('2010-06-01');
+    vi.mocked(fetchJoinLink).mockResolvedValue({ ...link, squad: { ...link.squad, name: 'U17', ageGroup: 'U17', youthUnder: 17 } });
+    show();
+    expect(await screen.findByRole('button', { name: /Me/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /My child/ })).not.toBeInTheDocument();
+    cleanup();
+    show(`/join/${code}?who=child`);
+    expect(await screen.findByText(/Only a parent or guardian who is 18 or older can add a child/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create the child’s card' })).not.toBeInTheDocument();
+});
+
+it('shows a child whose card has no birth date, and asks for it here instead of making a second card', async () => {
+    signIn('1985-04-02');
+    kids.list = [{ ...luka, identity: { fullName: 'Luka Beridze', dateOfBirth: null } }];
+    vi.mocked(sendJoin).mockResolvedValue(sent);
+    show(`/join/${code}?who=child`);
+    expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: 'Create the child’s card' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(screen.getByRole('button', { name: 'Send for Luka' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Date of birth'), { target: { value: '2015-05-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send for Luka' }));
+    await waitFor(() => expect(sendJoin).toHaveBeenCalledWith(code, expect.objectContaining({ childName: 'Luka Beridze', birthDate: '2015-05-01' })));
+});
+
+it('when the children cannot load, offers to try again rather than a new card', async () => {
+    signIn('1985-04-02');
+    vi.mocked(fetchJoiningChildren).mockRejectedValueOnce(new Error('offline'));
+    show(`/join/${code}?who=child`);
+    expect(await screen.findByText('Your children couldn’t load.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create the child’s card' })).not.toBeInTheDocument();
+    kids.list = [luka];
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(within(await screen.findByRole('group', { name: 'Your children' })).getByRole('button', { name: /Luka/ })).toHaveAttribute('aria-pressed', 'true');
+});
+
+it('offers only the choices that fit the squad’s ages, as the club page’s Join does', async () => {
+    const men = { ...link, squad: { ...link.squad, name: 'Men', ageGroup: 'SENIOR', youthUnder: null, gender: 'MALE' as const } };
+    // A grown-up on a youth link: their child, not themself.
+    signIn('1985-04-02');
+    show();
+    expect(await screen.findByRole('button', { name: /My child/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Me/ })).toBeNull();
+    cleanup();
+    // A grown-up on the men's link: themself, not a child.
+    vi.mocked(fetchJoinLink).mockResolvedValue(men);
+    show();
+    expect(await screen.findByRole('button', { name: /^Me/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /My child/ })).toBeNull();
+    cleanup();
+    // A 14-year-old on the men's link: nothing fits, so it says so and opens the club's own squads.
+    signIn(`${new Date().getFullYear() - 14}-01-01`);
+    show();
+    expect(await screen.findByText('Men isn’t for your age.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'See the club’s squads' })).toHaveAttribute('href', '/clubs/10?join=1');
+    expect(screen.queryByRole('button', { name: /^Me/ })).toBeNull();
+});
+
+it('offers both before sign-in, and both when the age group can’t be read', async () => {
+    vi.mocked(fetchJoinLink).mockResolvedValue({ ...link, squad: { ...link.squad, name: 'Saturday group', ageGroup: 'Kids', youthUnder: null } });
+    signIn('1985-04-02');
+    show();
+    expect(await screen.findByRole('button', { name: /^Me/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /My child/ })).toBeInTheDocument();
 });

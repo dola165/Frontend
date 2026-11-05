@@ -3,13 +3,11 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { getAuthSessionId, setStoredAccessToken } from '../../utils/authStorage';
-import { ClubSettingsPage } from './settings/ClubSettingsPages';
-import { ResponsibilityRequests } from './coachHub/ResponsibilityRequests';
+import { OfficeSettings } from '../clubOffice/OfficeSettings';
 import { WorkspaceOperations } from '../clubOperations/WorkspaceOperations';
 import { RecordTable } from '../clubOperations/records/RecordList';
 import { RecordDetail } from '../clubOperations/RecordDetail';
 import type { Bootstrap, Definition, OperationRecord } from '../clubOperations/api';
-import type { RoleView, RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
 import { personalWorkspaceTarget } from '../clubOperations/workspaceStructure';
 import type { ClubPresentation } from '../clubs/presentation';
 
@@ -17,13 +15,6 @@ vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), put: vi.fn(
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 9, navigationCapabilities: { version: 1, workspaces: [] } }, sessionId: 'one' }) }));
 
 const profile: ClubPresentation = { profileKind: 'ACADEMY', revision: 3, canEdit: true, canManageAffiliations: true, programmes: [], sponsors: [], affiliations: [] };
-const coaching: RoleView = { id: 'coaching', label: 'Squad coach', modules: ['DEVELOPMENT'], squadIds: [11], clubWide: false, appointmentId: 4, revision: 1 };
-const roles: RolesWorkspace = {
-    leadership: false, actorId: 9, current: { ...coaching, id: 'all', label: 'All' }, views: [coaching],
-    catalog: [{ key: 'ANALYST', title: 'Video analyst', description: 'Reviews match footage.', permissions: ['DEVELOPMENT:READ'] }],
-    requestSquads: [{ id: 11, name: 'U12' }], squads: [{ id: 11, name: 'U12', player_count: 1 }], people: [{ id: 21, name: 'Alex', squad_id: 11, squad_name: 'U12' }],
-    sessions: [], requests: [], invitations: [],
-};
 const definition: Definition = { module: 'GUARDIANS', kind: 'PERMISSION', label: 'Permission', states: [], fields: [] };
 const boot: Bootstrap = {
     clubId: 1, clubName: 'Academy', actorId: 9, leadership: false, definitions: [definition], specialisations: [], permissions: [],
@@ -42,29 +33,23 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 
-describe('unsaved work across workspace tabs', () => {
-    it('asks before a settings section switch drops public profile edits', async () => {
-        render(<MemoryRouter initialEntries={['/?section=profile']}><ClubSettingsPage clubId={1} busy={false} /></MemoryRouter>);
+describe('unsaved work across Club office settings', () => {
+    it('asks before going back to Settings drops public profile edits', async () => {
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+            if (url.startsWith('/access/') || url.endsWith('/ownership')) throw new Error('none');
+            return { data: url.includes('/presentation/manage') ? profile : {} };
+        });
+        render(<MemoryRouter initialEntries={['/clubs/1/office?tab=settings&section=profile']}>
+            <OfficeSettings clubId={1} clubName="Academy" overview={null} boot={null} onRefresh={async () => {}} />
+        </MemoryRouter>);
         fireEvent.change(await screen.findByLabelText('Profile purpose'), { target: { value: 'COMMUNITY' } });
-        fireEvent.click(screen.getByRole('tab', { name: 'Joining' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
         expect(screen.getByRole('group', { name: 'Discard edits' })).toBeInTheDocument();
-        expect(screen.getByRole('tab', { name: 'Public profile' })).toHaveAttribute('aria-selected', 'true');
         fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
         expect(screen.getByLabelText('Profile purpose')).toHaveValue('COMMUNITY');
-        fireEvent.click(screen.getByRole('tab', { name: 'Joining' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
         fireEvent.click(screen.getByRole('button', { name: 'Discard edits' }));
-        await waitFor(() => expect(screen.getByRole('tab', { name: 'Joining' })).toHaveAttribute('aria-selected', 'true'));
-    });
-
-    it('asks before closing a responsibility request with a draft', () => {
-        const close = vi.fn();
-        render(<MemoryRouter><ResponsibilityRequests open clubId={1} roles={roles} onClose={close} onChanged={vi.fn()} /></MemoryRouter>);
-        fireEvent.click(screen.getByRole('radio', { name: 'Video analyst' }));
-        fireEvent.change(screen.getByLabelText('Message to your club admin (optional)'), { target: { value: 'Match analysis on Saturdays' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-        expect(screen.getByRole('group', { name: 'Discard edits' })).toBeInTheDocument();
-        expect(screen.getByLabelText('Message to your club admin (optional)')).toHaveValue('Match analysis on Saturdays');
-        expect(close).not.toHaveBeenCalled();
+        expect(await screen.findByText('How players join')).toBeInTheDocument();
     });
 });
 
@@ -79,7 +64,7 @@ describe('Coach Hub links', () => {
 
 describe('records', () => {
     it('never marks a closed record overdue', () => {
-        render(<MemoryRouter><RecordTable boot={boot} home={false} sort={null} onSort={vi.fn()} hrefFor={() => '#'} onOpen={vi.fn()} records={[
+        render(<MemoryRouter><RecordTable boot={boot} sort={null} onSort={vi.fn()} hrefFor={() => '#'} onOpen={vi.fn()} records={[
             record({ id: 1, title: 'Wrist fracture', status: 'CLEARED', due_on: '2020-09-28' }),
             record({ id: 2, title: 'Ankle sprain', status: 'ACTIVE', due_on: '2020-09-28' }),
         ]} /></MemoryRouter>);

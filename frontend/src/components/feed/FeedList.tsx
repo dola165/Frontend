@@ -1,3 +1,4 @@
+import type { SubmitComment } from './PostComments';
 import type { Reaction } from './reactions';
 import type { ReactNode } from 'react';
 import { FeedPost, type CommentDto, type FeedPostDto } from './FeedPost';
@@ -9,7 +10,7 @@ interface FeedListProps {
     onReactionChange?: (postId: number, reaction: Reaction | null) => void | Promise<void>;
     onLikeToggle: (postId: number) => void | Promise<void>;
     onToggleComments: (postId: number) => void;
-    onSubmitComment: (postId: number, content: string) => void | Promise<void>;
+    onSubmitComment: SubmitComment;
     onSelectPost: (post: FeedPostDto) => void;
     pendingLikes?: Record<number, boolean>;
     likeErrors?: Record<number, string | null>;

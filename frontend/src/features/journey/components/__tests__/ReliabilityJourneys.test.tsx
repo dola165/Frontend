@@ -14,23 +14,23 @@ vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId:
 beforeEach(async () => { await i18n.changeLanguage('en'); vi.clearAllMocks(); mocks.get.mockResolvedValue({ data: [] }); mocks.post.mockResolvedValue({}); mocks.refresh.mockResolvedValue(undefined); });
 const mount = (element: React.ReactNode, path = '/account') => render(<MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>);
 
-it('requires confirmation and names the exact relationship being ended', async () => {
-  mocks.get.mockResolvedValue({ data: [{ clubId: 1, clubName: 'Dinamo', staffRole: 'COACH', playerStatus: 'ACTIVE', departureSnapshots: { STAFF: 'staff', PLAYER: 'player', ALL: 'all' } }] });
+it('asks before leaving a place and names what stays', async () => {
+  mocks.get.mockResolvedValue({ data: [{ clubId: 1, clubName: 'Dinamo', staffRole: 'COACH', playerStatus: 'ACTIVE', departureSnapshots: { STAFF: 'staff', PLAYER: 'player' } }] });
   mount(<ClubRelationships />);
-  fireEvent.click(await screen.findByRole('button', { name: 'End playing membership' }));
-  expect(screen.getByText(/Your staff responsibilities will remain/)).toBeVisible();
+  fireEvent.click(await screen.findByRole('button', { name: 'Leave the squad' }));
+  expect(screen.getByText(/Any staff job there stays/)).toBeVisible();
   expect(mocks.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Confirm departure' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Yes, leave' }));
   await waitFor(() => expect(mocks.post).toHaveBeenCalledWith('/clubs/1/relationships/PLAYER/leave', { requestId: expect.any(String), snapshot: 'player' }));
   await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
 });
 
-it('allows an owner to end playing membership but requires transfer for staff departure', async () => {
-  mocks.get.mockResolvedValue({ data: [{ clubId: 1, clubName: 'Dinamo', staffRole: 'OWNER', playerStatus: 'ACTIVE' }] });
+it('lets the Owner leave the squad but hand the club over instead of leaving the staff', async () => {
+  mocks.get.mockResolvedValue({ data: [{ clubId: 1, clubName: 'Dinamo', staffRole: 'OWNER', playerStatus: 'ACTIVE', departureSnapshots: {} }] });
   mount(<ClubRelationships />);
-  expect(await screen.findByRole('button', { name: 'End playing membership' })).toBeEnabled();
-  expect(screen.queryByRole('button', { name: 'End staff membership' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Leave all club responsibilities' })).not.toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Leave the squad' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Hand the club over' })).toBeEnabled();
+  expect(screen.queryByRole('button', { name: 'Leave the staff' })).not.toBeInTheDocument();
 });
 
 it('accepts a venue invitation through its own endpoint and refreshes workspace navigation', async () => {

@@ -13,11 +13,12 @@ import { Button, GkRoot } from './primitives';
  * `onEscape` replaces closing on Escape, for a sheet that first closes what it opened beside it.
  * A guided flow adds a small `eyebrow` over the title ("Step 2 of 4"), `progress` under it, and `closeText` to say in
  * words what closing does ("Skip setup") instead of the close icon.
+ * `backdropCloses={false}` keeps it open when the page behind is clicked, for a dialog only its own buttons close.
  */
-export function Dialog({ open, title, description, onClose, onEscape, children, footer, size = 'md', role = 'dialog', closeLabel = 'Close', eyebrow, progress, closeText, className }: {
+export function Dialog({ open, title, description, onClose, onEscape, children, footer, size = 'md', role = 'dialog', closeLabel = 'Close', eyebrow, progress, closeText, className, backdropCloses = true }: {
     open: boolean; title: ReactNode; description?: ReactNode; onClose: () => void; onEscape?: () => void; children?: ReactNode; footer?: ReactNode;
     size?: 'sm' | 'md' | 'lg' | 'sheet'; role?: 'dialog' | 'alertdialog'; closeLabel?: string;
-    eyebrow?: ReactNode; progress?: ReactNode; closeText?: string; className?: string;
+    eyebrow?: ReactNode; progress?: ReactNode; closeText?: string; className?: string; backdropCloses?: boolean;
 }) {
     const ref = useRef<HTMLElement>(null);
     const titleId = useId(), descriptionId = useId();
@@ -25,7 +26,7 @@ export function Dialog({ open, title, description, onClose, onEscape, children, 
     if (!open) return null;
     return createPortal(
         <GkRoot className={`gk-dialog-layer${size === 'sheet' ? ' gk-dialog-layer--sheet' : ''}`}>
-            <div className="gk-dialog-backdrop" data-dialog-backdrop="" onClick={onClose} aria-hidden="true" />
+            <div className="gk-dialog-backdrop" data-dialog-backdrop="" onClick={backdropCloses ? onClose : undefined} aria-hidden="true" />
             <section ref={ref} className={`gk-dialog gk-dialog--${size}${className ? ` ${className}` : ''}`} role={role} aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined}>
                 <header className="gk-dialog__head">
                     <div className="gk-dialog__titles">

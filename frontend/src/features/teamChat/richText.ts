@@ -1,3 +1,4 @@
+import { linkHref, trimUrl, URL_PATTERN } from '../../utils/webLinks';
 import type { ChatPerson, ChatTaskRef } from './api';
 
 /** A message's text in pieces: plain words, links, Team work task keys and mentions. */
@@ -15,17 +16,7 @@ export function mentionPattern(people: ChatPerson[]) {
     return names.length ? `(?<![\\p{L}\\p{N}_.])@(${names.join('|')})(?![\\p{L}\\p{N}_])` : null;
 }
 
-const URL_PATTERN = 'https?:\\/\\/[^\\s<>"\']+';
 const TASK_PATTERN = '\\bGK-\\d{1,9}\\b';
-
-/** A link's own end: trailing punctuation and unbalanced closing brackets belong to the sentence. */
-function trimUrl(candidate: string) {
-    let url = candidate.replace(/[.,!?;:]+$/, '');
-    for (const [open, close] of [['(', ')'], ['[', ']']]) {
-        while (url.endsWith(close) && url.split(close).length > url.split(open).length) url = url.slice(0, -1);
-    }
-    return url;
-}
 
 /**
  * Splits text into parts. Only people the server counted as mentioned are shown as mentions, and only tasks the
@@ -48,9 +39,9 @@ export function parts(text: string, mentioned: ChatPerson[], tasks: ChatTaskRef[
         end = start + found.length;
         if (match[1]) {
             const url = trimUrl(found);
-            let parsed: URL | null = null;
-            try { parsed = new URL(url); } catch { /* Not a link after all. */ }
-            if (parsed && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+            // The one check for every link: http(s) only, never with a user name in the address.
+            const href = linkHref(url), parsed = href ? new URL(href) : null;
+            if (parsed) {
                 out.push({
                     kind: 'url', text: url, href: parsed.href,
                     internal: parsed.origin === origin && !parsed.pathname.startsWith('//') ? `${parsed.pathname}${parsed.search}${parsed.hash}` : null,

@@ -29,12 +29,12 @@ afterEach(cleanup);
 
 it('shows a journey without a match and saves an adult self response', async () => {
     family([journey]);
-    vi.mocked(planPost).mockImplementation(async () => { family([{ ...journey, response: { status: 'GOING', acknowledged: true } }]); return {} as never; });
+    vi.mocked(planPost).mockImplementation(async () => { family([{ ...journey, response: { status: 'NOT_GOING', acknowledged: true } }]); return {} as never; });
     show();
     fireEvent.click(await screen.findByRole('button', { name: 'Open Training journey' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'I’m going' }));
-    await waitFor(() => expect(planPost).toHaveBeenCalledWith('/1/my-response', { version: 1, response: 'GOING' }));
-    await screen.findByText('Going');
+    fireEvent.click(await screen.findByRole('button', { name: 'Can’t come' }));
+    await waitFor(() => expect(planPost).toHaveBeenCalledWith('/1/my-response', { version: 1, response: 'NOT_GOING' }));
+    await waitFor(() => expect(screen.getAllByRole('status').some(s => s.textContent?.includes('Can’t come'))).toBe(true));
     expect(screen.queryByRole('button', { name: 'Give travel permission' })).toBeNull();
 });
 
@@ -43,8 +43,8 @@ it('keeps guardian journeys discoverable and separates permission from an adult 
     show();
     fireEvent.click(await screen.findByRole('button', { name: 'Open Published journey' }));
     expect(await screen.findByRole('button', { name: 'Give travel permission' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'I’m going' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Going' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Going' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Can’t come' })).toBeVisible();
 });
 
 it('acknowledgement and guardian permission are separate requests', async () => {

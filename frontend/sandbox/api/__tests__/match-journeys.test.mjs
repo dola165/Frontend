@@ -77,6 +77,7 @@ test('a direct invitation can only be answered by the invited club and exact squ
   assert.equal((await call('GET', `/match-exchange/${id}/result/summary`, null, spectator)).status, 404);
 });
 
+// Scores answer the shared record the score card reads (F4): a reported score, confirmed by the other side.
 test('new-club results need independent confirmation; corrections and retries keep honest state', async () => {
   const a = await newClub('World Results Academy');
   const created = await call('POST', '/match-arrangements', terms(a.squad), a.actor), id = created.body.event_id;
@@ -87,10 +88,10 @@ test('new-club results need independent confirmation; corrections and retries ke
   listing.start = new Date(Date.now() - 7200000); listing.end = new Date(Date.now() - 3600000);
   const path = `/match-exchange/${id}/result`;
   const initial = await call('GET', path, null, a.actor);
-  assert.deepEqual(initial.body.authority.roles, ['HOME']);
+  assert.deepEqual(initial.body.permissions.parties, ['HOME']);
   assert.equal(initial.body.revision, 0);
   const proposal = { side: 'HOME', revision: 0, requestId: randomUUID(), homeScore: 2, awayScore: 1 };
-  assert.equal((await call('POST', path, proposal, a.actor)).body.status, 'PROPOSED');
+  assert.equal((await call('POST', path, proposal, a.actor)).body.status, 'REPORTED');
   assert.equal((await call('POST', path, proposal, a.actor)).body.revision, 1);
   assert.equal((await call('POST', path, { ...proposal, homeScore: 3 }, a.actor)).status, 409);
   assert.equal((await call('POST', `${path}/confirm`, { side: 'HOME', revision: 1, requestId: randomUUID() }, a.actor)).status, 403);
@@ -99,9 +100,9 @@ test('new-club results need independent confirmation; corrections and retries ke
   assert.equal(confirmed.body.status, 'CONFIRMED');
   listing.refereeRequired = true; listing.refereeId = V.viewerId({});
   const correction = await call('POST', `${path}/correct`, { side: 'HOME', revision: 2, requestId: randomUUID(), homeScore: 3, awayScore: 1, reason: 'Checked the match sheet.' }, a.actor);
-  assert.equal(correction.body.status, 'PROPOSED');
+  assert.equal(correction.body.status, 'REPORTED');
   assert.equal(correction.body.history.length, 3);
-  assert.equal((await call('POST', `${path}/confirm`, { side: 'AWAY', revision: 3, requestId: randomUUID() })).body.status, 'PROPOSED');
+  assert.equal((await call('POST', `${path}/confirm`, { side: 'AWAY', revision: 3, requestId: randomUUID() })).body.status, 'REPORTED');
   // One person cannot provide both independent confirmations by changing their result side.
   assert.equal((await call('POST', `${path}/confirm`, { side: 'REFEREE', revision: 4, requestId: randomUUID() })).status, 403);
   const spectator = V.createAccount({ fullName: 'World Spectator', dateOfBirth: '1990-01-01' }).id;

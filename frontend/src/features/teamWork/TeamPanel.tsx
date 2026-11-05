@@ -2,9 +2,12 @@ import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Copy, X } from 'lucide-react';
 import { Avatar, Badge, Button, PageHeader, Panel, Skeleton } from '../../design/primitives';
+import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { addMember, fetchTeam, newInvite, setResponsibility, type Invite, type Member } from './api';
+import { OutsideChats } from './OutsideChats';
+import { MailMark, MyInbox } from './TeamMail';
 import { ago, shortDate } from './teamWorkWords';
 import './team-work-now.css';
 
@@ -61,6 +64,7 @@ function ResponsibilityLine({ member, onSaved }: { member: Member; onSaved: (mem
 export function TeamPanel({ canManage }: { canManage: boolean }) {
     const copy = useJourneyCopy();
     const id = useId();
+    const me = useAuth().user?.id ?? null;
     const [members, setMembers] = useState<Member[] | null>(null);
     const [loadError, setLoadError] = useState('');
     const [retry, setRetry] = useState(0);
@@ -86,12 +90,14 @@ export function TeamPanel({ canManage }: { canManage: boolean }) {
         <Panel>
         {members == null && !loadError && <div role="status" aria-label={copy('Loading', 'იტვირთება')}><Skeleton height={44} /><Skeleton height={44} /></div>}
         <ul className="tw-team__list">{(members ?? []).map(member => <li key={member.userId}>
-            <span className="tw-team__who"><Avatar name={member.name ?? member.email} size={28} /><strong>{member.name ?? member.email}</strong><span className="gk-muted">{member.email}</span>
+            <span className="tw-team__who"><Avatar name={member.name ?? member.email} size={28} /><strong>{member.name ?? member.email}</strong>{member.mail && <MailMark />}<span className="gk-muted">{member.email}</span>
                 {member.pending && <Badge tone="warning">{copy('Invited', 'მოწვეული')}</Badge>}</span>
             <ResponsibilityLine key={member.responsibility ?? ''} member={member} onSaved={setMembers} />
             <Link className="tw-team__doing" to={`/team-work?who=${member.userId}`}>{copy(`What ${(member.name ?? member.email).split(' ')[0]} is doing`, `რას აკეთებს ${(member.name ?? member.email).split(' ')[0]}`)}<ChevronRight aria-hidden="true" /></Link>
             {canManage && member.pending && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(async () => setInvite(await newInvite(member.userId)))}>{copy('New link', 'ახალი ბმული')}</Button>}
+            {member.userId === me && <MyInbox onChanged={() => setRetry(value => value + 1)} />}
         </li>)}</ul>
+        {members != null && <OutsideChats />}
         {invite && <InviteLink invite={invite} onDone={() => setInvite(null)} />}
         {canManage && <form className="tw-team__add" onSubmit={event => {
             event.preventDefault();

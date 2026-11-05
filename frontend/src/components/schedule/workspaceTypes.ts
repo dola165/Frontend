@@ -42,10 +42,11 @@ export interface ScheduleWorkspaceEvent {
     resultStatus?: import('../../features/matchHistory/api').ResultStatus;
     matchExchangeId?: number | null;
     canRecordResult?: boolean;
-    resultClubId?: number | null;
     seriesId?: string | null;
     /** Squad availability in opt-out terms: `going` are expected, `pending` were asked to confirm and have not. */
     responseSummary?: { total: number; going: number; pending: number; cantCome?: number };
+    /** Children a family booked in for a first visit (step 5), shown to the squad's staff as a pink mark. */
+    firstVisits?: number;
     journeys?: import('../../features/mapPlanning/journeyScheduleData').JourneyEntry[];
     origin?: 'CLUB_CALENDAR' | 'PERSONAL_CALENDAR' | 'MATCH_EXCHANGE' | 'SQUAD_SESSION' | 'JOURNEY';
     originId?: number | null;
@@ -68,6 +69,8 @@ export interface ScheduleWorkspaceEvent {
     recurrence?: ScheduleRecurrenceRule | null;
     recurrenceLabel?: string | null;
     ownerLabel: string;
+    /** Whose it is in a family's calendar: the child's first name (the board shows its initial). */
+    who?: string;
     mapEligible: boolean;
     appearsOnMap: boolean;
     opponentClubId?: number | null;

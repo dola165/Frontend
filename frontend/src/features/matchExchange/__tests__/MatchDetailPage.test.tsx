@@ -1,15 +1,19 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { MatchDetailPage } from '../../../pages/MatchDetailPage';
+import { MatchPage as MatchDetailPage } from '../../matches/MatchPage';
 import { chatApi } from '../../../api/chat';
 import { useAction, useClock, useLoad } from '../hooks';
-import { getPublicMatchResult, getResultSuggestions, getMatchResult, type Match } from '../api';
+import { getResultSuggestions, type Match } from '../api';
+import { getScoreRecord, getScoreSummary, type ScoreSummary } from '../../scores/api';
 import i18n from '../../../i18n';
 
 vi.mock('../hooks', () => ({ useLoad: vi.fn(), useAction: vi.fn(), useClock: vi.fn() }));
 vi.mock('../../../api/chat', () => ({ chatApi: { findConversationByContext: vi.fn() } }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'session-a' }) }));
-vi.mock('../api', async importOriginal => ({ ...(await importOriginal<typeof import('../api')>()), getPublicMatchResult: vi.fn(), getResultSuggestions: vi.fn(), getMatchResult: vi.fn() }));
+vi.mock('../api', async importOriginal => ({ ...(await importOriginal<typeof import('../api')>()), getResultSuggestions: vi.fn() }));
+vi.mock('../../scores/api', () => ({ getScoreSummary: vi.fn(), getScoreRecord: vi.fn(), writeScore: vi.fn() }));
+
+const summary = (value: Partial<ScoreSummary>): ScoreSummary => ({ eventId: 12, kind: 'EXCHANGE', oneSided: false, status: 'NONE', fixtureStatus: 'SCHEDULED', revision: 0, homeScore: null, awayScore: null, reported: null, disputed: null, official: false, legacy: false, scorePrivate: false, canReadAudit: false, ...value });
 
 const match: Match = {
   event_id: 12, squad_id: 1, squad_name: 'U16', club_id: 10, club_name: 'Alpha FC', club_profile_kind: 'ACADEMY', club_logo_url: null, club_banner_url: null,
@@ -20,45 +24,67 @@ const match: Match = {
 
 function renderPage(value: Match = match) {
   vi.mocked(useLoad).mockImplementation((path: string) => path === '/match-exchange/12' ? { data: value, error: '', reload: vi.fn() } : { data: [], error: '', reload: vi.fn() });
-  return render(<MemoryRouter initialEntries={['/match-exchange/12']}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={['/matches/12']}><Routes><Route path="/matches/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(useClock).mockReturnValue(new Date('2099-01-01T00:00:00Z').getTime());
   vi.mocked(useAction).mockReturnValue({ busy: false, run: vi.fn(), feedback: <></> });
-  vi.mocked(getPublicMatchResult).mockResolvedValue({ eventId: 12, status: 'NONE', fixtureStatus: 'SCHEDULED', revision: 0, homeScore: null, awayScore: null, official: false, legacy: false, canReadAudit: false });
+  vi.mocked(getScoreSummary).mockResolvedValue(summary({}));
   vi.mocked(getResultSuggestions).mockResolvedValue({ eventId: 12, resultRevision: 0, canSuggest: false, canReview: false, reviewableRoles: [], adoptableRoles: [], suggestions: [], ownSuggestions: [], pendingCount: 0, page: 0, hasMore: false });
 });
 
-it('shows only the public result state to an ordinary match viewer', async () => {
-  vi.mocked(getPublicMatchResult).mockResolvedValue({ eventId: 12, status: 'DISPUTED', fixtureStatus: 'COMPLETED', revision: 2, homeScore: 2, awayScore: 1, official: false, legacy: false, canReadAudit: false });
+it('shows only the public score state to an ordinary match viewer, with both disputed versions', async () => {
+  vi.mocked(getScoreSummary).mockResolvedValue(summary({ status: 'DISPUTED', fixtureStatus: 'COMPLETED', revision: 2, reported: { home: 2, away: 1 }, disputed: { home: 1, away: 1 } }));
   const spectator = { ...match, can_arrange: false, home_score: null, away_score: null, result_status: 'DISPUTED' as const };
   await act(async () => { renderPage(spectator); });
-  expect(await screen.findByText('Disputed · under review')).toBeInTheDocument();
-  expect(getMatchResult).not.toHaveBeenCalled();
+  expect(await screen.findByText('Disputed')).toBeInTheDocument();
+  expect(screen.getByText('2–1 / 1–1')).toBeInTheDocument();
+  expect(getScoreRecord).not.toHaveBeenCalled();
 });
 
 it('keeps both teams and the result in the fixture band ahead of readiness and secondary match details', async () => {
-  vi.mocked(getPublicMatchResult).mockResolvedValue({ eventId: 12, status: 'CONFIRMED', fixtureStatus: 'COMPLETED', revision: 2, homeScore: 3, awayScore: 1, official: true, legacy: false, canReadAudit: false });
+  vi.mocked(getScoreSummary).mockResolvedValue(summary({ status: 'CONFIRMED', fixtureStatus: 'COMPLETED', revision: 2, homeScore: 3, awayScore: 1, official: true }));
   renderPage({ ...match, can_arrange: false, starts_at_iso: '2098-09-20T10:00:00Z', ends_at_iso: '2098-09-20T12:00:00Z' });
   const fixture = screen.getByRole('region', { name: 'Fixture' });
-  expect(await screen.findByText('Confirmed result')).toBeInTheDocument();
+  expect(await within(fixture).findByText('Confirmed')).toBeInTheDocument();
+  expect(fixture).toHaveTextContent('3–1');
   expect(fixture).toHaveTextContent('Alpha FC');
   expect(fixture).toHaveTextContent('Beta FC');
   const readiness = screen.getByRole('heading', { name: 'Match readiness' });
   expect(fixture.compareDocumentPosition(readiness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
+it('shows a past match added afterwards as its result: who added it, nothing to plan', async () => {
+  vi.mocked(getScoreSummary).mockResolvedValue(summary({ status: 'FINAL', fixtureStatus: 'COMPLETED', revision: 1, homeScore: 3, awayScore: 1, official: true, oneSided: true }));
+  renderPage({ ...match, origin: 'PAST', can_arrange: false, can_manage: false, opponent_name: null, opponent_club_id: null, opponent_squad_name: null, target_squad_id: null, outside_opponent: 'Old Town FC',
+    starts_at_iso: '2098-09-20T10:00:00Z', ends_at_iso: '2098-09-20T12:00:00Z', event_status: 'COMPLETED' });
+  const fixture = screen.getByRole('region', { name: 'Fixture' });
+  expect(await within(fixture).findByText('Added by Alpha FC')).toBeInTheDocument();
+  expect(await within(fixture).findByText(/3–1/)).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Match readiness' })).toBeNull();
+  expect(screen.queryByText('Plan your match day')).toBeNull();
+});
+
+it('shows no score and no placeholder for a private under-11 result', async () => {
+  vi.mocked(getScoreSummary).mockResolvedValue(summary({ status: 'FINAL', fixtureStatus: 'COMPLETED', revision: 3, official: true, scorePrivate: true }));
+  renderPage({ ...match, can_arrange: false, starts_at_iso: '2098-09-20T10:00:00Z', ends_at_iso: '2098-09-20T12:00:00Z', score_private: true });
+  const fixture = screen.getByRole('region', { name: 'Fixture' });
+  expect(await within(fixture).findByText('Final')).toBeInTheDocument();
+  expect(fixture).not.toHaveTextContent('—');
+  expect(fixture.querySelector('.result-summary-score')).toBeNull();
+});
+
 it('opens with the proposal form for an eligible visiting squad, before the match-day plan', async () => {
   const open = { ...match, can_arrange: false, opponent_name: null, opponent_club_id: null, listing_status: 'OPEN' as const };
   vi.mocked(useLoad).mockImplementation((path: string) => ({ data: path === '/match-exchange/12' ? open : path === '/match-exchange/squads' ? [{ id: 2, club_id: 11, club_name: 'Beta FC', name: 'U16' }] : [], error: '', reload: vi.fn() }));
-  render(<MemoryRouter initialEntries={['/match-exchange/12']}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
+  render(<MemoryRouter initialEntries={['/matches/12']}><Routes><Route path="/matches/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
   expect(await screen.findByText('Opponent to be agreed')).toBeInTheDocument();
-  const send = screen.getByRole('button', { name: 'Send proposal' });
+  const send = screen.getByRole('button', { name: 'Send our answer' });
   const plan = screen.getByRole('heading', { name: 'Plan your match day' });
   expect(send.compareDocumentPosition(plan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Propose to play' })).toHaveAttribute('href', '#match-proposal');
+  expect(screen.queryByRole('link', { name: 'Propose to play' })).not.toBeInTheDocument();
   expect(screen.queryByText('Broadcast and filming')).not.toBeInTheDocument();
 });
 

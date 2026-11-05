@@ -20,7 +20,15 @@ export function registerMatchOpponents({ post }) {
     const stale = revisionError(l, body); if (stale) return stale;
     const previous = l.proposals.find(p => p.squad_id === squad.id);
     if (previous?.status === 'PENDING') return reply(204);
-    const proposal = { id: previous?.id ?? W.newId(), squad_id: squad.id, squad_name: squad.name, club_name: W.clubById(squad.clubId).name, club_id: squad.clubId, note: String(body.note ?? '').trim(), status: 'PENDING' };
+    // An open challenge's answer kicks off inside its window, with the whole match before it closes.
+    let kickoff = null;
+    if (l.windowFrom) {
+      kickoff = body.kickoffAt ? new Date(`${body.kickoffAt}+04:00`) : null;
+      const time = body.kickoffAt?.slice(11, 16) ?? '', last = new Date(kickoff?.getTime() + l.matchMinutes * 60_000);
+      if (!kickoff || kickoff < l.start || last > l.end || time < l.windowFrom.slice(0, 5) || last.toTimeString().slice(0, 5) > l.windowTo.slice(0, 5)) return fail(400, 'Choose a kick-off inside the challenge’s window.');
+    }
+    const proposal = { id: previous?.id ?? W.newId(), squad_id: squad.id, squad_name: squad.name, club_name: W.clubById(squad.clubId).name, club_id: squad.clubId, note: String(body.note ?? '').trim(), status: 'PENDING',
+      kickoff_at: kickoff ? body.kickoffAt : null, location_name: kickoff ? String(body.locationName ?? '').trim() || null : null };
     if (previous) Object.assign(previous, proposal); else l.proposals.push(proposal);
     l.revision++; history(l, 'PROPOSAL');
     return reply(204);
@@ -40,6 +48,12 @@ export function registerMatchOpponents({ post }) {
     p.status = next;
     if (action === 'ACCEPT') {
       l.opponentSquadId = p.squad_id; l.status = 'ARRANGED';
+      // Accepting an answer to a window fixes its time (and its ground, when it named one).
+      if (l.windowFrom && p.kickoff_at) {
+        l.start = new Date(`${p.kickoff_at}+04:00`); l.end = new Date(l.start.getTime() + l.matchMinutes * 60_000);
+        if (p.location_name) { l.venueId = null; l.place = { name: p.location_name, city: 'Tbilisi', lat: null, lng: null }; }
+        l.windowFrom = l.windowTo = null;
+      }
       l.proposals.filter(item => item !== p && item.status === 'PENDING').forEach(item => { item.status = 'DECLINED'; });
       history(l, 'OPPONENT_AGREED');
     }

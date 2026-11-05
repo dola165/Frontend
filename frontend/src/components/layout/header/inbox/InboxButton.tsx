@@ -16,7 +16,7 @@ export function InboxButton() {
     const id = useId();
     const badge = inboxBadge(counts);
     const known = counts.needsYou !== null || counts.updates !== null;
-    const onInboxPage = pathname === '/requests' || pathname === '/notifications';
+    const onInboxPage = pathname === '/requests';
 
     return (
         <div className="gk-hanchor" onKeyDown={onKeyDown}>

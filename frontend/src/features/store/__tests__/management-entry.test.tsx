@@ -29,7 +29,7 @@ let role: string | null = 'OWNER';
 const open = (page: 'club' | 'product') => render(<MemoryRouter initialEntries={[page === 'club' ? '/clubs/10/store' : '/store/products/81']}><AuthProvider><Capture /><AuthSessionBoundary><Routes>
     <Route path="/clubs/:id/store" element={<ClubStorePage />} />
     <Route path="/store/products/:id" element={<StoreProductPage />} />
-    <Route path="/clubs/10/workspace" element={<StoreProductsPage clubId={10} />} />
+    <Route path="/clubs/10/office" element={<StoreProductsPage clubId={10} />} />
 </Routes></AuthSessionBoundary></AuthProvider></MemoryRouter>);
 beforeEach(() => {
     vi.resetAllMocks(); localStorage.clear(); sessionStorage.clear(); setStoredAccessToken('Alpha'); role = 'OWNER';
@@ -44,7 +44,7 @@ describe('Manage store opens the existing manager only with confirmed club leade
     it.each([{ page: 'club', role: 'OWNER' }, { page: 'club', role: 'CLUB_ADMIN' }, { page: 'product', role: 'OWNER' }, { page: 'product', role: 'CLUB_ADMIN' }] as const)('takes $role from the public $page to the named clubs existing editor', async choice => {
         role = choice.role; open(choice.page);
         const link = await screen.findByRole('link', { name: 'Manage store' });
-        expect(link).toHaveAttribute('href', '/clubs/10/workspace?tab=store');
+        expect(link).toHaveAttribute('href', '/clubs/10/office?tab=tools&tool=store');
         fireEvent.click(link);
         fireEvent.click(await screen.findByRole('button', { name: 'Edit Synthetic shirt' }));
         expect(await screen.findByLabelText('Product name')).toHaveValue('Synthetic shirt');
@@ -69,7 +69,7 @@ describe('Manage store opens the existing manager only with confirmed club leade
         await waitFor(() => expect(api.fetchStoreClub).toHaveBeenCalledOnce());
         expect(screen.queryByRole('link', { name: 'Manage store' })).not.toBeInTheDocument();
         await act(async () => finish({ id: 10, name: 'Synthetic club', myRole: 'OWNER' }));
-        expect(await screen.findByRole('link', { name: 'Manage store' })).toHaveAttribute('href', '/clubs/10/workspace?tab=store');
+        expect(await screen.findByRole('link', { name: 'Manage store' })).toHaveAttribute('href', '/clubs/10/office?tab=tools&tool=store');
     });
 
     it('keeps a product readable when authority cannot be confirmed', async () => {

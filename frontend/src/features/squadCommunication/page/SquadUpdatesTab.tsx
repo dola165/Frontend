@@ -9,6 +9,7 @@ import { NextUp } from '../../parents/hub/NextUp';
 import type { JoiningChild } from '../../parents/api';
 import { availability, availabilityLabel } from '../attendance';
 import { SquadMessages } from '../SquadMessages';
+import { NoticeLines } from '../notices/NoticeLines';
 import { useJourneyCopy } from '../journeyCopy';
 import { squadMessageUrl } from '../routes';
 import { useSquadSchedule } from '../useSquadSchedule';
@@ -17,13 +18,15 @@ import { useNow } from '../../clubWorkspace/useNow';
 
 /**
  * The squad page's first tab: the coaches' updates as the main thing; beside them the next session (the child's
- * reply for a parent, who is coming for a coach) and, for the coaches, the parents to talk to one by one.
+ * reply for a parent, a player's own reply, who is coming for a coach) and, for the coaches, the parents to talk to
+ * one by one.
  */
-export function SquadUpdatesTab({ space, child, crest, tabKey, onChanged }: { space: api.SquadOverview; child?: JoiningChild; crest: string | null; tabKey: string; onChanged: () => void }) {
+export function SquadUpdatesTab({ space, child, self, crest, tabKey, onChanged }: { space: api.SquadOverview; child?: JoiningChild; self?: api.Person; crest: string | null; tabKey: string; onChanged: () => void }) {
     const copy = useJourneyCopy();
     return <div className="sp-updates">
         <aside className="sp-updates__side">
             {child && <NextUp squads={[{ ...space, can_manage: false }]} playerId={child.playerId} childName={child.identity.fullName.split(' ')[0]} crest={crest} />}
+            {!child && self && <NextUp squads={[{ ...space, can_manage: false }]} playerId={self.id} childName={self.name.split(' ')[0]} crest={crest} />}
             {space.can_manage && <CoachNext space={space} tabKey={tabKey} />}
             {space.can_manage && space.threads.length > 0 && <section className="sp-box">
                 <h2 className="sp-box__title"><MessagesSquare aria-hidden="true" />{copy('Parents & guardians', 'მშობლები და მეურვეები')}</h2>
@@ -33,7 +36,7 @@ export function SquadUpdatesTab({ space, child, crest, tabKey, onChanged }: { sp
                 {space.threads.length > 8 && <Link className="sp-link" to={squadMessageUrl(space.id, true)}>{copy(`All ${space.threads.length}`, `ყველა ${space.threads.length}`)}</Link>}
             </section>}
         </aside>
-        <div className="sp-updates__feed"><SquadMessages space={space} kind="ANNOUNCEMENT" thread={null} onSent={onChanged} /></div>
+        <div className="sp-updates__feed"><NoticeLines space={space} /><SquadMessages space={space} kind="ANNOUNCEMENT" thread={null} onSent={onChanged} /></div>
     </div>;
 }
 

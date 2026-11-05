@@ -1,0 +1,9 @@
+.dola-page .dola-project-recovery { padding: 1rem; margin: .75rem; border: 1px solid var(--dola-border); border-radius: .75rem; background: var(--color-inset); overflow-wrap: anywhere; }
+.dola-page .dola-project-recovery h3 { font-size: 1rem; margin: 0 0 .5rem; }
+.dola-page .dola-project-recovery p { margin: .5rem 0; line-height: 1.5; }
+.dola-page .dola-project-recovery button, .dola-page .dola-project-recovery a { min-height: 44px; display: inline-flex; align-items: center; padding: .5rem .75rem; }
+.dola-page .dola-project-recovery button { border: 1px solid var(--dola-border); border-radius: .5rem; color: inherit; background: var(--dola-surface); cursor: pointer; }
+.dola-page .dola-project-recovery button:disabled { opacity: .6; cursor: wait; }
+.dola-page .dola-project-recovery :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.dola-page .dola-operation-id { font-size: .75rem; }
+.dola-page .dola-project-recovery dd { margin: 0 0 .5rem; }

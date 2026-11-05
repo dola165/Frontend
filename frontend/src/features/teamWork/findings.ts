@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchDetail, type Detail, type Person, type Plan, type PlanView } from './api';
-import { mentioned } from './mentionWords';
+import { mentioned } from '../../components/work/mentionWords';
 
 /**
  * Ideas live on two plans with these exact names, never shown as plans: "Ideas" holds what was just

@@ -20,8 +20,6 @@ vi.mock('../../../../api/axiosConfig',()=>({apiClient:{get:vi.fn(),post:vi.fn()}
 
 vi.mock('../../../clubs/api', () => ({
     fetchClubJourney: vi.fn(),
-    acceptClubInvitation: vi.fn().mockResolvedValue({ status: 'ACCEPTED' }),
-    declineClubInvitation: vi.fn().mockResolvedValue({ status: 'DECLINED' }),
     cancelClubApplication: vi.fn().mockResolvedValue({ status: 'CANCELLED' }),
 }));
 
@@ -29,10 +27,7 @@ vi.mock('../../../../utils/apiError', () => ({
     extractApiErrorMessage: vi.fn(() => 'Something went wrong.'),
 }));
 
-import {
-    acceptClubInvitation,
-    fetchClubJourney,
-} from '../../../clubs/api';
+import { fetchClubJourney } from '../../../clubs/api';
 
 const journeyPayload = {
     applications: [
@@ -90,13 +85,10 @@ describe('ClubJourneyPanel — phase A4', () => {
         await waitFor(() => expect(fetchClubJourney).toHaveBeenCalledTimes(2)); // initial + refresh
     });
 
-    it('accepts an invitation and refreshes', async () => {
+    it('sends an invitation to the Inbox, where it is answered', async () => {
         render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
-        await waitFor(() => expect(screen.getByText(/Creekside FC/)).toBeInTheDocument());
-        fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-        await waitFor(() => expect(acceptClubInvitation).toHaveBeenCalledWith(701, { _authSessionId: 'journey-session' }));
-        await waitFor(() => expect(refreshNavigation).toHaveBeenCalledOnce());
-        expect(fetchClubJourney).toHaveBeenCalledTimes(2);
+        expect((await screen.findByRole('link', { name: 'Answer in your Inbox' })).getAttribute('href')).toBe('/requests?view=needs-you');
+        expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument();
     });
 
     it('shows the empty state when there is no activity', async () => {
@@ -107,24 +99,11 @@ describe('ClubJourneyPanel — phase A4', () => {
         await waitFor(() => expect(screen.getByText(/No club activity yet/)).toBeInTheDocument());
     });
 
-    it('removes an invitation cancelled elsewhere when the account panel regains focus', async () => {
+    it('drops an invitation cancelled elsewhere when the account panel regains focus', async () => {
         render(<MemoryRouter><ClubJourneyPanel /></MemoryRouter>);
-        await screen.findByText('Creekside FC');
+        await screen.findByRole('link', { name: 'Answer in your Inbox' });
         vi.mocked(fetchClubJourney).mockResolvedValue({ ...journeyPayload, invitations: [] });
         await act(async () => { window.dispatchEvent(new Event('focus')); });
-        await waitFor(() => expect(screen.queryByText('Creekside FC')).not.toBeInTheDocument());
-        expect(acceptClubInvitation).not.toHaveBeenCalled();
-    });
-
-    it('does not refresh navigation after a response from an old login', async () => {
-        let done!: (value: { status: string }) => void;
-        vi.mocked(acceptClubInvitation).mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
-        const view = () => <MemoryRouter><ClubJourneyPanel /></MemoryRouter>;
-        const rendered = render(view());
-        fireEvent.click(await screen.findByRole('button', { name: 'Accept' }));
-        auth.sessionId = 'other-login'; vi.mocked(fetchClubJourney).mockReturnValue(new Promise(() => {})); rendered.rerender(view());
-        expect(screen.queryByText('Creekside FC')).not.toBeInTheDocument();
-        await act(async () => done({ status: 'ACCEPTED' }));
-        expect(refreshNavigation).not.toHaveBeenCalled();
+        await waitFor(() => expect(screen.queryByRole('link', { name: 'Answer in your Inbox' })).not.toBeInTheDocument());
     });
 });

@@ -31,9 +31,6 @@ import { TournamentEntry } from '../features/world/peek/tournament/TournamentEnt
 import { extractApiErrorMessage } from '../utils/apiError';
 import { TournamentBracketBoard } from '../features/tournaments/components/TournamentBracketBoard';
 import { StandingsTable } from '../features/tournaments/components/StandingsTable';
-import { TournamentSeriesPanel } from '../features/tournamentSeries/TournamentSeriesPanel';
-import { ExtensionSurface } from '../features/capabilities/ExtensionBoundary';
-import { isExtensionCapabilityAvailable } from '../features/capabilities/extensions';
 import { downloadTournamentCalendar } from '../features/tournaments/tournament-calendar';
 import { tournamentPublicCopy } from '../locales/tournamentPublic';
 import { TournamentTieBlockerBanner, TournamentTieResolution } from '../features/tournaments/components/TournamentTieResolution';
@@ -44,6 +41,7 @@ import './tournament-public.css';
 import '../features/competitions/competition-detail.css';
 import { CompetitionVisual } from '../features/competitions/CompetitionVisual';
 import { CompetitionFacts } from '../features/competitions/CompetitionFacts';
+import { CompetitionFixtureConcerns } from '../features/competitions/CompetitionFixtureConcerns';
 import {
     TournamentScopeBadge,
     TournamentStatusBadge,
@@ -120,6 +118,7 @@ const TournamentDetailContent = () => {
     const visibleEntries = tournament?.entries?.filter((entry) => publicEntryStatuses.has(entry.status)) ?? [];
     const fixtureCount = tournament?.fixtures?.length ?? 0;
     const scope = tournament?.participantScope;
+    const concernFixture = tournament?.fixtures.find(fixture => fixture.id === requestedFixture);
 
     const loadTournament = useCallback(async () => {
         if (!Number.isSafeInteger(id) || id < 1) {
@@ -362,12 +361,15 @@ const TournamentDetailContent = () => {
                                 <div className="tp-match-team" data-winner={fixture.awayEntryId != null && fixture.winnerEntryId === fixture.awayEntryId}><span>{fixture.awayLabel || t('tournaments.public.toBeDecided')}</span><strong>{fixture.awayScore ?? '–'}</strong></div>
                             </div>
                             <div className="tp-match-state">{fixture.status ? t(`tournaments.workspace.fixtureStatus.${fixture.status.toLowerCase()}`) : t('tournaments.public.fixture')}</div>
-                            {fixture.status === 'COMPLETED' && <ResultSummary homeScore={fixture.homeScore} awayScore={fixture.awayScore} status={fixture.homeScore != null && fixture.awayScore != null ? 'RECORDED' : (fixture.homeEntryId != null) !== (fixture.awayEntryId != null) ? 'BYE' : 'NONE'} fixtureStatus={fixture.status} compact />}
+                            {fixture.status === 'COMPLETED' && <ResultSummary homeScore={fixture.homeScore} awayScore={fixture.awayScore} status={(fixture.homeEntryId != null) !== (fixture.awayEntryId != null) ? 'BYE' : 'RECORDED'}
+                                scorePrivate={fixture.homeEntryId != null && fixture.awayEntryId != null && (fixture.homeScore == null || fixture.awayScore == null)} fixtureStatus={fixture.status} compact />}
                             {isStaff && <Link className="inline-flex items-center gap-1 text-sm" to={`/tournaments/${tournament.id}/workspace?view=schedule&fixtureId=${fixture.id}`}>{i18n.language.startsWith('ka') ? 'მატჩის მართვა' : 'Manage match'} →</Link>}
+                            {isAuthenticated && profile?.rules && fixture.status === 'COMPLETED' && <Link className="tw-button" to={`/tournaments/${tournament.id}?tab=matches&fixtureId=${fixture.id}`}>{i18n.language.startsWith('ka') ? 'შედეგის განხილვა' : 'Result concern & receipt'}</Link>}
                             <VenueReservationSummary value={fixture.venueReservation}/>
                         </article>;
                     })}</div> : <div className="tp-empty"><CalendarDays size={26} className="mx-auto mb-3" /><h3>{tournament.fixtures.length ? copy.noMatches : t('tournaments.public.noFixturesTitle')}</h3><p>{t('tournaments.public.noFixturesDescription')}</p></div>}
                 </> : null}
+                {activeTab === 'matches' && isAuthenticated && profile?.rules && concernFixture && <CompetitionFixtureConcerns key={`${id}:${concernFixture.id}`} id={id} fixture={concernFixture} changed={refreshTournament} refreshKey={resultsRevision}/>}
                 {activeTab === 'teams' ? <>
                     <div className="tp-heading"><div><h2>{copy.teams}</h2><p>{t('tournaments.public.entryCount', { count: visibleEntries.length })}</p></div><input className="tp-search" type="search" aria-label={copy.teamSearch} placeholder={copy.searchHint} value={teamSearch} onChange={(event) => setTeamSearch(event.target.value)} /></div>
                     {filteredEntries.length ? <div className="tp-team-grid">{filteredEntries.map((entry) => {
@@ -380,8 +382,7 @@ const TournamentDetailContent = () => {
                 </> : null}
                 {activeTab === 'about' ? <div className="tp-about-grid">
                     <div className="tp-about-stack">
-                        <ExtensionSurface capability="tournamentSeries"><TournamentSeriesPanel tournamentId={tournament.id}/></ExtensionSurface>
-                        {isExtensionCapabilityAvailable('volunteerShifts') && <Link to={`/volunteering?tournamentId=${tournament.id}`}>Volunteer at this tournament →</Link>}
+
                         <Section icon={<Trophy className="h-5 w-5" />} title={t('tournaments.public.aboutTitle')}>
                             <p className="whitespace-pre-wrap text-sm leading-6 text-[color:var(--color-muted)]">{tournament.description || t('tournaments.public.noDescriptionLong')}</p>
                         </Section>

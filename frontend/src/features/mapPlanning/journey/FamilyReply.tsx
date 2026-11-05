@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { Badge, Button, Section } from '../../../design/primitives';
+import { takeBackCannotCome } from '../../travel/api';
 import { dateTime, permissionDecision, planPost, type FamilyPlan } from '../api';
 
-const RESPONSE: Record<string, string> = { GOING: 'Going', NOT_GOING: 'Not going', RECONFIRMATION_REQUIRED: 'Please confirm the updated journey' };
+const RESPONSE: Record<string, string> = { NOT_GOING: 'Can’t come' };
 
 /**
  * A family's or player's answers for one published version: going or not, "I have read
@@ -16,17 +17,16 @@ export function FamilyReply({ journey: p, busy, act }: { journey: FamilyPlan; bu
     const stale = travelAt && p.travel.status === 'DEPARTED' && now - Date.parse(travelAt) > 3600000;
     const player = p.viewer === 'PLAYER';
     const permission = p.permission, permissionId = p.permission_id;
-    const reply = (response: 'GOING' | 'NOT_GOING') => act(() => player
+    const reply = (response: 'NOT_GOING') => act(() => player
         ? planPost(`/${p.plan_id}/my-response`, { version: p.version, response })
         : planPost(`/${p.plan_id}/journey-response`, { version: p.version, subjectId: p.child_id, response }));
     return (
         <Section title={player ? 'Your reply' : `${p.child_name}’s reply`} hint={`Version ${p.version}`}>
             <div className="gk-plan-reply">
-                <p role="status"><Badge tone={p.response?.status === 'GOING' ? 'accent' : p.response?.status === 'NOT_GOING' ? 'danger' : 'warning'}>{RESPONSE[p.response?.status ?? ''] ?? 'Waiting for your reply'}</Badge>{player && p.response?.acknowledged && <span className="gk-faint"> · Update read</span>}</p>
+                <p role="status"><Badge tone={p.response?.status === 'NOT_GOING' ? 'danger' : 'neutral'}>{RESPONSE[p.response?.status ?? ''] ?? 'Expected · no attendance reply needed'}</Badge>{player && p.response?.acknowledged && <span className="gk-faint"> · Update read</span>}</p>
                 {p.canRespond ? (
                     <div className="gk-row gk-plan-wrap">
-                        <Button variant="primary" disabled={busy || p.response?.status === 'GOING'} onClick={() => void reply('GOING')}>{player ? 'I’m going' : 'Going'}</Button>
-                        <Button disabled={busy || p.response?.status === 'NOT_GOING'} onClick={() => void reply('NOT_GOING')}>{player ? 'I can’t go' : 'Can’t go'}</Button>
+                        {p.response?.status === 'NOT_GOING' ? <Button disabled={busy} onClick={() => void act(() => takeBackCannotCome(p.plan_id, p.version, p.child_id))}>Take back Can’t come</Button> : <Button disabled={busy} onClick={() => void reply('NOT_GOING')}>Can’t come</Button>}
                     </div>
                 ) : <p className="gk-faint">Replies are closed for this version, or need a guardian. Contact the supervision lead if something changed.</p>}
                 <p className="gk-faint">Attendance is for the whole journey. Boarding and arrival are recorded by staff on the day.</p>

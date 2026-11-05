@@ -12,10 +12,7 @@ vi.mock('./components/layout/header/AppHeader',()=>({AppHeader:()=>null}));
 vi.mock('./pages/FeedPage',()=>({FeedPage:()=> <h1>Home feed destination</h1>}));
 vi.mock('./pages/OnboardingPage',()=>({OnboardingPage:()=> <h1>Required onboarding destination</h1>}));
 vi.mock('./features/clubs/api',()=>({fetchMyClubMembershipContext:vi.fn().mockResolvedValue({hasClubMembership:false})}));
-vi.mock('./features/squadEnrollment/api',()=>({resolveInvitation:vi.fn().mockResolvedValue({squadId:5,squadName:'U12 welcome squad',clubName:'Academy',expiresAt:'2099-01-01',children:[]})}));
-// This suite isolates auth continuation. Production capability routing is covered
-// separately by FootballWorkflowRoutes.
-vi.mock('./features/capabilities/ExtensionBoundary',()=>({ExtensionRoute:({children}:{children:ReactNode})=>children}));
+vi.mock('./features/teamWork/TeamWorkPage',()=>({TeamWorkPage:()=> <h1>Team work destination</h1>}));
 vi.mock('./components/auth/useSecondFactorLogin',()=>({useSecondFactorLogin:()=>({challenge:false,pending:false,error:null,authenticate:async()=>({accessToken:'synthetic-parent-token'}),cancel:vi.fn(),submit:vi.fn()})}));
 vi.mock('./context/AuthContext',async()=>{
     const {createContext,useContext,useState}=await import('react');
@@ -40,7 +37,7 @@ vi.mock('./context/AuthContext',async()=>{
 });
 import App from './App';
 
-beforeEach(()=>{clearAuthFlow();scenario.needsOnboarding=false;window.history.replaceState({},'', '/join-squad#synthetic-squad-invitation');});
+beforeEach(()=>{clearAuthFlow();scenario.needsOnboarding=false;window.history.replaceState({},'', '/team-work#synthetic-private-destination');});
 afterEach(()=>{cleanup();clearAuthFlow();window.history.replaceState({},'','/');});
 async function signIn(){
     const user=userEvent.setup();
@@ -54,15 +51,15 @@ it('returns a guest to the fragment invitation after real login and account-boun
     render(<App/>);
     await screen.findByLabelText(/^Email/i);
     expect(window.location.pathname).toBe('/login');expect(window.location.search).toBe('');expect(window.location.hash).toBe('');
-    expect(getAuthFlow().nextPath).toBe('/join-squad#synthetic-squad-invitation');
+    expect(getAuthFlow().nextPath).toBe('/team-work#synthetic-private-destination');
     await signIn();
-    expect(await screen.findByRole('heading',{name:'U12 welcome squad'})).toBeInTheDocument();
-    expect(window.location.pathname+window.location.hash).toBe('/join-squad#synthetic-squad-invitation');
+    expect(await screen.findByRole('heading',{name:'Team work destination'})).toBeInTheDocument();
+    expect(window.location.pathname+window.location.hash).toBe('/team-work#synthetic-private-destination');
     await waitFor(()=>expect(getAuthFlow().nextPath).toBeUndefined());
     expect(screen.queryByRole('heading',{name:'Home feed destination'})).not.toBeInTheDocument();
 });
 it('retains the private destination while required onboarding is unfinished',async()=>{
     scenario.needsOnboarding=true;render(<App/>);await signIn();
     expect(await screen.findByRole('heading',{name:'Required onboarding destination'})).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/onboarding');expect(getAuthFlow().nextPath).toBe('/join-squad#synthetic-squad-invitation');
+    expect(window.location.pathname).toBe('/onboarding');expect(getAuthFlow().nextPath).toBe('/team-work#synthetic-private-destination');
 });

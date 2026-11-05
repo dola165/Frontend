@@ -11,6 +11,8 @@ export const post = (p, fn) => route('POST', p, fn);
 export const put = (p, fn) => route('PUT', p, fn);
 export const patch = (p, fn) => route('PATCH', p, fn);
 export const del = (p, fn) => route('DELETE', p, fn);
+/** Registers a route ahead of every other: a sandbox persona answered before the shared handlers. */
+export const first = (method, pattern, fn) => { route(method, pattern, fn); routes.unshift(routes.pop()); };
 export const reply = (status, body, headers) => ({ __reply: true, status, body, headers });
 
 let loaded;

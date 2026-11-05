@@ -29,9 +29,9 @@ it('waits for the provider and recovers an absent callback session without a ref
 });
 
 it('continues an authenticated callback to its saved safe destination', () => {
-    rememberAuthFlow({ nextPath: '/workspaces' });
+    rememberAuthFlow({ nextPath: '/my-organizations' });
     auth = { ...auth, status: 'authenticated', user: { id: 1, profileComplete: true } } as ReturnType<typeof useAuth>;
-    render(callback()); expect(screen.getByText('/workspaces')).toBeVisible();
+    render(callback()); expect(screen.getByText('/my-organizations')).toBeVisible();
     expect(bootstrap).not.toHaveBeenCalled();
 });
 
@@ -39,7 +39,7 @@ it.each([
     [{ mustChangePassword: true, profileComplete: true }, '/set-password'],
     [{ onboardingRequired: true, profileComplete: false }, '/onboarding'],
 ])('completes required account steps before the saved destination', (fields, destination) => {
-    rememberAuthFlow({ nextPath: '/workspaces' });
+    rememberAuthFlow({ nextPath: '/my-organizations' });
     auth = { ...auth, status: 'authenticated', user: { id: 1, ...fields } } as ReturnType<typeof useAuth>;
     render(callback()); expect(screen.getByText(destination)).toBeVisible();
 });

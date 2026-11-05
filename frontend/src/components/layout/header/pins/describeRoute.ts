@@ -6,10 +6,11 @@ export type Copy = (english: string, georgian: string) => string;
 export const english: Copy = text => text;
 
 export interface RouteDescription { path: string; label: string | null; icon: PinIcon; pinnable: boolean }
-export interface RouteContext { capabilities?: NavigationCapabilities; userId?: number; myClubPath: string | null; copy?: Copy }
+/** `tabPath`: the place the header's own tab already holds (Club office), so it is never pinned as well. */
+export interface RouteContext { capabilities?: NavigationCapabilities; userId?: number; tabPath: string | null; copy?: Copy }
 
 // Query parameters that change what a page shows. Anything else (ids of open dialogs, drafts) is dropped.
-const meaningfulParams = ['tab', 'section', 'view', 'kind', 'scope', 'area', 'squad'];
+const meaningfulParams = ['tab', 'tool', 'deskTab', 'section', 'view', 'kind', 'scope', 'area', 'squad'];
 // World keeps its search and filters, but never campaign tracking or context that follows the person around.
 const droppedWorldParams = /^(?:utm_.*|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid|igshid|_ga|near|player)$/;
 // Already one click away in the header, or not a destination at all.
@@ -18,6 +19,10 @@ const notPinnable = /^\/(?:$|home$|feed$|login|signup|forgot-password|reset-pass
 /** One canonical address per destination, so the same page is never pinned twice. */
 export function normalizePath(pathname: string, search: string) {
     const params = new URLSearchParams(search);
+    if (pathname === '/clubs/following') { pathname = '/world/clubs'; params.set('view', 'following'); }
+    if (pathname === '/squads') pathname = '/my-squads';
+    if (pathname === '/club-operations') pathname = '/requests';
+    if (pathname === '/notifications') { pathname = '/requests'; params.set('view', 'updates'); }
     const kept = new URLSearchParams();
     const world = pathname === '/world' || pathname.startsWith('/world/');
     const keys = world ? [...new Set(params.keys())].filter(key => !droppedWorldParams.test(key)).sort() : meaningfulParams;
@@ -26,8 +31,8 @@ export function normalizePath(pathname: string, search: string) {
         if (value) kept.set(key, value);
     }
     const trimmed = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-    // The workspace opens on its overview, so the overview tab is the workspace itself.
-    if (/^\/clubs\/\d+\/workspace$/.test(trimmed) && kept.get('tab') === 'overview') kept.delete('tab');
+    // Club office opens on Staff, so Staff is Club office itself.
+    if (/^\/clubs\/\d+\/office$/.test(trimmed) && kept.get('tab') === 'staff') kept.delete('tab');
     return kept.size ? `${trimmed}?${kept}` : trimmed;
 }
 
@@ -36,26 +41,24 @@ const capabilityLabel = (capabilities: NavigationCapabilities | undefined, id: s
 
 type Words = [english: string, georgian: string];
 const fixed: Array<[RegExp, Words, PinIcon]> = [
-    [/^\/squads$/, ['My squads', 'ჩემი გუნდები'], 'squad'],
+    [/^\/my-squads$/, ['My squads', 'ჩემი გუნდები'], 'squad'],
+    [/^\/my-matches$/, ['My matches', 'ჩემი მატჩები'], 'flag'],
+    [/^\/my-competitions$/, ['My competitions', 'ჩემი შეჯიბრებები'], 'trophy'],
     [/^\/parent(?:\/|$)/, ['Parent Hub', 'მშობლის სივრცე'], 'family'],
     [/^\/referees\//, ['Referee workspace', 'მსაჯის სამუშაო სივრცე'], 'flag'],
     [/^\/agent(?:\/|$)/, ['Agent Hub', 'აგენტის სივრცე'], 'briefcase'],
     [/^\/calendar$/, ['My schedule', 'ჩემი განრიგი'], 'calendar'],
     [/^\/store$/, ['Store', 'მაღაზია'], 'store'],
     [/^\/campaigns$/, ['Campaigns', 'კამპანიები'], 'family'],
-    [/^\/clubs\/following$/, ['Followed clubs', 'მიყოლილი კლუბები'], 'club'],
     [/^\/admissions$/, ['Joining football', 'ფეხბურთში მონაწილეობა'], 'clipboard'],
     [/^\/my-organizations$/, ['My organizations', 'ჩემი ორგანიზაციები'], 'building'],
-    [/^\/club-operations$/, ['My club appointments', 'ჩემი კლუბური დანიშვნები'], 'clipboard'],
-    [/^\/account\/roles$/, ['Football roles', 'საფეხბურთო როლები'], 'person'],
+    [/^\/requests$/, ['Inbox', 'შემოსულები'], 'clipboard'],
     [/^\/account$/, ['Account & settings', 'ანგარიში და პარამეტრები'], 'settings'],
     [/^\/admin$/, ['Administration', 'ადმინისტრირება'], 'admin'],
     // Addresses from before World; they redirect there, but older pins may still hold them.
     [/^\/map$/, ['Map', 'რუკა'], 'map'],
     [/^\/clubs$/, ['Clubs', 'კლუბები'], 'club'],
-    [/^\/people$/, ['People', 'ხალხი'], 'people'],
     [/^\/stadiums$/, ['Venues', 'მოედნები'], 'venue'],
-    [/^\/matches$/, ['Matches', 'მატჩები'], 'goal'],
     [/^\/match-history$/, ['Results', 'შედეგები'], 'goal'],
     [/^\/tournaments$/, ['Tournaments', 'ტურნირები'], 'trophy'],
     [/^\/tryouts$/, ['Trials', 'გასინჯვები'], 'goal'],
@@ -68,10 +71,10 @@ const fixed: Array<[RegExp, Words, PinIcon]> = [
 const worldSections: Record<string, [Words, PinIcon]> = {
     clubs: [['Clubs', 'კლუბები'], 'club'], people: [['People', 'ხალხი'], 'people'], venues: [['Venues', 'მოედნები'], 'venue'],
     matches: [['Matches', 'მატჩები'], 'goal'], tournaments: [['Tournaments', 'ტურნირები'], 'trophy'], competitions: [['Tournaments', 'ტურნირები'], 'trophy'],
-    opportunities: [['Jobs & volunteering', 'სამუშაო და მოხალისეობა'], 'briefcase'],
+    opportunities: [['Opportunities', 'შესაძლებლობები'], 'briefcase'],
 };
 const worldTabs: Record<string, Words> = {
-    'matches:exchange': ['Open matches', 'ღია მატჩები'], 'matches:mine': ['My arrangements', 'ჩემი შეთანხმებები'], 'matches:events': ['Events', 'ღონისძიებები'],
+    'matches:exchange': ['Open challenges', 'ღია გამოწვევები'], 'matches:events': ['Events', 'ღონისძიებები'],
     'opportunities:jobs': ['Jobs and volunteering', 'სამუშაო და მოხალისეობა'], 'opportunities:trials': ['Trials', 'გასინჯვები'], 'opportunities:groups': ['Places to train', 'სავარჯიშო ადგილები'],
     'tournaments:all': ['All tournaments', 'ყველა ტურნირი'], 'tournaments:mine': ['My tournaments', 'ჩემი ტურნირები'],
     'competitions:all': ['All tournaments', 'ყველა ტურნირი'], 'competitions:mine': ['My tournaments', 'ჩემი ტურნირები'], 'competitions:invitations': ['My tournaments', 'ჩემი ტურნირები'],
@@ -79,8 +82,9 @@ const worldTabs: Record<string, Words> = {
 };
 
 const iconByPrefix: Array<[RegExp, PinIcon]> = [
-    [/^\/clubs\/\d+\/workspace/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/(?:tournaments|tournament-series)\//, 'trophy'],
-    [/^\/(?:match-exchange|matches)/, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
+    [/^\/clubs\/\d+\/work(?:\/|$)/, 'workspace'],
+    [/^\/clubs\/\d+\/office/, 'workspace'], [/^\/clubs\//, 'club'], [/^\/squads\//, 'squad'], [/^\/tournaments\//, 'trophy'],
+    [/^\/match(?:es|-exchange)\//, 'goal'], [/^\/stadiums\//, 'venue'], [/^\/organizations\//, 'building'], [/^\/profile\//, 'person'],
     [/^\/(?:jobs|roles)\//, 'briefcase'], [/^\/store\//, 'store'], [/^\/campaigns\//, 'family'], [/^\/tryouts\//, 'goal'],
     [/^\/admissions\//, 'clipboard'], [/^\/world\//, 'world'],
 ];
@@ -96,8 +100,8 @@ function describeWorld(bare: string, params: URLSearchParams, copy: Copy): { lab
     const section = bare.split('/')[2];
     const known = section ? worldSections[section] : undefined;
     if (section && !known) return { label: null, icon: 'world' };
-    const tab = known ? worldTabs[`${section}:${params.get(section === 'opportunities' ? 'type' : 'tab')}`] : undefined;
-    const words = tab ?? known?.[0] ?? ['World', 'მსოფლიო'];
+    const tab = known ? worldTabs[`${section}:${params.get('tab') ?? params.get('type')}`] : undefined;
+    const words = section === 'clubs' && params.get('view') === 'following' ? ['Clubs you follow', 'გამოწერილი კლუბები'] as Words : tab ?? known?.[0] ?? ['World', 'მსოფლიო'];
     const name = copy(...words);
     const query = params.get('q');
     if (query) return { label: `${name}: ${query.slice(0, 32)}`, icon: known?.[1] ?? 'world' };
@@ -111,15 +115,19 @@ export function describeRoute(pathname: string, search: string, context: RouteCo
     const path = normalizePath(pathname, search);
     const [bare, query = ''] = path.split('?');
     const params = new URLSearchParams(query);
-    const pinnable = !notPinnable.test(bare) && path !== context.myClubPath && path !== '/world';
+    const pinnable = !notPinnable.test(bare) && path !== context.tabPath && path !== '/world';
     const { capabilities } = context;
     const id = Number(/\/(\d+)(?:\/|$)/.exec(bare)?.[1]);
     const known = (value: string | null, icon: PinIcon) => ({ path, label: value, icon, pinnable });
     if (/^\/squads\/\d+$/.test(bare)) return known(capabilityLabel(capabilities, 'squad.workspace', id), 'squad');
-    if (/^\/clubs\/\d+\/workspace$/.test(bare)) {
-        const club = capabilityLabel(capabilities, 'club.workspace', id) ?? capabilityLabel(capabilities, 'club.operations', id);
+    if (/^\/clubs\/\d+\/work$/.test(bare) && !query) {
+        const club = capabilityLabel(capabilities, 'club.job-workspaces', id);
+        return known(club ? copy(`Your club work · ${club}`, `თქვენი სამუშაო · ${club}`) : copy('Your club work', 'თქვენი სამუშაო'), 'workspace');
+    }
+    if (/^\/clubs\/\d+\/office$/.test(bare)) {
+        const club = capabilityLabel(capabilities, 'club.office', id) ?? capabilityLabel(capabilities, 'club.workspace', id) ?? capabilityLabel(capabilities, 'club.operations', id) ?? capabilityLabel(capabilities, 'club.member', id);
         if (query) return known(null, 'workspace');
-        return known(club ? copy(`Workspace · ${club}`, `სამუშაო სივრცე · ${club}`) : copy('Club workspace', 'კლუბის სამუშაო სივრცე'), 'workspace');
+        return known(club ? copy(`Club office · ${club}`, `კლუბის ოფისი · ${club}`) : copy('Club office', 'კლუბის ოფისი'), 'workspace');
     }
     if (/^\/clubs\/\d+$/.test(bare) && !query) {
         const club = capabilities?.workspaces.find(item => item.context.type === 'club' && item.context.id === id)?.context.label;

@@ -2,7 +2,6 @@ import type { CSSProperties } from 'react';
 import { Trans } from 'react-i18next';
 import { Ban, CalendarDays, Check, ChevronLeft, ChevronRight, Loader2, Lock, Repeat2, X } from 'lucide-react';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { isExtensionCapabilityAvailable } from '../../features/capabilities/extensions';
 import type { EventCreationModalProps } from './eventEditor/eventEditorModel';
 import { useEventEditor } from './eventEditor/useEventEditor';
 import { EventPlanStep } from './eventEditor/EventPlanStep';
@@ -25,10 +24,10 @@ const EventCreationContent = (props: EventCreationModalProps) => {
     const editor = useEventEditor(props);
     const {
         STEPS, accent, audience, audienceNotice, busy, canCancel, cancelConfirm, content, descriptionId,
-        dialog, discard, error, handleCancel, handleSave, headline, inFlight, isClub, issue, mode, motion,
+        dialog, discard, error, handleCancel, handleSave, headline, inFlight, isClub, issue, motion,
         navigateStep, next, onClose, readOnly, recurring, requestClose, saveLabel, savedSeries,
         setCancelConfirm, setDiscard, showIssue, startedSeries, step, stepHeading, subjectLabel, submitting,
-        surface, t, targetEventId, targetEventStartsAt, titleId,
+        t, titleId,
     } = editor;
     if (!props.isOpen) return null;
     return (
@@ -78,10 +77,6 @@ const EventCreationContent = (props: EventCreationModalProps) => {
                     </button>
                 </header>
                 {audienceNotice && <p className="schedule-compose-steps" role="note">{audienceNotice}</p>}
-                {mode === 'edit' && surface === 'CLUB_SCHEDULE' && targetEventId != null && (isExtensionCapabilityAvailable('eventVenueAttachment') || isExtensionCapabilityAvailable('volunteerShifts')) && <div className="schedule-compose-steps">
-                    {isExtensionCapabilityAvailable('eventVenueAttachment') && <a target="_blank" rel="noopener noreferrer" href={`/event-venues?type=CLUB_EVENT&id=${targetEventId}${targetEventStartsAt?`&occurrenceStart=${encodeURIComponent(targetEventStartsAt)}`:''}`}>Stadium reservation ↗</a>}
-                    {isExtensionCapabilityAvailable('volunteerShifts') && <a target="_blank" rel="noopener noreferrer" href={`/volunteering?eventId=${targetEventId}&view=manage`}>Volunteer shifts ↗</a>}
-                </div>}
                 <nav className="schedule-compose-steps" aria-label={t('schedule.editor.editorSteps')}>
                     {STEPS.map((label, index) => (
                         <button

@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Field, PageHeader, Panel } from '../../design/primitives';
+import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { useNavigationCapability } from '../../context/useNavigationCapability';
 import { label, moduleNames, moduleGroups, put, root, type Bootstrap } from './api';
+import { LIFE } from './life';
 import { operationDescriptions } from './workspaceNavigation';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
@@ -9,8 +12,11 @@ import '../clubWorkspace/club-workspace.css';
 const SETTINGS = ['UNSPECIFIED', 'SCHOOL', 'COMMUNITY', 'INDEPENDENT_ACADEMY', 'CLUB_ACADEMY', 'CLUB', 'OTHER'];
 const LEVELS = ['UNSPECIFIED', 'RECREATIONAL', 'AMATEUR', 'SEMI_PROFESSIONAL', 'PROFESSIONAL', 'MIXED'];
 
-/** Workspace setup: what kind of club this is, its region, and which tools the whole club uses. */
+/** Club details and tools (Club office › Settings): what kind of club this is, its region, and which tools the whole club uses. */
 export function OperationsSettings({ boot, onSaved }: { boot: Bootstrap; onSaved: () => Promise<void> }) {
+  const copy = useJourneyCopy();
+  // Life has no switch while the server holds it back (release 17).
+  const life = useNavigationCapability('care.life') === true;
   const [settings, setSettings] = useState(boot.settings), [busy, setBusy] = useState(false), [error, setError] = useState(''), [saved, setSaved] = useState(false);
   const set = (value: Partial<typeof settings>) => { setSettings(current => ({ ...current, ...value })); setSaved(false); };
   const dirty = JSON.stringify(settings) !== JSON.stringify(boot.settings);
@@ -24,7 +30,7 @@ export function OperationsSettings({ boot, onSaved }: { boot: Bootstrap; onSaved
   };
   const toggle = (module: string, on: boolean) => set({ enabled_modules: on ? [...settings.enabled_modules, module] : settings.enabled_modules.filter(value => value !== module) });
   return <form className="rec-page" onSubmit={e => { void submit(e); }}>
-    <PageHeader title="Workspace settings" subtitle="Club details and the tools your club uses. Each person’s responsibilities decide what they see first." />
+    <PageHeader title={copy('Club details and tools', 'კლუბის მონაცემები და ინსტრუმენტები')} subtitle={copy('A tool switched off leaves More tools for everyone.', 'გამორთული ინსტრუმენტი ყველასთვის ქრება სხვა ინსტრუმენტებიდან.')} />
     <fieldset disabled={busy} className="rec-form rec-form--wide">
       {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
       {saved && <div className="gk-notice cw-notices__success" role="status">Settings saved.</div>}
@@ -33,7 +39,7 @@ export function OperationsSettings({ boot, onSaved }: { boot: Bootstrap; onSaved
           <p className="rec-form__intro gk-muted">Turning a tool off affects the whole club: new records stop, while history stays available to the people allowed to see it.</p>
           {moduleGroups.map(group => <section key={group.name} className="rec-form__group">
             <div className="rec-form__group-head"><h3>{group.name}</h3></div>
-            <ul className="rec-switches">{group.ids.map(module => <li key={module}><label className="rec-switch">
+            <ul className="rec-switches">{group.ids.filter(module => life || module !== LIFE).map(module => <li key={module}><label className="rec-switch">
               <span><strong>{moduleNames[module]}</strong><span>{operationDescriptions[module]}</span></span>
               <input type="checkbox" role="switch" className="gk-switch" checked={settings.enabled_modules.includes(module)} onChange={e => toggle(module, e.target.checked)} />
             </label></li>)}</ul>

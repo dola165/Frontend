@@ -80,3 +80,9 @@ it('retains a real second operations responsibility while showing each appointme
   expect(operations.getByRole('list', { name: 'Published responsibilities' })).not.toHaveTextContent('Sports psychologist');
   expect(person.role).toBe('CLUB_STAFF');
 });
+
+it.each(['Conditioning coach', 'Gym & conditioning coach'])('keeps recoded %s in performance as well as coaching', title => {
+  expect(responsibilityAreas(['SPECIALIST_COACH'], title)).toEqual(['coaching', 'performance']);
+  expect(staffAreas({ ...manager, responsibilities: [{ ...managerAppointment, title, specialisations: ['SPECIALIST_COACH'] }] })).toEqual(['coaching', 'performance']);
+  expect(responsibilityAreas(['SPECIALIST_COACH'], 'Goalkeeper coach')).toEqual(['coaching']);
+});

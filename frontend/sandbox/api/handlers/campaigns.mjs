@@ -26,9 +26,12 @@ const sorter = (sort, context) => (a, b) =>
   : sort === 'CLOSEST' ? percent(b) - percent(a)
   : sort === 'RELEVANCE' ? relevance(b, context) - relevance(a, context) || Date.parse(b.publishedAt) - Date.parse(a.publishedAt)
   : Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
-const published = () => F.campaigns.filter(c => c.status !== 'DRAFT' && c.status !== 'ARCHIVED');
+// Public: published, paused or closed, and only a verified club's (step 4); the rest works inside the club.
+const published = () => F.campaigns.filter(c => ['PUBLISHED', 'PAUSED', 'CLOSED'].includes(c.status) && W.clubById(c.clubId)?.verified);
+/** The public shape: the club's own facts (its project, who reported and published) stay with the club. */
+const shown = ({ projectId, squadId, reportedBy, publishedBy, createdBy, ...c }) => c;
 /** A fundraiser as the lists show it, with how far its club is from the area. */
-const view = (c, area) => ({ ...c, distanceKm: distanceFrom(area, c) });
+const view = (c, area) => ({ ...shown(c), distanceKm: distanceFrom(area, c) });
 
 // ============================================================== front
 get('/campaigns/front', ({ query: q, headers }) => {
@@ -52,4 +55,4 @@ get('/campaigns', ({ query: q, headers }) => {
     .sort(sorter(sort, context)).map(c => view(c, area));
   return F.springPage(list, pageOf(q), sizeOf(q));
 });
-get('/campaigns/:id', ({ params }) => published().find(campaign => campaign.id === Number(params.id)) || notFound('This fundraiser is unavailable.'));
+get('/campaigns/:id', ({ params }) => { const found = published().find(campaign => campaign.id === Number(params.id)); return found ? shown(found) : notFound('This fundraiser is unavailable.'); });

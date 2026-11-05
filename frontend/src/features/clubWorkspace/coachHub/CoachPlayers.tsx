@@ -18,10 +18,10 @@ import { WorkspacePlayerPanel } from '../../clubOperations/WorkspacePlayerPanel'
 import { withoutScope } from '../../clubOperations/scopedParams';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { PlayerCard } from '../squads/PlayerCard';
-import { SquadEnrollmentManager } from '../../squadEnrollment/SquadEnrollment';
-import { ExtensionSurface } from '../../capabilities/ExtensionBoundary';
 import { dueWords } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
+import { WantToJoin } from './WantToJoin';
+import { WaitingForFamily } from './WaitingForFamily';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
@@ -36,15 +36,21 @@ const FILTERS: { id: string; label: 'filterEveryone' | 'filterRestricted' | 'fil
 ];
 
 /**
- * My squads' players as football cards, by position: photo, shirt number, position, age and the signs a coach
- * plans around (a restriction, consent waiting on a parent, a development review). Who's coming belongs to a
- * planned session, so it is shown there, not here. A card opens the player's notes and tools.
+ * My squads' players: who wants to join on top (for those who decide it, step 3), then the squad as football cards, by
+ * position: photo, shirt number, position, age and the signs a coach plans around (a restriction, consent waiting on a
+ * parent, a development review). Who's coming belongs to a planned session, so it is shown there, not here. A card
+ * opens the player's notes and tools.
  */
 export function CoachPlayers({ data }: { data: CoachData }) {
     const { t } = useTranslation();
     const copy = useCopy('coachHub', coachHubEn);
     const [params, setParams] = useSearchParams();
-    const [roster, setRoster] = useState(false);
+    // "Add your players" on a squad with nobody yet opens the roster straight away (roster=1).
+    const [roster, setRosterOpen] = useState(params.get('roster') === '1');
+    const setRoster = (open: boolean) => {
+        setRosterOpen(open);
+        if (!open && params.has('roster')) setParams(current => { const next = new URLSearchParams(current); next.delete('roster'); return next; }, { replace: true });
+    };
     const [removing, setRemoving] = useState<number | null>(null);
     const query = params.get('q') ?? '';
     const filter = FILTERS.find(item => item.id === params.get('view')) ?? FILTERS[0];
@@ -59,7 +65,15 @@ export function CoachPlayers({ data }: { data: CoachData }) {
     };
 
     const rosters = data.rosters?.filter(roster => data.shown.includes(roster.id)) ?? null;
-    const rows: PlayerRow[] = (rosters ?? []).flatMap(roster => (roster.groups ?? []).flatMap(group => group.players.map(player => {
+    // The squad's players are its members, as the squad's own page counts them: a child placed before the family's yes
+    // waits under "Waiting for the family" instead (a squad whose page didn't load keeps its whole roster).
+    const members = (squad: number) => { const players = data.squads?.find(item => item.id === squad)?.overview?.players; return players ? new Set(players.map(person => person.id)) : null; };
+    // Only a child waits for a family; anyone else on the roster stays a player here.
+    const isMember = (squad: number, player: SquadRosterPlayer) => (members(squad)?.has(player.id) ?? true)
+        || player.age == null || player.age >= 18;
+    const placedWaiting = (rosters ?? []).flatMap(roster => (roster.groups ?? []).flatMap(group => group.players.filter(player => !isMember(roster.id, player))
+        .map(player => ({ cardId: -player.id, userId: player.id, fullName: player.name, birthYear: null, age: player.age ?? null, squad: roster.id }))));
+    const rows: PlayerRow[] = (rosters ?? []).flatMap(roster => (roster.groups ?? []).flatMap(group => group.players.filter(player => isMember(roster.id, player)).map(player => {
         const about = data.records.rows.filter(record => record.subject_user_id === player.id);
         return { player, group: group.label, squad: roster.id,
             restriction: about.find(record => record.module === 'AVAILABILITY'), consent: about.find(record => record.module === 'GUARDIANS' && record.status === 'PENDING'),
@@ -120,6 +134,8 @@ export function CoachPlayers({ data }: { data: CoachData }) {
         <PageHeader title={copy('players')} subtitle={copy('playersIn', { count: rows.length, where: several ? copy('inYourSquads') : data.names.get(data.shown[0]) ?? '' })} />
         <SquadSwitch data={data} />
         <div className="gk-stack">
+            {(Boolean(data.joining.items?.length) || data.joining.failed) && <WantToJoin items={data.joining.items ?? []} failed={data.joining.failed} onRetry={data.joining.refresh} data={data} onChanged={data.refresh} />}
+            <WaitingForFamily data={data} placed={placedWaiting} />
             {errors.length > 0 && <div className="gk-notice gk-notice--danger" role="alert">{errors[0]}</div>}
             <div className="gk-stack gk-stack--tight">
                 <ViewTabs label={copy('show')} value={filter.id} onChange={id => set({ view: id === 'all' ? null : id })} views={FILTERS.map(item => ({ id: item.id, label: copy(item.label), count: rows.filter(item.test).length }))} />
@@ -134,7 +150,6 @@ export function CoachPlayers({ data }: { data: CoachData }) {
                 </ListToolbar>
             </div>
             {body}
-            {data.focus && <ExtensionSurface capability="squadEnrollment"><SquadEnrollmentManager key={data.focus} squad={data.focus} /></ExtensionSurface>}
         </div>
         {panel}
         {roster && <RosterDialog data={data} open onClose={() => setRoster(false)} />}

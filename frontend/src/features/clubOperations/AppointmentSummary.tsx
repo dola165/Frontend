@@ -5,11 +5,13 @@ import { appointmentScope, appointmentStatus, label, moduleNames, type Appointme
 import './appointment-summary.css';
 
 import {appointmentDate} from './appointmentDate';
+import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 
 /** Shared presentation only. The caller owns authority, decisions and confirmations. */
 export function AppointmentSummary({ appointment: a, squads, showPerson = false, children }: {
     appointment: Appointment; squads?: Choice[]; showPerson?: boolean; children?: ReactNode;
 }) {
+    const copy = useJourneyCopy();
     const state = appointmentStatus(a);
     const tone = state === 'Active' ? 'active' : state === 'Invited' || state === 'Upcoming' ? 'pending' : 'neutral';
     return <article className="appointment-summary" id={`staff-appointment-${a.id}`}>
@@ -30,9 +32,9 @@ export function AppointmentSummary({ appointment: a, squads, showPerson = false,
                 {a.status === 'INVITED' && a.expires_at && <p className="appointment-summary__notice">Respond by {new Date(a.expires_at).toLocaleDateString()}.</p>}
             </div>
             <section className="appointment-summary__access" aria-label="Responsibilities and access">
-                <h4><KeyRound size={16} aria-hidden="true" />Workspace access</h4>
+                <h4><KeyRound size={16} aria-hidden="true" />{copy('Tools', 'ინსტრუმენტები')}</h4>
                 {a.permissions.length ? <ul>{a.permissions.map(p => <li key={p}><Building2 size={16} aria-hidden="true" /><div><strong>{moduleNames[p.split(':')[0]] || label(p.split(':')[0])}</strong><span>{p.endsWith(':WRITE') ? 'Read and manage' : 'Read only'}</span></div></li>)}</ul>
-                    : <p>No club workspace access. Ask club leadership if you need tools for this responsibility.</p>}
+                    : <p>{copy('No Club office tools. Ask an admin if this job needs some.', 'კლუბის ოფისის ინსტრუმენტები არ არის. თუ ამ სამუშაოს სჭირდება, მიწერეთ ადმინს.')}</p>}
             </section>
         </div>
         {a.unavailable_reason && <p className="appointment-summary__notice" role="alert">{a.unavailable_reason}</p>}

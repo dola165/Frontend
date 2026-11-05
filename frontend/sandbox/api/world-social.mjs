@@ -483,6 +483,8 @@ export const roleProfiles = new Map([[ME_ID, [
   { role: 'CLUB_STAFF', primary: false, published: true, headline: 'Academy leadership team', specialties: 'Coaching curriculum, staff development, player pathway', qualifications: null, serviceArea: 'Tbilisi' },
 ]]]);
 export const accountProfile = {
+  // Luka's birth date; /__mode/nodob takes it away to check what an account without one sees.
+  dob: '1988-04-12',
   bio: 'Head of Coaching at FC Dinamo Tbilisi Academy. I coach the U16 and U14 Boys and lead our coaching curriculum from U12 to the reserve team. UEFA A licence.',
   bannerUrl: photo('profile-banner-1'),
 };

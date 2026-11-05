@@ -108,7 +108,7 @@ function CostsEditor({ draft, plan, context, squad, canEdit, busy, dirty, change
                                     <div className="gk-plan-arrangement-foot">
                                         {supplier && <span className="gk-faint">{supplier.source} · {dateTime(supplier.at, draft.timezone)}</span>}
                                         {plan?.rights.travel && <Button size="sm" variant="ghost" disabled={busy} onClick={() => setEvidence(evidence === item.key ? null : item.key)}>Record supplier answer</Button>}
-                                        {item.financeRecordId && plan && <Link className="gk-section__action" to={`/clubs/${plan.club_id}/workspace?tab=finance&record=${item.financeRecordId}`}>Finance record</Link>}
+                                        {item.financeRecordId && plan && <Link className="gk-section__action" to={`/clubs/${plan.club_id}/office?tab=tools&tool=finance&record=${item.financeRecordId}`}>Finance record</Link>}
                                     </div>
                                     {evidence === item.key && <EvidenceForm busy={busy} onSubmit={(status, source, text) => command('supplier', { arrangementKey: item.key, status, source, evidence: text })} onSaved={() => setEvidence(null)} />}
                                 </li>

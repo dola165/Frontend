@@ -2,6 +2,7 @@ import { getAuthSessionId, getStoredUserId, isCurrentAuthSession } from '../../u
 
 type Attempt = { content: string; key: string };
 type Recovery = { draft: string; attempts: Attempt[] };
+export type ConversationKey = number | string;
 const prefix = 'gk-chat-recovery:';
 
 /** Private, tab-local recovery belongs to one login, including a second login to the same account. */
@@ -10,8 +11,8 @@ export function createMessageRecovery() {
     const user = getStoredUserId();
     const scope = `${prefix}${session ?? 'legacy'}:${user ?? 'guest'}:`;
     const current = () => isCurrentAuthSession(session) && getStoredUserId() === user;
-    const memory = new Map<number, Recovery>();
-    const read = (id: number): Recovery => {
+    const memory = new Map<ConversationKey, Recovery>();
+    const read = (id: ConversationKey): Recovery => {
         if (!current()) return { draft: '', attempts: [] };
         let value: Recovery = { draft: '', attempts: [] };
         try {
@@ -22,7 +23,7 @@ export function createMessageRecovery() {
         memory.set(id, value);
         return value;
     };
-    const write = (id: number, value: Recovery) => {
+    const write = (id: ConversationKey, value: Recovery) => {
         if (!current()) throw new Error('The login changed.');
         // Retired login drafts are never restored, even for the same account.
         for (const key of Object.keys(sessionStorage)) {
@@ -34,18 +35,18 @@ export function createMessageRecovery() {
     };
     return {
         current,
-        readDraft: (id: number) => read(id).draft,
-        writeDraft(id: number, draft: string) {
+        readDraft: (id: ConversationKey) => read(id).draft,
+        writeDraft(id: ConversationKey, draft: string) {
             const value = { ...read(id), draft };
             try { write(id, value); } catch { if (current()) memory.set(id, value); }
         },
-        prepare(id: number, content: string) {
+        prepare(id: ConversationKey, content: string) {
             const value = read(id);
             const attempt = value.attempts.find(item => item.content === content) ?? { content, key: crypto.randomUUID() };
             write(id, { ...value, attempts: [...value.attempts.filter(item => item.key !== attempt.key), attempt] });
             return attempt;
         },
-        confirm(id: number, attempt: Attempt) {
+        confirm(id: ConversationKey, attempt: Attempt) {
             const value = read(id);
             write(id, { draft: value.draft.trim() === attempt.content ? '' : value.draft,
                 attempts: value.attempts.filter(item => item.key !== attempt.key) });

@@ -8,6 +8,8 @@ Work on the redesign sandbox continues from `frontend/docs/claude-sandbox/HANDOF
 
 ## Shared context lives in the backend
 
+Handed a task with no memory of this project? Read `docs/AI_WORKER_GUIDE.md` in the backend first: it is kept current, and says how to run the whole app locally in one command. The live line is `codex/real-backend-integration-20261017` in both repositories.
+
 The complete, maintained project guide is `AGENTS.md` at the root of the paired private backend repository, `dola165/GrassKickZ`. Read it before architecture, mobile, cross-repository or deployment work, together with its `docs/TEAM_CURRENT_STATE.md` (current branches and live release). Locate the backend checkout on this machine; do not assume another person's paths. If it is unavailable, say which context is missing and proceed only where the evidence supports the work.
 
 This repository is public. Never copy private operational records, secrets, production exports or personal chat history into it.

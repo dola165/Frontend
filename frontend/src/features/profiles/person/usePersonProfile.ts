@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { profileRoles } from '../../roles/domain';
-import { fetchPersonProfile, fetchProfessions, type PersonProfile, type Profession } from '../api';
+import { fetchPersonProfile, fetchProfessions, saveMyImage, type PersonProfile, type Profession } from '../api';
+import { useFootball } from '../football/useFootball';
 
 /**
  * A person's profile, their professions and what the viewer may see and do.
@@ -37,30 +37,31 @@ export function usePersonProfile(id: number) {
         return () => controller.abort();
     }, [id, key]);
 
+    const football = useFootball(id);
     const own = Boolean(user && profile && Number(user.id) === profile.id);
+    const shownLine = football.data?.publicRole?.label ?? null;
     const roles = profile ? profileRoles(profile) : [];
     const hidden = Boolean(profile?.isPrivate && !own);
     // Minors' birth dates never reach other viewers. Treat a player without one as a possible minor.
     const possibleMinor = !own && roles.includes('PLAYER') && !profile?.dateOfBirth;
 
-    const toggleFollow = async () => {
-        if (!profile) return;
-        const previous = profile;
-        setProfile(() => ({ ...profile, isFollowedByMe: !profile.isFollowedByMe, followerCount: Math.max(0, profile.followerCount + (profile.isFollowedByMe ? -1 : 1)) }));
-        try { await apiClient.post(`/users/${profile.id}/follow`); }
-        catch (error) { setProfile(() => previous); throw error; }
-    };
+    /** Follow (`FollowButton`) changed: the follower is counted at once and taken back if the server refused. */
+    const followChanged = (following: boolean) => setProfile(current => current && current.isFollowedByMe !== following
+        ? { ...current, isFollowedByMe: following, followerCount: Math.max(0, current.followerCount + (following ? 1 : -1)) } : current);
     const updateImage = async (field: 'banner' | 'avatar', url: string) => {
         if (!own) throw new Error('You can only change your own profile photos.');
-        await apiClient.put('/users/me', field === 'avatar' ? { avatarUrl: url } : { bannerUrl: url });
+        await saveMyImage(field, url);
         setProfile(current => current ? { ...current, [field === 'avatar' ? 'avatarUrl' : 'bannerUrl']: url } : current);
     };
 
     return {
         profile, status, own, roles, hidden, possibleMinor, setProfile,
+        football: football.data,
+        /** The line under the name, from the person's real lines. */
+        line: shownLine,
         professions: currentProfessions?.items ?? null,
         professionsFailed: currentProfessions?.failed ?? false,
-        reload: () => setRevision(value => value + 1), toggleFollow, updateImage,
+        reload: () => { setRevision(value => value + 1); football.reload(); }, followChanged, updateImage,
     };
 }
 

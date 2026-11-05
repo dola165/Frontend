@@ -6,11 +6,11 @@ import { WorkspaceShell } from './WorkspaceShell';
 
 function Where() { const location = useLocation(); return <output aria-label="Location">{location.pathname}</output>; }
 
-const renderShell = (guard?: (proceed: () => void) => void, onSelect = vi.fn(), more: { id: string; label: string; items: { id: string; label: string; icon: typeof Home }[] }[] = []) => render(<MemoryRouter initialEntries={['/clubs/1/workspace']}>
+const renderShell = (guard?: (proceed: () => void) => void, onSelect = vi.fn()) => render(<MemoryRouter initialEntries={['/clubs/1/office']}>
     <Routes><Route path="*" element={<>
-        <WorkspaceShell label="Club workspace" storageKey="test" guard={guard} context={{ name: 'Test FC', back: { label: 'Club page', to: '/clubs/1' } }}
-            primary={[{ id: 'overview', label: 'Overview', icon: Home }]} groups={[{ id: 'people', label: 'People', items: [{ id: 'players', label: 'Players', icon: Users, count: 3 }] }]}
-            more={more} active="overview" onSelect={onSelect} sectionTitle="Overview">
+        <WorkspaceShell label="Club office" storageKey="test" guard={guard} context={{ name: 'Test FC', back: { label: 'Club page', to: '/clubs/1' } }}
+            primary={[{ id: 'staff', label: 'Staff', icon: Home, count: 3 }]} quiet={[{ id: 'tools', label: 'More tools', icon: Users }]}
+            active="staff" onSelect={onSelect} sectionTitle="Staff">
             <p>Page content</p>
         </WorkspaceShell>
         <Where />
@@ -24,7 +24,7 @@ describe('WorkspaceShell', () => {
         let pending: (() => void) | null = null;
         renderShell(proceed => { pending = proceed; });
         fireEvent.click(screen.getByRole('link', { name: 'Club page' }));
-        expect(screen.getByRole('status', { name: 'Location' })).toHaveTextContent('/clubs/1/workspace');
+        expect(screen.getByRole('status', { name: 'Location' })).toHaveTextContent('/clubs/1/office');
         expect(pending).not.toBeNull();
         act(() => pending!());
         expect(screen.getByRole('status', { name: 'Location' })).toHaveTextContent(/^\/clubs\/1$/);
@@ -39,8 +39,8 @@ describe('WorkspaceShell', () => {
     it('closes the phone drawer from the backdrop, which stays outside the inert page', () => {
         renderShell();
         // The menu button shows only below the phone breakpoint, a media query jsdom does not apply.
-        fireEvent.click(screen.getByRole('button', { name: 'Club workspace menu', hidden: true }));
-        expect(screen.getByRole('dialog', { name: 'Club workspace navigation' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Club office menu', hidden: true }));
+        expect(screen.getByRole('dialog', { name: 'Club office navigation' })).toBeInTheDocument();
         const backdrop = document.querySelector<HTMLButtonElement>('.gk-ws__backdrop')!;
         expect(backdrop.closest('[inert]')).toBeNull();
         expect(document.querySelector('.gk-ws__main')!.hasAttribute('inert')).toBe(true);
@@ -49,19 +49,20 @@ describe('WorkspaceShell', () => {
         expect(document.querySelector('.gk-ws__main')!.hasAttribute('inert')).toBe(false);
     });
 
-    it('selects rail destinations through the page and names waiting counts', () => {
+    it('selects places through the page and names waiting counts', () => {
         const onSelect = vi.fn();
         renderShell(undefined, onSelect);
-        fireEvent.click(screen.getByRole('button', { name: /Players/ }));
-        expect(onSelect).toHaveBeenCalledWith('players');
+        fireEvent.click(screen.getByRole('button', { name: /Staff/ }));
+        expect(onSelect).toHaveBeenCalledWith('staff');
         expect(screen.getByLabelText('3 waiting')).toBeInTheDocument();
     });
 
-    it('keeps the remaining tools one tap away when the rail is collapsed to icons', () => {
-        renderShell(undefined, vi.fn(), [{ id: 'business', label: 'Club business', items: [{ id: 'store', label: 'Store', icon: Users }] }]);
+    it('keeps the quiet places under a thin line, still reachable collapsed to icons', () => {
+        const onSelect = vi.fn();
+        renderShell(undefined, onSelect);
+        expect(screen.getByRole('button', { name: 'More tools' }).closest('ul')).toHaveClass('gk-ws__items--quiet');
         fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
         fireEvent.click(screen.getByRole('button', { name: 'More tools' }));
-        expect(screen.getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-pressed', 'false');
-        expect(screen.getByRole('button', { name: 'Store' })).toBeVisible();
+        expect(onSelect).toHaveBeenCalledWith('tools');
     });
 });

@@ -8,6 +8,7 @@ import type { AgendaLayout } from './useAgendaFilter';
 import { ago } from './teamWorkWords';
 import { TaskRow } from './TaskRow';
 import './team-work-now.css';
+import '../../components/work/work.css';
 
 type Open = (taskId: number, stepId: number | null) => void;
 const newest = (a: WorkItem, b: WorkItem) => b.updatedAt.localeCompare(a.updatedAt);
@@ -55,7 +56,7 @@ export function GoneRows({ tasks, planOf, onOpen }: { tasks: WorkItem[]; planOf:
     return <section className="tw-gone" aria-labelledby={titleId}>
         <h2 id={titleId} className="tw-gone__title">{copy('Live and cancelled', 'ლაივზე და გაუქმებული')} <span className="gk-num">{gone.length}</span></h2>
         <ul className="tw-rows tw-rows--quiet">{shown.map(item => <TaskRow key={item.id} item={item} planName={planOf.get(item.id)?.name} quiet onOpen={onOpen} />)}</ul>
-        {gone.length > shown.length && <button type="button" className="tw-link-button tw-gone__more" onClick={() => setAll(true)}>{copy(`Show all ${gone.length}`, `ყველას ჩვენება (${gone.length})`)}</button>}
+        {gone.length > shown.length && <button type="button" className="work-link-button tw-gone__more" onClick={() => setAll(true)}>{copy(`Show all ${gone.length}`, `ყველას ჩვენება (${gone.length})`)}</button>}
     </section>;
 }
 

@@ -1,32 +1,59 @@
-import { useEffect, useRef, useState } from 'react';
+import { PrivateCarePanel } from './care/PrivateCarePanel';
+import { RegistrationPanel } from './registration/RegistrationPanel';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ArrowLeft, Plus, X } from 'lucide-react';
-import { Button, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
+import { Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { nextSort, type TableSort } from '../../design/tableSort';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { get, root, moduleNames, type Bootstrap, type OperationRecord } from './api';
 import { RecordDetail } from './RecordDetail';
 import { OperationsSettings } from './OperationsSettings';
 import { FinanceSummary } from './FinanceSummary';
-import { AppointmentActions } from './AppointmentActions';
+import { KitStockPanel } from './KitStockPanel';
 import { SessionRegister } from './SessionRegister';
-import { operationDescriptions, operationTabs } from './workspaceNavigation';
+import { operationDescriptions, operationTabs, toolLabel } from './workspaceNavigation';
 import { RecordForm } from './records/RecordForm';
 import { RecordTable, RecordToolbar, type RecordView } from './records/RecordList';
 import { SessionRegisters } from './records/SessionRegisters';
 import { useScopedSearchParams } from './scopedParams';
-import { navLabel } from '../clubWorkspace/clubTabs';
 import { clubRecordsEn } from '../../locales/clubRecords';
 import { translate, useCopy } from '../../locales/useCopy';
 import { appLanguage } from '../../utils/formatting';
+import { assertCurrentAuthSession, getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
+import { useJourneyCopy } from '../squadCommunication/journeyCopy';
+import { AdmissionHandoffStart } from './admissionHandoff/AdmissionHandoffStart';
+import { admissionHandoffFromParams, withoutAdmissionHandoff } from './admissionHandoff/routeContext';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
-/** One club tool (staff duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
-export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: {
+
+/** Record kinds no new record starts as: a purchase request is a project now (step 4). */
+const RETIRED_KINDS = new Set(['PURCHASE']);
+/** One club tool (duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
+export function WorkspaceOperations(props: Parameters<typeof OperationsRecords>[0]) {
+  const [context, setContext] = useScopedSearchParams(props.scope);
+  const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+  const copy = useJourneyCopy();
+  const handoff = admissionHandoffFromParams(context, props.boot, session);
+  const closeHandoff = () => setContext(withoutAdmissionHandoff(context));
+  if (handoff.state !== 'absent') {
+    if (handoff.state === 'invalid' || (props.module !== 'FINANCE' && props.module !== 'EQUIPMENT')) return <Panel>
+      <p role="alert">{copy('This follow-up link is invalid for this tool.', 'ეს გადმოცემული ბმული ამ ხელსაწყოსთვის არასწორია.')}</p>
+      <Button onClick={closeHandoff}>{copy('Return to this tool', 'ამ ხელსაწყოზე დაბრუნება')}</Button>
+    </Panel>;
+    return <AdmissionHandoffStart scope={handoff.scope} target={props.module} onClose={closeHandoff} onOpenRecord={id => {
+      const next = withoutAdmissionHandoff(context); next.set('record', String(id)); setContext(next);
+    }} />;
+  }
+  const directRecord = context.has('record') && !context.has('person');
+  if (props.module === 'REGISTRATION' && !context.has('record') && context.get('registration') !== 'records') return <RegistrationPanel boot={props.boot} scope={props.scope} />;
+  return ['MEDICAL', 'WELLBEING'].includes(props.module) && !directRecord ? <PrivateCarePanel {...props} /> : <OperationsRecords {...props} />;
+}
+function OperationsRecords({ boot, module, onRefresh, origin, scope }: {
   boot: Bootstrap; module: string; onRefresh: () => Promise<void>;
   /** Opened inside another page (a drawer beside a player): its URL parameters live under this prefix. */
   scope?: string;
-  /** Where the person came from (Coach Hub, the overview, a squad): the way back, when they did not open this tool from the rail. */
+  /** Where the person came from (More tools, My squads, a squad): the way back, when they did not open a record from this list. */
   origin?: { label: string; onBack: () => void };
 }) {
   const copy = useCopy('clubRecords', clubRecordsEn);
@@ -37,7 +64,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const [savedRecord, setSavedRecord] = useState<{ clubId: number; actorId: number; id: number; title: string } | null>(null);
   const [refresh, setRefresh] = useState(0);
   const page = Math.max(0, Number(params.get('page')) || 0), search = params.get('q') ?? '', kind = params.get('kind') ?? '', squad = params.get('squad') ?? '', session = params.get('session') ?? '', person = params.get('person') ?? '';
-  const view: RecordView = params.get('mine') === 'true' ? 'mine' : params.get('state') === 'open' && module !== 'HOME' ? 'open' : 'all';
+  const view: RecordView = params.get('mine') === 'true' ? 'mine' : params.get('state') === 'open' ? 'open' : 'all';
   // Sorting orders the loaded page; the server keeps its own order across pages until it accepts `sort` and `dir`.
   const sortBy = params.get('sort'), sort: TableSort | null = sortBy ? { by: sortBy, descending: params.get('dir') === 'desc' } : null;
   const [selected, setSelected] = useState<OperationRecord | null>(null), [editing, setEditing] = useState(false), [newKind, setNewKind] = useState(''), [choosing, setChoosing] = useState(false);
@@ -45,6 +72,8 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const selectRequest = useRef(0);
   const club = boot.clubId, linked = params.get('record');
   const definitions = boot.definitions.filter(d => d.module === module), permission = boot.modules.find(m => m.id === module);
+  // Buying something for the club is a project now (step 4): older purchase requests stay readable here, no new one starts.
+  const newKinds = definitions.filter(d => !RETIRED_KINDS.has(d.kind));
   const definition = boot.definitions.find(d => d.kind === (newKind || selected?.kind));
   const enabled = boot.settings.enabled_modules.includes(module), canCreate = permission?.writable && enabled && (!squad || permission.globalWrite || permission.writeSquads.includes(Number(squad)));
   const filter = (key: string, value: string) => {
@@ -106,9 +135,18 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     if (record) setSavedRecord({ clubId: club, actorId: boot.actorId, id: record.id, title: record.title });
     close(); reload();
   };
+  const reloadDetail = async () => {
+    if (!linked) throw new Error('No record is open.');
+    const request = selectRequest.current, session = getAuthSessionId();
+    const value = await get<OperationRecord>(`${root(club)}/records/${encodeURIComponent(linked)}`);
+    assertCurrentAuthSession(session);
+    if (request !== selectRequest.current) throw new Error('The selected record changed.');
+    setSelected(value); reload();
+    return value;
+  };
   const create = (value: string) => { setNewKind(value); setEditing(true); setSelected(null); setChoosing(false); };
   const tool = operationTabs.find(t => t.module === module);
-  const title = module === 'HOME' ? copy('workQueue') : tool ? navLabel(tool.id) : moduleNames[module];
+  const title = tool ? toolLabel(tool.id) : moduleNames[module];
   const listLabel = copy('backTo', { name: title.toLowerCase() });
   const toOrigin = Boolean(origin) && params.get('from') !== 'list';
   const backLabel = toOrigin ? origin!.label : listLabel;
@@ -118,7 +156,6 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   const empty = narrowed ? { title: copy('noMatching'), body: copy('noMatchingHint') }
     : view === 'mine' ? { title: copy('nothingMine'), body: copy('nothingMineHint') }
     : view === 'open' ? { title: copy('nothingOpen'), body: copy('nothingOpenHint') }
-    : module === 'HOME' ? { title: copy('upToDate'), body: copy('upToDateHint') }
     : { title: copy('noneYetNamed', { name: title.toLowerCase() }), body: canCreate ? operationDescriptions[module] : copy('sharedHint') };
   const openRegister = (s: Bootstrap['sessions'][number]) => {
     const next = new URLSearchParams(params);
@@ -128,7 +165,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
   };
   const changePage = (to: number) => { const next = new URLSearchParams(params); next.set('page', String(to)); setParams(next); };
   const addOne = (what: string) => copy('add', { what: what.toLowerCase() });
-  const addLabel = definitions.length === 1 ? addOne(definitions[0].label) : copy('addRecord');
+  const addLabel = newKinds.length === 1 ? addOne(newKinds[0].label) : copy('addRecord');
   const receipt = savedRecord?.clubId === club && savedRecord.actorId === boot.actorId ? savedRecord : null;
   const ka = appLanguage() === 'ka';
   const savedNotice = receipt && <div className="gk-notice cw-notices__success" role="status">
@@ -146,25 +183,25 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
     {detailError ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{detailError}</span><Button size="sm" onClick={() => setDetailRevision(value => value + 1)}>{copy('tryAgain')}</Button></div> : <div className="cw-loading" role="status" aria-label={copy('opening')}><Skeleton height={34} width="40%" /><Skeleton height={200} /></div>}
   </PageFrame>;
   if (editing && definition) return <PageFrame><RecordForm key={`${newKind}-${selected?.id ?? 'new'}`} boot={editorBoot} definition={definition} record={selected ?? undefined} backLabel={listLabel} onSaved={changed} onCancel={close} /></PageFrame>;
-  if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onClose={back} /></PageFrame>;
+  if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onReload={reloadDetail} onClose={back} /></PageFrame>;
 
   const contextName = person ? (boot.people.find(p => String(p.id) === person)?.name ?? `Player #${person}`) : (selectedSession?.title ?? `Training session #${session}`);
   return <PageFrame className="rec-page" aria-label={title}>
     {originBack}
     <PageHeader title={title} subtitle={operationDescriptions[module]}
-      actions={canCreate && definitions.length > 0 && (definitions.length <= 2
-        ? <>{definitions.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>{addOne(d.label)}</Button>)}<Button variant="primary" onClick={() => create(definitions[0].kind)}><Plus aria-hidden="true" />{addOne(definitions[0].label)}</Button></>
+      actions={canCreate && newKinds.length > 0 && (newKinds.length <= 2
+        ? <>{newKinds.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>{addOne(d.label)}</Button>)}<Button variant="primary" onClick={() => create(newKinds[0].kind)}><Plus aria-hidden="true" />{addOne(newKinds[0].label)}</Button></>
         : <Button variant="primary" aria-expanded={choosing} onClick={() => setChoosing(v => !v)}><Plus aria-hidden="true" />{addLabel}</Button>)} />
     <div className="gk-stack">
       {savedNotice}
       {choosing && <Panel flush title={copy('whatToAdd')} action={<Button size="sm" variant="ghost" iconOnly aria-label={copy('closeChoices')} onClick={() => setChoosing(false)}><X aria-hidden="true" /></Button>}>
-        <div className="rec-choices">{definitions.map(d => <button type="button" className="rec-choice" key={d.kind} onClick={() => create(d.kind)}><strong>{d.label}</strong></button>)}</div>
+        <div className="rec-choices">{newKinds.map(d => <button type="button" className="rec-choice" key={d.kind} onClick={() => create(d.kind)}><strong>{d.label}</strong></button>)}</div>
       </Panel>}
       {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={reload}>{copy('tryAgain')}</Button></div>}
-      {module !== 'HOME' && !enabled && <div className="gk-notice" role="status">{copy('toolOff')}</div>}
-      {module === 'STAFF' && <div className="gk-notice" role="status"><span className="cw-notices__text">{copy('staffNotice')}</span><Button size="sm" onClick={() => { const next = new URLSearchParams(); next.set('tab', 'personnel'); setParams(next); }}>{copy('openStaff')}</Button></div>}
-      {module === 'HOME' && boot.modules.some(m => m.id === 'STAFF') && <AppointmentActions club={club} onOpen={() => { const next = new URLSearchParams(params); next.set('tab', 'staff-duties'); next.delete('record'); setParams(next); }} />}
+      {!enabled && <div className="gk-notice" role="status">{copy('toolOff')}</div>}
+      {module === 'STAFF' && <div className="gk-notice" role="status"><span className="cw-notices__text">{copy('staffNotice')}</span><ButtonLink size="sm" to={`/clubs/${club}/office`}>{copy('openStaff')}</ButtonLink></div>}
       {module === 'FINANCE' && <FinanceSummary club={club} revision={boot} />}
+      {module === 'EQUIPMENT' && <KitStockPanel key={`${club}:${boot.actorId}`} club={club} revision={`${refresh}:${detailRevision}`} />}
       {(session || person) && <div className="gk-notice"><span className="cw-notices__text"><strong>{contextName}</strong>{squad ? ` · ${boot.squads.find(s => String(s.id) === squad)?.name ?? `Squad #${squad}`}` : ''}{selectedSession ? ` · ${new Date(selectedSession.starts_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}` : ''}</span>
         <Button size="sm" onClick={() => { const next = new URLSearchParams(params); next.delete('session'); next.delete('person'); next.delete('page'); setParams(next); }}>{copy('clear')}</Button></div>}
       {isRegister && <><SessionRegister boot={boot} session={Number(session)} squad={selectedSession!.squad_id!} onRecord={open} />
@@ -175,10 +212,10 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: 
           onView={chooseView} onChange={filter} onClear={clearFilters} />
         {loading && !result ? <Panel><div className="cw-skeleton-rows" role="status" aria-label={copy('loading')}>{[0, 1, 2, 3].map(i => <Skeleton key={i} height={44} />)}</div></Panel>
           : records.length ? <div inert={loading} data-updating={loading || undefined}>
-            <RecordTable records={records} boot={boot} home={module === 'HOME'} sort={sort} onSort={changeSort} hrefFor={hrefFor} onOpen={open} footer={pager} />
+            <RecordTable records={records} boot={boot} sort={sort} onSort={changeSort} hrefFor={hrefFor} onOpen={open} footer={pager} />
           </div>
             : !error && <Panel>
-              <EmptyNote title={empty.title} action={canCreate && !filtered && definitions.length ? <Button size="sm" onClick={() => definitions.length <= 2 ? create(definitions[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{definitions.length <= 2 ? addOne(definitions[0].label) : addLabel}</Button>
+              <EmptyNote title={empty.title} action={canCreate && !filtered && newKinds.length ? <Button size="sm" onClick={() => newKinds.length <= 2 ? create(newKinds[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{newKinds.length <= 2 ? addOne(newKinds[0].label) : addLabel}</Button>
                 : view === 'open' && !narrowed ? <Button size="sm" onClick={() => chooseView('all')}>{copy('showAll')}</Button> : undefined}>{empty.body}</EmptyNote>
               {pager && <div className="rec-pager">{pager}</div>}
             </Panel>}

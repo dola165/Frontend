@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useEffectEvent, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { ButtonLink, EmptyNote, Panel } from '../../../design/primitives';
@@ -17,6 +17,7 @@ import { useStage, WIDE } from '../stage/stageContext';
 import { useMediaQuery } from '../useMediaQuery';
 import { ANYWHERE, useWorldArea } from '../useWorldArea';
 import { useWorldSession } from '../worldSession';
+import { useFinder } from '../finder/finderContext';
 import { BrowsePanel } from './BrowsePanel';
 import { DirectoryResults } from './DirectoryResults';
 import { ListSplit } from './ListSplit';
@@ -33,6 +34,7 @@ import { useDirectorySelection } from './useDirectorySelection';
 import { CARRIED, SELECTED, type DirectoryState } from './useDirectoryState';
 import { useRestoredScroll } from './useRestoredScroll';
 import './side.css';
+import { WatchSearch } from '../watches/WatchSearch';
 
 const NO_PINS = new Map<string, string>();
 const inView = (point: { lat: number; lng: number }, view: MapBounds) => point.lat >= view.south && point.lat <= view.north && point.lng >= view.west && point.lng <= view.east;
@@ -56,7 +58,7 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
     const write = useEffectEvent(() => {
         done.current = true;
         const { source, query } = state;
-        const skip = !source.defaults || query.q || params.has(SELECTED) || source.filters.some(filter => !CARRIED.includes(filter.key) && !filter.nav && params.has(filter.key));
+        const skip = !source.defaults || params.get('defaults') === 'none' || query.q || params.has(SELECTED) || source.filters.some(filter => !CARRIED.includes(filter.key) && !filter.nav && params.has(filter.key));
         const values = skip ? {} : source.defaults!({ role, child: Boolean(child), signedIn, minor: signedIn && age != null && age < 18 });
         // Writing them also names a tab chosen for who is looking.
         if (Object.keys(values).length || state.unnamed) state.setMany(values);
@@ -103,7 +105,9 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     useRestoredScroll((gated && authStatus !== 'bootstrapping') || (!data.loading && (data.items.length > 0 || Boolean(data.error || data.notice))));
     const stage = useStage();
     const wide = useMediaQuery(WIDE, true);
-    const browse = stage.inStage && stage.mapOpen && wide && !gated;
+    // In the club finder (Parent Hub's pop-up) the list under the map is the one place results open: no panel over it.
+    const finder = Boolean(useFinder());
+    const browse = !finder && stage.inStage && stage.mapOpen && wide && !gated;
     // In the Map tab the list follows the map while the map is open beside it.
     const following = Boolean(side) && browse;
     const [view, setView] = useState<MapBounds | null>(null);
@@ -111,7 +115,8 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const { remember } = useWorldChild();
     const session = useWorldSession();
     const [, setParams] = useSearchParams();
-    const [extras, setExtras] = useState<MapExtras>({});
+    const [extras, setAllExtras] = useState<MapExtras>({});
+    const setExtras = useCallback((patch: MapExtras) => setAllExtras(current => ({ ...current, ...patch })), []);
     /** Search for anyone: the child chosen in the World bar no longer narrows the list. */
     const clearFor = () => {
         remember.write('');
@@ -162,8 +167,8 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const context = away ? [...(extras.context ?? []), { id: 'away:from', lat: away.from.lat, lng: away.from.lng, label: away.from.name ?? '', tone: 'club' as const }] : extras.context;
     // The map's own card shows a pin unless a Browse row already shows its one chosen result (with its Open link).
     useDirectoryMap({ source, data, gated, mappable, placed, choice, open: stage.mapOpen, panel: browse, side, onView: following ? setView : undefined,
-        summary: count, card: !browse || stage.panelFolded || !choice.chosen,
-        context, reach, away, bounds: reach ? reachBounds(reach, extras.context) : away ? pairBounds(away) : undefined, insetTop: source.Top && browse ? 72 : undefined });
+        summary: count, card: !finder && (!browse || stage.panelFolded || !choice.chosen),
+        context, reach: reach ?? extras.reach, you: extras.you, away, bounds: reach ? reachBounds(reach, extras.context) : away ? pairBounds(away) : undefined, insetTop: source.Top && browse ? 72 : undefined });
     // The column's count says what is on screen; the strip under the map and the other tabs keep the whole count.
     const panelCount = following && view && !data.loading && onScreen !== data.items ? t('{count} on screen', { count: plural(onScreen.length, ...nouns) }) + searched : count + searched + checked;
     const sortable = source.sorts && source.sorts.length > 1 && (!source.sortable || source.sortable(query));
@@ -184,6 +189,7 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
         <BelowMapHead icon={source.icon} title={title} nav={HeadTools && <HeadTools query={query} go={state.go} />}
             hint={browse ? count + searched + checked : <><span role="status">{count}{searched}</span>{checked}</>}>
             {!browse && sort}
+            <WatchSearch spec={data.watch} childId={data.childId} contextChildId={data.contextChildId} />
         </BelowMapHead>
     );
 

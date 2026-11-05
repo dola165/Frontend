@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ct } from '../copy';
 import { commerceCount } from '../count';
 import { cataloguePath, readCatalogue } from '../query';
-import { jobsPath, readJobs, worldJobsPath } from '../../jobs/query';
+import { jobsPath, readJobs, jobsMapPath } from '../../jobs/query';
 import { fundraisingPath, readFundraising } from '../../campaigns/query';
 
 vi.mock('../../../utils/formatting', () => ({ appLanguage: () => 'ka', formatDate: vi.fn(), formatMoney: vi.fn() }));
@@ -22,7 +22,7 @@ describe('Commerce in Georgian', () => {
         expect(cataloguePath(store)).toBe('/store/all?category=SHIRT&seller=clubs&page=2');
         const jobs = readJobs(new URLSearchParams('direction=HIRING&poster=people&job=401&page=2'));
         expect(jobsPath(jobs)).toBe('/jobs/all?direction=HIRING&poster=people&page=2&job=401');
-        expect(worldJobsPath(jobs)).toBe('/world/opportunities?tab=jobs&direction=HIRING&poster=people');
+        expect(jobsMapPath(jobs)).toBe('/jobs?direction=HIRING&poster=people');
         const campaigns = readFundraising(new URLSearchParams('category=TRAVEL&state=ALL&sort=NEWEST&page=2'));
         expect(fundraisingPath(campaigns)).toBe('/campaigns/all?category=TRAVEL&state=ALL&sort=NEWEST&page=2');
     });

@@ -1,8 +1,9 @@
 /** The one thing on screen a question is probably about: the squad, child, listing or page the person has open. */
-export type DolaSubjectKind = 'SQUAD' | 'CHILD' | 'CLUB' | 'ORGANIZATION' | 'JOB' | 'FUNDRAISER' | 'PRODUCT' | 'TOURNAMENT' | 'MATCH_CHALLENGE' | 'PERSON';
+export type DolaSubjectKind = 'PROJECT' | 'SQUAD' | 'CHILD' | 'CLUB' | 'ORGANIZATION' | 'JOB' | 'FUNDRAISER' | 'PRODUCT' | 'TOURNAMENT' | 'MATCH_CHALLENGE' | 'PERSON';
 export interface DolaSubject { kind: DolaSubjectKind; id: number; label?: string }
 
 const pages: [RegExp, DolaSubjectKind][] = [
+    [/^\/projects\/(\d+)$/, 'PROJECT'],
     [/^\/squads\/(\d+)(?:\/|$)/, 'SQUAD'],
     [/^\/jobs\/(\d+)$/, 'JOB'],
     [/^\/campaigns\/(\d+)$/, 'FUNDRAISER'],
@@ -36,9 +37,9 @@ export function dolaSubject(pathname: string, search: string, rememberedChild?: 
 }
 
 export const dolaSubjectWord = (kind: DolaSubjectKind, ka: boolean): string => (ka ? {
-    SQUAD: 'ეს გუნდი', CHILD: 'ეს ბავშვი', CLUB: 'ეს კლუბი', ORGANIZATION: 'ეს გვერდი', JOB: 'ეს განცხადება', FUNDRAISER: 'ეს კამპანია',
+    PROJECT: 'ეს პროექტი', SQUAD: 'ეს გუნდი', CHILD: 'ეს ბავშვი', CLUB: 'ეს კლუბი', ORGANIZATION: 'ეს გვერდი', JOB: 'ეს განცხადება', FUNDRAISER: 'ეს კამპანია',
     PRODUCT: 'ეს ნივთი', TOURNAMENT: 'ეს ტურნირი', MATCH_CHALLENGE: 'ეს მატჩი', PERSON: 'ეს ადამიანი',
 } : {
-    SQUAD: 'This squad', CHILD: 'This child', CLUB: 'This club', ORGANIZATION: 'This page', JOB: 'This listing', FUNDRAISER: 'This fundraiser',
+    PROJECT: 'This project', SQUAD: 'This squad', CHILD: 'This child', CLUB: 'This club', ORGANIZATION: 'This page', JOB: 'This listing', FUNDRAISER: 'This fundraiser',
     PRODUCT: 'This product', TOURNAMENT: 'This tournament', MATCH_CHALLENGE: 'This match', PERSON: 'This person',
 })[kind];

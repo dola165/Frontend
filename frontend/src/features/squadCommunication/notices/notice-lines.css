@@ -1,0 +1,20 @@
+/* Notify's kept lines on the squad page. Scoped under `.gk .nl`; tokens only. */
+.gk .nl { margin-bottom: var(--gk-4); }
+.gk .nl-quiet { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .nl-link { align-self: flex-start; min-height: 32px; padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .nl-link:hover { text-decoration: underline; }
+.gk .nl-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.gk .nl-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gk-2) var(--gk-3); padding: var(--gk-2) 0; border-top: 1px solid var(--gk-line); }
+.gk .nl-row:first-child { border-top: 0; }
+.gk .nl-row__icon { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .nl-row__icon svg { width: 14px; height: 14px; }
+.gk .nl-row__text { display: flex; flex: 1 1 240px; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .nl-row__text strong { font-size: var(--gk-fs-sm); font-weight: 600; overflow-wrap: anywhere; }
+.gk .nl-row__text small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .nl-seen { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 44px; padding: 0 var(--gk-2); border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-xs); cursor: pointer; }
+.gk .nl-seen:hover { background: var(--gk-hover); }
+.gk .nl-names { display: flex; flex-direction: column; gap: 2px; margin-top: var(--gk-1); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
+.gk .nl-names__group { display: flex; flex-direction: column; gap: 4px; }
+.gk .nl-people { display: flex; flex-wrap: wrap; gap: 4px var(--gk-3); margin: 0; padding: 0; list-style: none; }
+.gk .nl-people li { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; }
+.gk .nl-names__label { color: var(--gk-text-3); font-weight: 600; }

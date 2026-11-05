@@ -7,6 +7,9 @@ import { normalizeNavigationCapabilities } from '../../../../context/navigationC
 import { AccountMenu } from '../AccountMenu';
 import type { WorkPlace } from '../pins/pinCatalog';
 
+/** The account menu's "Add my child" asks the rule-checker; its own tests are in features/actions. */
+vi.mock('../../../../features/actions/ActionButton', () => ({ ActionButton: () => null }));
+
 const coach = { id: 1, fullName: 'Luka Gelashvili', navigationCapabilities: normalizeNavigationCapabilities({ version: 1, workspaces: [] }, 1) } as unknown as AuthUser;
 const admin = { ...coach, navigationCapabilities: normalizeNavigationCapabilities({ version: 1, workspaces: [{ id: 'admin.console', context: { type: 'user', id: 1, label: 'Admin' } }] }, 1) } as unknown as AuthUser;
 const squads: WorkPlace[] = [{ path: '/squads/105', label: 'U16 Boys', icon: 'squad', kind: 'Squad' }, { path: '/tournaments/301/workspace', label: 'Tbilisi Cup', icon: 'trophy', kind: 'Tournament' }];
@@ -53,7 +56,9 @@ describe('account menu', () => {
         fireEvent.keyDown(menu, { key: 'Home' });
         expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus();
         fireEvent.keyDown(menu, { key: 'ArrowDown' });
-        expect(within(menu).getByRole('menuitem', { name: 'My schedule' })).toHaveFocus();
+        expect(within(menu).getAllByRole('menuitem')[1]).toHaveFocus();
+        // My schedule left the menu; whoever wants it pins it (owner, 27 October 2026).
+        expect(within(menu).queryByRole('menuitem', { name: 'My schedule' })).toBeNull();
         fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
         fireEvent.keyDown(trigger, { key: 'ArrowDown' });
         expect(within(screen.getByRole('menu')).getAllByRole('menuitem')[0]).toHaveFocus();

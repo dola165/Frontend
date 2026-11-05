@@ -15,7 +15,7 @@ export const programmeMatchesAge = (p: TrainingProgramme, age: string) => age ==
 export const staffMatchesSquad = (p: PublicStaff, squad: string) => !squad || p.responsibilities.some(r => r.clubWide===true || (r.squadIds??(r.squadId==null?[]:[r.squadId])).map(String).includes(squad) || r.clubWide==null&&r.squadId==null&&!r.squadIds?.length) || !p.responsibilities.length && ['OWNER','CLUB_ADMIN'].includes(p.role);
 export const staffTitle = (p: Pick<PublicStaff, 'title' | 'role'>) => p.title?.trim() || ({ OWNER: 'Club leadership', CLUB_ADMIN: 'Club administration', COACH: 'Coach', CLUB_STAFF: 'Club staff' } as Record<string, string>)[p.role] || 'Club staff';
 export function enquiryPriority(p: PublicStaff, squads: number[]) {
-  const relevant = p.responsibilities.some(r => (r.clubWide===true || (r.squadIds??(r.squadId==null?[]:[r.squadId])).some(id=>squads.includes(id)) || r.clubWide==null&&r.squadId==null&&!r.squadIds?.length) && r.specialisations.some(s => ['HEAD_COACH','ASSISTANT_COACH','GOALKEEPER_COACH','TEAM_MANAGER','CLUB_SECRETARY'].includes(s)));
+  const relevant = p.responsibilities.some(r => (r.clubWide===true || (r.squadIds??(r.squadId==null?[]:[r.squadId])).some(id=>squads.includes(id)) || r.clubWide==null&&r.squadId==null&&!r.squadIds?.length) && r.specialisations.some(s => ['HEAD_COACH','ASSISTANT_COACH','GOALKEEPER_COACH', 'SPECIALIST_COACH','TEAM_MANAGER','TRAVEL_COORDINATOR','CLUB_SECRETARY'].includes(s)));
   return relevant ? 0 : ['OWNER','CLUB_ADMIN','COACH'].includes(p.role) ? 1 : 2;
 }
 /** "U14 · Boys": the squad's age group and who plays in it, in football words. */

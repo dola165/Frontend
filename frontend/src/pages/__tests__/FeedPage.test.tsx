@@ -1,8 +1,9 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { FeedPage } from '../../pages/FeedPage';
 import type { FeedPostDto } from '../../components/feed/FeedPost';
+import { followsChanged } from '../../features/actions/follow';
 
 vi.mock('../../api/axiosConfig', () => ({
     apiClient: {
@@ -27,7 +28,9 @@ vi.mock('../../components/feed/PostComposer', () => ({
 
 // The welcome popup and its "Finish setting up" card read the signed-in person and have their own tests.
 vi.mock('../../features/start/WelcomeHost', () => ({ WelcomeHost: () => null }));
-vi.mock('../../features/start/FinishSetup', () => ({ FinishSetup: () => null }));
+vi.mock('../../features/feed/WaitingOnYou', () => ({ WaitingOnYou: () => null }));
+vi.mock('../../features/feed/HomeHelperDetails', () => ({ HomeHelperDetails: () => null }));
+vi.mock('../../components/notifications/TurnOnNotificationsPrompt', () => ({ TurnOnNotificationsPrompt: () => null }));
 
 // "This week" and announcements above the feed load their own data and have their own tests.
 vi.mock('../../components/feed/FeedList', () => ({
@@ -192,9 +195,10 @@ describe('FeedPage', () => {
                         mediaUrls: ['/uploads/training.jpg'],
                     }] } });
                 }
+                if (url === '/posts/1') return Promise.resolve({ data: { id: 1, authorName: 'Jordan Lee', content: 'Training photo', createdAt: '2026-09-08T08:00:00Z', likeCount: 0, commentCount: 0, isLikedByMe: false, mediaUrls: ['/uploads/training.jpg'] } });
                 if (url === '/posts/1/comments') {
                     commentAttempts += 1;
-                    return commentAttempts === 1 ? firstComments.promise : Promise.resolve({ data: [] });
+                    return commentAttempts <= 2 ? firstComments.promise : Promise.resolve({ data: [] });
                 }
                 return Promise.reject(new Error(`Unexpected request: ${url}`));
             });
@@ -202,16 +206,16 @@ describe('FeedPage', () => {
 
             await screen.findByTestId('feed-list');
             await user.click(screen.getByRole('button', { name: 'Open media' }));
-            expect(await screen.findByRole('dialog', { name: 'Post by Jordan Lee' })).toBeInTheDocument();
-            expect(screen.getByText('Loading comments...')).toBeInTheDocument();
+            expect(await screen.findByRole('dialog', { name: 'Open post media' })).toBeInTheDocument();
+            expect(screen.getByText('Checking current post access…')).toBeInTheDocument();
 
             await act(async () => firstComments.reject(new Error('offline')));
-            expect(await screen.findByRole('alert')).toHaveTextContent('Comments could not load.');
-            expect(screen.queryByText('Loading comments...')).not.toBeInTheDocument();
+            expect(await screen.findByRole('alert')).toHaveTextContent('unavailable or could not load');
+            expect(screen.queryByText('Checking current post access…')).not.toBeInTheDocument();
 
-            await user.click(screen.getByRole('button', { name: 'Retry comments' }));
-            expect(await screen.findByText('No comments yet.')).toBeInTheDocument();
-            expect(commentAttempts).toBe(2);
+            await user.click(screen.getByRole('button', { name: 'Retry' }));
+            expect(await screen.findByText('No comments yet')).toBeInTheDocument();
+            expect(commentAttempts).toBe(3); // Includes the independent current-privacy media gate.
         });
     });
 
@@ -313,6 +317,34 @@ describe('FeedPage', () => {
         expect(apiClient.get).toHaveBeenCalledTimes(3);
     });
 
+    it('loads again when clubs were just followed in the welcome or the first week', async () => {
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 1 }] } })
+            .mockResolvedValueOnce({ data: { posts: [{ id: 2 }, { id: 1 }] } });
+        renderPage();
+        expect(await screen.findByTestId('post-ids')).toHaveTextContent('1');
+        await act(async () => followsChanged());
+        await waitFor(() => expect(screen.getByTestId('post-ids')).toHaveTextContent('2,1'));
+        expect(apiClient.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps an open post when it loads again for follows made elsewhere', async () => {
+        const user = userEvent.setup();
+        const post = { id: 1, authorName: 'Jordan Lee', content: 'Training photo', createdAt: '2026-09-08T08:00:00Z', likeCount: 0, commentCount: 0, isLikedByMe: false, mediaUrls: ['/uploads/training.jpg'] };
+        let feedLoads = 0;
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+            if (url === '/posts/feed/for-you') { feedLoads += 1; return { data: { posts: [post] } }; }
+            if (url === '/posts/1') return { data: post };
+            return { data: [] };
+        });
+        renderPage();
+        await screen.findByTestId('feed-list');
+        await user.click(screen.getByRole('button', { name: 'Open media' }));
+        expect(await screen.findByRole('dialog')).toBeInTheDocument();
+        await act(async () => followsChanged());
+        await waitFor(() => expect(feedLoads).toBe(2));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
     it('does not flash initial skeletons again when switching away from an empty feed', async () => {
         const user = userEvent.setup();
         const next = deferred<{ data: { posts: { id: number }[] } }>();
@@ -335,4 +367,33 @@ describe('FeedPage', () => {
             expect(await screen.findByTestId('post-composer')).toBeInTheDocument();
         });
     });
+});
+
+
+it('returns to the same ranked cursor and position after navigation, with newly fetched content', async () => {
+    const { setStoredAccessToken, setStoredUserId, clearStoredAuth } = await import('../../utils/authStorage');
+    setStoredUserId(42); setStoredAccessToken('synthetic-return-session');
+    const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const user = userEvent.setup();
+    let pageRead = 0;
+    vi.mocked(apiClient.get).mockReset().mockImplementation(async url => {
+        if (url === '/posts/authors') return { data: [] };
+        return { data: [
+            { posts: [{ id: 5, createdAt: '2026-10-30T08:00:00' }], nextCursor: 5, nextCursorTier: 2 },
+            { posts: [{ id: 4, content: 'Old page' }], nextCursor: null },
+            { posts: [{ id: 3, content: 'Current audience only' }], nextCursor: null },
+        ][pageRead++] };
+    });
+    render(<MemoryRouter initialEntries={['/home']}><Link to="/elsewhere">Leave Home</Link><Routes><Route path="/home" element={<FeedPage />} /><Route path="/elsewhere" element={<Link to="/home">Return Home</Link>} /></Routes></MemoryRouter>);
+    await user.click(await screen.findByRole('button', { name: 'Load more posts' }));
+    expect(screen.getByTestId('post-ids')).toHaveTextContent('4');
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 640 });
+    window.dispatchEvent(new Event('scroll'));
+    await user.click(screen.getByRole('link', { name: 'Leave Home' }));
+    await user.click(screen.getByRole('link', { name: 'Return Home' }));
+    expect(await screen.findByTestId('post-ids')).toHaveTextContent('3');
+    expect(vi.mocked(apiClient.get).mock.calls.at(-1)?.[1]?.params).toEqual({ limit: 20, cursor: 5, cursorTime: '2026-10-30T08:00:00', cursorTier: 2 });
+    await waitFor(() => expect(scroll).toHaveBeenCalledWith({ top: 640, behavior: 'instant' }));
+    act(() => clearStoredAuth()); scroll.mockRestore();
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
 });

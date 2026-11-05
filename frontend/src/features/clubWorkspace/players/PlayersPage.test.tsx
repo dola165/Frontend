@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '../../../i18n';
 import { PlayersPage } from './PlayersPage';
@@ -162,47 +162,37 @@ describe('Players — trialist actions', () => {
     });
     it('uses arrangement terms and dates for a linked request rather than old trialist controls', () => {
         const onReviewJoining = vi.fn();
-        const props=renderTab({playerDirectory:makeDirectory([trialist]),joiningPlayerIds:[trialist.userId],onReviewJoining,onSendConsentEmail:vi.fn()});
+        const props=renderTab({playerDirectory:makeDirectory([trialist]),joiningPlayerIds:[trialist.userId],onReviewJoining,onFamilyLink:vi.fn()});
         expect(screen.queryByRole('button',{name:'Release'})).not.toBeInTheDocument();
-        expect(screen.queryByRole('button',{name:'Send consent'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('button',{name:'Send to the family'})).not.toBeInTheDocument();
         expect(screen.getByLabelText(`Trial ends ${trialist.fullName}`)).toBeDisabled();
         fireEvent.click(screen.getByRole('button',{name:'View agreed terms'}));expect(onReviewJoining).toHaveBeenCalledWith(trialist.userId);
         expect(props.onPlayerStatusChange).not.toHaveBeenCalled();
     });
 
-    it('phase A5: offers Send consent on a consent-flagged trialist and captures the parent email inline', () => {
-        const onSendConsentEmail = vi.fn();
-        renderTab({ playerDirectory: makeDirectory([trialist]), onSendConsentEmail });
-        fireEvent.click(screen.getByRole('button', { name: 'Send consent' }));
-
-        const input = screen.getByLabelText('Parent email Giorgi Trialist') as HTMLInputElement;
-        fireEvent.change(input, { target: { value: 'parent@example.com' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Send' }));
-
-        expect(onSendConsentEmail).toHaveBeenCalledWith(7, 'parent@example.com');
+    it('offers Send to the family on a child’s card whose parent hasn’t said yes, as a link for any chat', async () => {
+        const onFamilyLink = vi.fn().mockResolvedValue({ id: 1, kind: 'CLUB_CARD', code: 'c'.repeat(43), path: `/family-link/${'c'.repeat(43)}`, expiresAt: '2026-11-16T00:00:00Z', personId: 7, personName: 'Giorgi Trialist' });
+        const props = renderTab({ playerDirectory: makeDirectory([trialist]), onFamilyLink, onFamilySent: vi.fn() });
+        fireEvent.click(screen.getByRole('button', { name: 'Send to the family' }));
+        expect(await screen.findByDisplayValue(`${window.location.origin}/family-link/${'c'.repeat(43)}`)).toBeInTheDocument();
+        expect(onFamilyLink).toHaveBeenCalledWith(7);
+        // Fix round: the list reads the row again, which then says the family is waiting.
+        expect(props.onFamilySent).toHaveBeenCalledTimes(1);
+        expect(screen.queryByLabelText('Parent email Giorgi Trialist')).not.toBeInTheDocument();
     });
 });
 
 
-describe('Players — consent delivery', () => {
-    it('keeps the entered email after a failed send and clears it only after success', async () => {
-        const send = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-        renderTab({ playerDirectory: makeDirectory([trialist]), onSendConsentEmail: send });
-        fireEvent.click(screen.getByRole('button', { name: 'Send consent' }));
-        fireEvent.change(screen.getByLabelText('Parent email Giorgi Trialist'), { target: { value: 'parent@example.com' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Send' }));
-        await waitFor(() => expect(send).toHaveBeenCalledOnce());
-        expect(screen.getByLabelText('Parent email Giorgi Trialist')).toHaveValue('parent@example.com');
-        fireEvent.click(screen.getByRole('button', { name: 'Send' }));
-        await waitFor(() => expect(screen.queryByLabelText('Parent email Giorgi Trialist')).not.toBeInTheDocument());
-        expect(send).toHaveBeenNthCalledWith(2, 7, 'parent@example.com');
+describe('Players — the family link', () => {
+    it('layer 1 walk p11: a card already sent shows the family waiting, and Send again', () => {
+        renderTab({ playerDirectory: makeDirectory([{ ...trialist, requiresParentalConsent: true, parentalConsentStatus: null, familyLinkSentAt: '2026-11-02T19:05:00Z' }]), onFamilyLink: vi.fn() });
+        expect(screen.getAllByText('Sent to the family · waiting').length).toBeGreaterThan(0);
+        expect(screen.queryByText('Consent needed')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Send again' })).toBeInTheDocument();
     });
 
-    it.each(['PENDING', 'DECLINED', 'EXPIRED'])('offers resend for %s', (status) => {
-        const send = vi.fn();
-        renderTab({ playerDirectory: makeDirectory([{ ...trialist, parentalConsentStatus: status, parentEmail: 'parent@example.com' }]), onSendConsentEmail: send });
-        if (status === 'EXPIRED') expect(screen.getByText('Consent link expired')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
-        expect(send).toHaveBeenCalledWith(7, 'parent@example.com');
+    it('sends nothing once the parent has said yes', () => {
+        renderTab({ playerDirectory: makeDirectory([{ ...trialist, parentalConsentStatus: 'CONFIRMED' }]), onFamilyLink: vi.fn() });
+        expect(screen.queryByRole('button', { name: 'Send to the family' })).not.toBeInTheDocument();
     });
 });

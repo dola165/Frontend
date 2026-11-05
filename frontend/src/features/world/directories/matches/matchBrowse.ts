@@ -1,14 +1,12 @@
-import type { Match } from '../../../matchExchange/api';
 import { eventDestination, type EventItem } from '../../../requests/api';
 import { wt } from '../../copy';
 import type { Places } from '../../directory/places';
 import type { BrowseLine, LineSide } from '../../directory/types';
-import { EVENT_BADGE, factTone, fixtureDay, fixtureTime } from '../../format';
+import { EVENT_BADGE, factTone, fixtureDay } from '../../format';
 import { endOf } from '../../scoreboard/form';
 import { peekOf } from '../../peek/usePeek';
 import { matchPagePath } from '../../scoreboard/matchCode';
 import { matchState } from '../../scoreboard/matchState';
-import type { Arrangement } from './arrangements';
 import type { Fixture } from './fixtures';
 import { eventWhen, fixtureTitle } from './matchPlaces';
 
@@ -35,21 +33,6 @@ export function fixtureLine({ m, code, mine, showDay }: Fixture, places?: Places
     };
 }
 
-const listingWhen = (m: Match) => ({ time: fixtureTime(m.starts_at_iso, m.timezone), day: fixtureDay(m.starts_at_iso, m.timezone) });
-
-/** Who a listing plays: the opponent and their squad once agreed, else the club it was sent to, else nobody yet. */
-export const opponentOf = (m: Match) => m.opponent_name ? [m.opponent_name, m.opponent_squad_name].filter(Boolean).join(' ') : wt(m.requested_club_id != null ? 'Invited club' : 'Opponent wanted');
-
-/** One of my arrangements in the Browse area: both sides, the score once agreed, and what it waits for. */
-export function arrangementLine({ m, code, wait, lane, mine }: Arrangement, places?: Places): BrowseLine {
-    const scored = lane === 'played' && m.result_status === 'CONFIRMED';
-    return {
-        when: listingWhen(m), title: m.opponent_name ? `${m.club_name} v ${m.opponent_name}` : m.title, to: `/match-exchange/${m.event_id}`, action: wt('Open match'), peek: peekOf('match', code),
-        sides: { home: { name: `${m.club_name} ${m.squad_name}`, crest: m.club_logo_url, mine: mine.home, score: scored ? m.home_score : null },
-            away: { name: opponentOf(m), crest: places?.club(m.opponent_club_id)?.logoUrl ?? null, mine: mine.away, score: scored ? m.away_score : null } },
-        fact: wait ? wt(wait.word, wait.vars) : undefined, factTone: wait ? TAG_TONE[wait.tone] : undefined,
-    };
-}
 
 /** What opening an event leads to, by where its destination goes. A club calendar event is a match only when it is one. */
 const EVENT_ACTION: Record<EventItem['kind'], string> = { TOURNAMENT: 'Open tournament', SCHEDULE: 'Open event', SESSION: 'Open squad', TRYOUT: 'See trials' };

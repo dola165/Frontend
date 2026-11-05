@@ -1,9 +1,11 @@
 // Synthetic API: sign-in. Coach Luka is signed in by default; registering here creates an account of its own
 // (see ../viewer.mjs). Requests and answers keep the real backend's shapes.
 import { get, post, put, reply } from '../router.mjs';
-import { me, clubs } from '../world.mjs';
+import { me, clubs, squadById } from '../world.mjs';
+import { COACHED, mySquads } from '../world-my-squads.mjs';
 import { familyRequest, hasFamily } from '../world-family.mjs';
 import * as V from '../viewer.mjs';
+import { accountProfile } from '../world-social.mjs';
 
 const bad = message => reply(400, { status: 400, message });
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -52,15 +54,24 @@ post('/auth/login', ({ body }) => {
 });
 post('/auth/logout', () => reply(204, undefined, { 'set-cookie': sessionCookies(V.clearedCookie) }));
 
+// What the server would answer for each persona: Club office for the Owner and for a job with no page of its own yet
+// (the physio, the analyst, the equipment manager); every job on a squad has My squads instead (step 3): head coaches,
+// team managers, the goalkeeper coach and the head of coaching. A helper has no job here at all.
+const clubCapabilities = persona => ['physio', 'attendance', 'kit'].includes(persona) ? ['club.operations', 'club.member', 'club.office']
+  : persona === 'headcoach' ? ['club.workspace', 'club.operations', 'club.member']
+    : ['teammanager', 'gkcoach', 'headofcoaching'].includes(persona) ? ['club.operations', 'club.member']
+      : persona === 'analyst' ? ['club.workspace', 'club.operations', 'club.member', 'club.office']
+        : persona === 'member' ? ['club.workspace', 'club.operations'] : persona === 'helper' ? [] : ['club.workspace', 'club.office', 'club.operations'];
+// Step 6: Luka refereeing (the `referee` persona) has the referee workspace only, so My matches is his place.
+const REFEREE_WORKSPACES = [{ id: 'referee.workspace', context: { type: 'user', id: me.id, label: me.fullName } }];
 // The parent view (family cookie) also makes Luka a parent, so Parent Hub joins his tabs.
 export const meProjection = ({ headers } = {}) => ({
   id: me.id, username: 'coach.luka', email: me.email, role: 'USER', fullName: me.fullName, name: me.fullName, avatarUrl: me.avatarUrl,
-  dob: '1988-04-12', profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
-  navigationCapabilities: { version: 1, workspaces: [
-    { id: 'club.workspace', context: { type: 'club', id: 1, label: clubs[0].name } },
-    { id: 'club.operations', context: { type: 'club', id: 1, label: clubs[0].name } },
-    { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
-    { id: 'squad.workspace', context: { type: 'squad', id: 103, label: 'U14 Boys' } },
+  dob: accountProfile.dob, profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
+  navigationCapabilities: { version: 1, workspaces: V.personaOf(headers) === 'referee' ? REFEREE_WORKSPACES : [
+    ...clubCapabilities(V.personaOf(headers)).map(id => ({ id, context: { type: 'club', id: 1, label: clubs[0].name } })),
+    ...(['physio', 'attendance'].includes(V.personaOf(headers)) ? [] : (['analyst', 'member'].includes(V.personaOf(headers)) ? COACHED : mySquads(V.personaOf(headers)))
+      .map(id => ({ id: 'squad.workspace', context: { type: 'squad', id, label: squadById(id).name } }))),
     // Luka runs the league Dinamo hosts and coordinates the U16 cup (an ADMIN assignment on each).
     { id: 'tournament.workspace', context: { type: 'tournament', id: 301, label: 'Tbilisi Community League' } },
     { id: 'tournament.workspace', context: { type: 'tournament', id: 306, label: 'Georgian Youth Cup U16' } },

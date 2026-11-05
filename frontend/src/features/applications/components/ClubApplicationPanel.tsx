@@ -4,7 +4,8 @@ import { getAuthSessionId, subscribeAuthSession } from '../../../utils/authStora
 import { useClubEntryEligibility, useEntryCopy } from '../clubEntry';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ClipboardCheck, Loader2, Sparkles, UserPlus, X, XCircle } from 'lucide-react';
-import { cancelClubApplication, createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
+import { cancelClubApplication, createClubApplication, publicSquads, selfRegisterClubPlayer } from '../../clubs/api';
+import type { PublicSquad } from '../../clubs/publicJourney';
 import {
   clubApplicationStatusLabel,
   clubRoleLabel,
@@ -63,6 +64,13 @@ const ClubApplicationBody = ({
   const [playerMessage, setPlayerMessage] = useState('');
   const [playerPosition, setPlayerPosition] = useState('GOALKEEPER');
   const [playerAgeGroup, setPlayerAgeGroup] = useState('');
+  // Families pick the squad, so the application reaches its coaches (step 3); without the club's squads, an age group.
+  const [squads, setSquads] = useState<PublicSquad[] | null>(null), [playerSquad, setPlayerSquad] = useState('');
+  useEffect(() => {
+    const controller = new AbortController();
+    void publicSquads(clubId, controller.signal).then(rows => { if (!controller.signal.aborted) setSquads(rows); }).catch(() => { if (!controller.signal.aborted) setSquads([]); });
+    return () => controller.abort();
+  }, [clubId]);
   const [pendingKey, setPendingKey] = useState<'player' | 'cancel' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -86,7 +94,8 @@ const ClubApplicationBody = ({
 
       const response = await createClubApplication(clubId, 'PLAYER', playerMessage.trim() || null, {
         position: playerPosition || null,
-        ageGroup: playerAgeGroup || null,
+        ageGroup: playerSquad ? squads?.find(s => String(s.id) === playerSquad)?.category ?? null : playerAgeGroup || null,
+        squadId: playerSquad ? Number(playerSquad) : null,
       }, config);
       if (request.signal.aborted) return;
       onStateChange({ relationshipState: 'APPLIED', playerAffiliationStatus: null, pendingApplicationId: response.applicationId, pendingApplicationRole: 'PLAYER' });
@@ -205,7 +214,8 @@ const ClubApplicationBody = ({
               <div className="mt-5 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="space-y-1.5"><span className="text-xs font-bold text-[color:var(--text-secondary)]">{t('apply.preferredPosition')}</span><select value={playerPosition} onChange={(event) => setPlayerPosition(event.target.value)} className={controlClass}>{['GOALKEEPER', 'DEFENDER', 'MIDFIELDER', 'FORWARD'].map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
-                  <label className="space-y-1.5"><span className="text-xs font-bold text-[color:var(--text-secondary)]">{t('apply.ageGroup')}</span><select value={playerAgeGroup} onChange={(event) => setPlayerAgeGroup(event.target.value)} className={controlClass}><option value="">{t('apply.notSure')}</option>{['U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Senior'].map((g) => <option key={g} value={g}>{g}</option>)}</select></label>
+                  {squads?.length ? <label className="space-y-1.5"><span className="text-xs font-bold text-[color:var(--text-secondary)]">{t('apply.squadToJoin')}</span><select value={playerSquad} onChange={(event) => setPlayerSquad(event.target.value)} className={controlClass}><option value="">{t('apply.notSure')}</option>{squads.map((squad) => <option key={squad.id} value={squad.id}>{squad.name}</option>)}</select></label>
+                    : <label className="space-y-1.5"><span className="text-xs font-bold text-[color:var(--text-secondary)]">{t('apply.ageGroup')}</span><select value={playerAgeGroup} onChange={(event) => setPlayerAgeGroup(event.target.value)} className={controlClass}><option value="">{t('apply.notSure')}</option>{['U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Senior'].map((g) => <option key={g} value={g}>{g}</option>)}</select></label>}
                 </div>
                 <textarea value={playerMessage} onChange={(event) => setPlayerMessage(event.target.value)} rows={4} maxLength={2000} placeholder={t('apply.aboutYou')} className={`${controlClass} resize-none placeholder:text-[color:var(--text-muted)]`} />
               </div>

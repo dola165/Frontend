@@ -37,6 +37,8 @@ export const whyLabel = (copy: Copy, why: SearchWhy): string | null => {
         case 'NOW_NOTE': return copy('Now', 'ახლა');
         case 'MENTION': return copy('About', 'შესახებ');
         case 'FILE_NAME': return copy('File name', 'ფაილის სახელი');
+        case 'MEDIA_NAME': return copy('Named', 'სახელი');
+        case 'MEDIA_TAGS': return copy('Tagged', 'თეგები');
         case 'SENT_WITH': return copy(`Sent by ${by} with`, `გამოგზავნა ${by}`);
         case 'TASK': return copy('On the task', 'საქმეზე');
         case 'CHAT': return copy('In the chat', 'ჩატში');

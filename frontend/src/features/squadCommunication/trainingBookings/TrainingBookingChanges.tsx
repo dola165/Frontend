@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { formatDateTime } from '../../../utils/formatting';
 import { useEffect, useRef, useState } from 'react';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { useJourneyCopy } from '../journeyCopy';
@@ -17,6 +19,7 @@ export function TrainingBookingChanges({ squadId, sessionId, revision, onSaved }
     const signature = JSON.stringify({ revision: context?.revision, action, scope, start, end, reason });
     useEffect(() => {
         const abort = new AbortController();
+        setContext(null); setReview(null);
         void bookingContext(squadId, sessionId, abort.signal).then(value => {
             if (!abort.signal.aborted) { setContext(value); setStart(localInput(value.startsAt)); setEnd(localInput(value.endsAt)); setReview(null); setError(''); }
         }).catch(e => { if (!abort.signal.aborted) setError(extractApiErrorMessage(e, 'Coordinated booking changes could not load.')); });
@@ -45,8 +48,13 @@ export function TrainingBookingChanges({ squadId, sessionId, revision, onSaved }
     return <section className="training-bookings" aria-label={copy('Change training & reservation together', 'ვარჯიშისა და ჯავშნის ერთად შეცვლა')}>
         <h3>{copy('Change training & reservation together', 'ვარჯიშისა და ჯავშნის ერთად შეცვლა')}</h3>
         {!context && !error && <p role="status">{copy('Loading booking authority…', 'ჯავშნის უფლებების ჩატვირთვა…')}</p>}
-        {context && !context.canCoordinate && <p>{copy('Current authorized squad staff can coordinate club reservations. A personal reservation stays with its booker; contact them or the venue to arrange a change.', 'კლუბის ჯავშნის შეთანხმება შეუძლია გუნდის მოქმედ უფლებამოსილ თანამშრომელს. პირადი ჯავშანი მის ავტორს რჩება; ცვლილებისთვის დაუკავშირდით მას ან სტადიონს.')}</p>}
+        {context && !context.linked && <p>No reservation is linked to this session.</p>}
+        {context?.linked && !context.canCoordinate && <p>{copy('Current authorized squad staff can coordinate club reservations. A personal reservation stays with its booker; contact them or the venue to arrange a change.', 'კლუბის ჯავშნის შეთანხმება შეუძლია გუნდის მოქმედ უფლებამოსილ თანამშრომელს. პირადი ჯავშანი მის ავტორს რჩება; ცვლილებისთვის დაუკავშირდით მას ან სტადიონს.')}</p>}
         {context?.canCoordinate && <>
+            <p><strong>Reservation: {context.bookingStatus?.toLowerCase()}</strong>. Reservation confirmation is separate from payment.</p>
+            {context.expiresAt && context.bookingStatus === 'PENDING' && <p>Approval deadline: {formatDateTime(context.expiresAt)}</p>}
+            {context.cancellationDeadline && <p>Cancellation cutoff: {formatDateTime(context.cancellationDeadline)}{context.canCancelBooking === false && ['PENDING', 'CONFIRMED'].includes(context.bookingStatus ?? '') ? ' · Contact the venue; the cutoff has passed.' : ''}</p>}
+            {context.bookingPath && <Link to={context.bookingPath}>Open reservation</Link>}
             <p>{copy('Club reservations remain available to current authorized squad staff when coaches change. Personal reservations stay with their booker.', 'მწვრთნელის შეცვლისას კლუბის ჯავშანი გუნდის მოქმედ უფლებამოსილ თანამშრომლებს რჩებათ ხელმისაწვდომი. პირადი ჯავშანი მის ავტორს რჩება.')}</p>
             <p>{copy('Preview the old reservation cancellation, replacement availability and family updates before saving. Every selected date succeeds together or nothing changes.', 'შენახვამდე გადახედეთ ძველი ჯავშნის გაუქმებას, ახალი დროის ხელმისაწვდომობას და ოჯახების შეტყობინებებს. ყველა არჩეული თარიღი ერთად იცვლება, ან არაფერი შეიცვლება.')}</p>
             <fieldset disabled={busy}><legend>{copy('Coordinated change', 'შეთანხმებული ცვლილება')}</legend>

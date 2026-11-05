@@ -44,8 +44,10 @@ export interface ClubProfile {
     cityName?: string | null;
     countryName?: string | null;
     email?: string | null;
+    /** The links from the club page's Contact box, in one place on the server: https addresses only. */
     websiteUrl?: string | null;
     instagramUrl?: string | null;
+    facebookUrl?: string | null;
     foundedYear?: number | null;
     level?: string | null;
     latitude?: number;

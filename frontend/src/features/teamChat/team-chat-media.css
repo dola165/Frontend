@@ -1,0 +1,175 @@
+/* Team chats, round 6: Media above the chats, names and tags, who is in a chat, the chat's own lines, people in a sheet. */
+
+/* The Media door on top of the chats, and the chat list's extras. */
+.tc-root .tc-chats__doors--top { border-top: 0; border-bottom: 1px solid var(--gk-line); }
+.tc-root .tc-chats__doors--top .tc-faint { margin-left: auto; overflow: hidden; font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }
+.tc-root .tc-chatrow__lock { flex: none; width: 12px; height: 12px; color: var(--gk-text-3); }
+.tc-root .tc-chats__error { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 var(--gk-2); }
+.tc-root .tc-chats__tip { margin: auto 0 0; padding: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-xs); }
+
+/* The Media page. */
+.tc-root .tc-media__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gk-3);
+    padding: var(--gk-3) var(--gk-4) var(--gk-6);
+}
+.tc-root .tc-media__filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.tc-root .tc-media__filter { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.tc-root .tc-media__filter .gk-input { min-width: 140px; max-width: 240px; font-size: var(--gk-fs-sm); }
+.tc-root .tc-media__words { flex: 1 1 220px; }
+.tc-root .tc-media__words .gk-input { max-width: none; width: 100%; padding-left: 30px; }
+.tc-root .tc-media__search { position: relative; display: block; }
+.tc-root .tc-media__search svg { position: absolute; top: 50%; left: 9px; width: 15px; height: 15px; color: var(--gk-text-3); transform: translateY(-50%); pointer-events: none; }
+.tc-root .tc-media__kinds { display: flex; flex-wrap: wrap; gap: 4px; }
+.tc-root .tc-media__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.tc-root .tc-media__grid .tc-tile { aspect-ratio: 4 / 3; }
+.tc-root .tc-media__grid .tc-tile__media { height: 100%; max-height: none; }
+.tc-root .tc-media__files { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.tc-root .tc-media__none { font-size: var(--gk-fs-sm); }
+
+/* A tile with its name and tags; a file row with where it came from. */
+.tc-root .tc-mtile { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tc-root .tc-mtile__name { overflow: hidden; font-size: var(--gk-fs-xs); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.tc-root .tc-tags, .gk .tc-tags { display: flex; flex-wrap: wrap; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.tc-root .tc-tags li, .gk .tc-tags li {
+    padding: 0 6px;
+    border-radius: var(--gk-r-pill);
+    background: var(--gk-sunken);
+    color: var(--gk-text-2);
+    font-size: var(--gk-fs-xs);
+    line-height: 18px;
+}
+.tc-root .tc-mfile { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tc-root .tc-mfile__about { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--gk-fs-xs); }
+.tc-root .tc-gallery__name { display: block; overflow: hidden; margin-top: 2px; font-size: var(--gk-fs-xs); color: var(--gk-text-2); text-overflow: ellipsis; white-space: nowrap; }
+.tc-root .tc-pmedia__all { margin-left: auto; font-size: var(--gk-fs-xs); font-weight: 500; }
+.tc-root .tc-pmedia .tc-panel__title { display: flex; align-items: center; gap: 6px; }
+
+/* Naming and tagging. */
+.gk .tc-label__form { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .tc-label__field { display: flex; flex-direction: column; gap: 4px; font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .tc-label__field .gk-input { font-weight: 400; }
+.gk .tc-label__hint { margin: 0; font-size: var(--gk-fs-xs); font-weight: 400; }
+.gk .tc-label__tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.gk .tc-label__tags li {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding-left: 8px;
+    border-radius: var(--gk-r-pill);
+    background: var(--gk-sunken);
+    font-size: var(--gk-fs-xs);
+    font-weight: 500;
+}
+.gk .tc-label__tags button {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--gk-text-2);
+    cursor: pointer;
+}
+.gk .tc-label__tags button svg { width: 12px; height: 12px; }
+.gk .tc-label__suggested { display: flex; flex-wrap: wrap; gap: 4px; }
+.gk .tc-label__suggestion {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--gk-line);
+    border-radius: var(--gk-r-pill);
+    background: var(--gk-surface);
+    color: var(--gk-text);
+    font: inherit;
+    font-size: var(--gk-fs-xs);
+    font-weight: 500;
+    cursor: pointer;
+}
+.gk .tc-label__suggestion svg { width: 12px; height: 12px; }
+.gk .tc-label__suggestion:hover { border-color: var(--gk-line-strong); }
+
+/* Who is in a chat: starting one, and the panel. */
+.gk .tc-who { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: var(--gk-3) 0 0; border: 0; border-top: 1px solid var(--gk-line); }
+.gk .tc-who legend { padding: 0; font-size: var(--gk-fs-sm); font-weight: 650; }
+.gk .tc-who__way { display: flex; align-items: flex-start; gap: 8px; min-height: 44px; padding: 6px 0; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .tc-who__way > span { display: flex; flex-direction: column; gap: 1px; }
+.gk .tc-who__way .tc-faint { font-size: var(--gk-fs-xs); }
+.gk .tc-who__lock { width: 12px; height: 12px; margin-right: 4px; vertical-align: -1px; }
+.gk .tc-who__people { display: flex; flex-direction: column; gap: 2px; max-height: 240px; margin: 0; padding: 0 0 0 26px; overflow-y: auto; list-style: none; }
+.gk .tc-who__people label { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .tc-start__has svg { width: 11px; height: 11px; margin-right: 3px; vertical-align: -1px; }
+.tc-root .tc-panel__audience { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
+.tc-root .tc-panel__audience svg { flex: none; width: 13px; height: 13px; margin-top: 2px; }
+.tc-root .tc-panel__people .tc-personrow { gap: 0; }
+.tc-root .tc-personrow__open {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 6px 0 2px;
+    border: 0;
+    border-radius: var(--gk-r-pill);
+    background: none;
+    color: var(--gk-text);
+    font: inherit;
+    font-size: var(--gk-fs-sm);
+    cursor: pointer;
+}
+.tc-root .tc-personrow__open:hover { background: var(--gk-hover); }
+.tc-root .tc-personrow__open:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 1px; }
+
+/* A line the chat wrote itself, and "Copied". */
+.tc-root .tc-sysline {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 6px;
+    margin: 6px var(--gk-4);
+    color: var(--gk-text-3);
+    font-size: var(--gk-fs-xs);
+    text-align: center;
+}
+.tc-root .tc-sysline time { font-variant-numeric: tabular-nums; }
+.tc-root .tc-copied {
+    position: absolute;
+    top: 4px;
+    right: 12px;
+    padding: 2px 8px;
+    border-radius: var(--gk-r-pill);
+    background: var(--gk-sunken);
+    color: var(--gk-text-2);
+    font-size: var(--gk-fs-xs);
+}
+
+/* A teammate in a sheet over the chat. */
+.gk .tc-person__title { display: inline-flex; align-items: center; gap: 10px; }
+.gk .tc-person .gk-dialog__body { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .tc-person__body { display: flex; flex-direction: column; gap: var(--gk-3); min-height: 0; }
+.gk .tc-person__facts { display: flex; flex-direction: column; gap: var(--gk-3); margin: 0; }
+.gk .tc-person__facts dt { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .tc-person__facts dd { margin: 2px 0 0; font-size: var(--gk-fs-sm); overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+    .tc-root .tc-media__body { padding: var(--gk-3); }
+    .tc-root .tc-media__filter { flex: 1 1 140px; }
+    .tc-root .tc-media__filter .gk-input { max-width: none; width: 100%; }
+    .tc-root .tc-media__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+}
+
+/* A teammate's tasks in the sheet: the name has the room; who and the plan are the sheet's own subject already. */
+.gk .tc-person .tw-row__who, .gk .tc-person .tw-row__plan { display: none; }

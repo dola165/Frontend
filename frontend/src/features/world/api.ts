@@ -5,6 +5,9 @@ import type { AuthSessionId } from '../../utils/authStorage';
 import type { ClubDirectoryPageResult, ClubProfile } from '../../components/discovery/clubDirectoryTypes';
 import type { Match, Referee } from '../matchExchange/api';
 
+export const fetchFollowedClubs = async (signal?: AbortSignal) =>
+    (await apiClient.get<ClubProfile[]>('/clubs/followed', { signal })).data;
+
 /** The club directory search (`GET /clubs`), the same contract the old club directory used. */
 export const fetchClubDirectory = async (params: URLSearchParams, signal?: AbortSignal) => {
     const { data } = await apiClient.get<ClubDirectoryPageResult<ClubProfile> | ClubProfile[]>(`/clubs?${params}`, { signal });

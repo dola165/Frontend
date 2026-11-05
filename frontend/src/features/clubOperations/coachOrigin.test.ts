@@ -5,7 +5,7 @@ const record = { id: 70116, module: 'AVAILABILITY', squad_id: 103 };
 const link = () => new URL(coachRecordHref(1, record), 'http://local.test').searchParams;
 it('carries the current record, club and squad and resolves only the known coach destination', () => {
     const params = link();
-    expect(Object.fromEntries(params)).toEqual({ tab: 'restrictions', record: '70116', squad: '103', coachReturn: 'my-squads', coachClub: '1' });
+    expect(Object.fromEntries(params)).toEqual({ tab: 'tools', tool: 'restrictions', record: '70116', squad: '103', coachReturn: 'my-squads', coachClub: '1' });
     expect(coachOriginTarget(params, 1, [103, 105])).toBe('/my-squads?clubId=1');
     expect(coachRecordHref(1, { ...record, squad_id: null })).not.toContain('coachReturn');
 });

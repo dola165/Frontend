@@ -2,9 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { clubViewerRole } from '../../../components/club/clubViewerRole';
-import { fetchClubManagementOverview, fetchMyClubMembershipContext, setClubFollowing } from '../api';
+import { fetchClubManagementOverview, fetchMyClubMembershipContext } from '../api';
 import { canManageClubOperations, isLeadershipRole, type ClubMembershipRole } from '../domain';
-import { currentProgramme } from '../presentation';
 import type { ClubProfile } from './types';
 import { readClubProfile } from './profileResponse';
 
@@ -72,7 +71,6 @@ export function useClubProfile(id: number) {
     const own = Boolean(club?.isStaffMember || club?.myRole || entry?.canOpenWorkspace || (membership.clubId !== null && membership.clubId === id));
     const affiliated = club?.playerAffiliationStatus === 'TRIALIST' || club?.playerAffiliationStatus === 'ACTIVE';
     const visitor = Boolean(club && !club.isStaffMember && !affiliated);
-    const programmes = Boolean(club?.presentation?.programmes.some(p => p.published && currentProgramme(p)));
     const connected = Boolean(club && (club.isMember || club.isStaffMember || club.myRole || role || affiliated
         || club.relationshipState === 'ACTIVE' || club.relationshipState === 'TRIALIST'));
     const permissions = {
@@ -85,31 +83,25 @@ export function useClubProfile(id: number) {
         invitationOnly: Boolean(entry?.invitationOnly),
         canEditFacilities: Boolean(entry?.canEditFacilities),
         canManageStaff: Boolean(entry?.canManageStaff),
-        canPost: own && canManageClubOperations(role),
         canMessage: visitor,
         canFollow: Boolean(club && !club.isMember),
         canChallenge: visitor && Boolean(membership.clubId && membership.clubId !== id && membership.role && canManageClubOperations(membership.role)),
-        /** Joining is offered to people with no connection here, when the club takes players or publishes training. */
-        canJoin: visitor && !connected && (programmes || club?.playerJoinPolicy !== 'INVITE_ONLY'),
+        /** Joining is offered to people with no connection here: to play, for a child or to help out (the Join pop-up). */
+        canJoin: visitor && !connected,
         myClubId: membership.clubId,
     };
 
     const refresh = useCallback(() => setRevision(value => value + 1), []);
-    const toggleFollow = async () => {
-        if (!club) return;
-        const previous = club;
-        setClub(() => ({ ...club, isFollowedByMe: !club.isFollowedByMe, followerCount: Math.max(0, club.followerCount + (club.isFollowedByMe ? -1 : 1)) }));
-        try { await setClubFollowing(id, !club.isFollowedByMe); refresh(); }
-        catch (error) { setClub(() => previous); throw error; }
-    };
+    /** Follow (`FollowButton`) changed: the page counts the follower at once and takes it back if the server refused. */
+    const followChanged = (following: boolean) => setClub(previous => previous && previous.isFollowedByMe !== following
+        ? { ...previous, isFollowedByMe: following, followerCount: Math.max(0, previous.followerCount + (following ? 1 : -1)) } : previous);
     // Leaving the club changes the membership as well as the club, so both are asked again.
     const leftClub = async () => { refresh(); };
-    const forgetMembership = () => setMembershipResult({ key: memberKey, clubId: null, role: null });
     const updateImage = async (field: 'banner' | 'logo', url: string) => {
         await apiClient.put(`/clubs/${id}`, field === 'banner' ? { bannerUrl: url } : { logoUrl: url });
         refresh();
     };
-    return { club, loading, failed, permissions, refresh, toggleFollow, leftClub, updateImage, forgetMembership };
+    return { club, loading, failed, permissions, refresh, followChanged, leftClub, updateImage };
 }
 
 export type ClubPermissions = ReturnType<typeof useClubProfile>['permissions'];

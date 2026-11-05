@@ -1,21 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
-import { apiClient } from '../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import type { Booking } from '../../features/venues/api';
 import { notificationId } from '../../utils/notificationDestinations';
+import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
 
 /** The API rechecks current customer/manager access, independently of the inbox. */
-export function BookingNotificationTarget({ venueId, bookingId, onClose }: {
-    venueId: string; bookingId: string; onClose: () => void;
+export function BookingNotificationTarget({ venueId, bookingId, onClose, returnTo = '/requests?view=updates', returnLabel = 'Back to updates' }: {
+    venueId: string; bookingId: string; onClose: () => void; returnTo?: string; returnLabel?: string;
 }) {
+    const account = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
     const [result, setResult] = useState<{ key: string; booking?: Booking; error?: string } | null>(null);
     const [retry, setRetry] = useState(0);
-    const key = `${venueId}:${bookingId}:${retry}`;
+    const key = `${account}:${venueId}:${bookingId}:${retry}`;
     const valid = notificationId(venueId) != null && notificationId(bookingId) != null;
     useEffect(() => {
         if (!valid) return;
         const controller = new AbortController();
-        void apiClient.get<Booking>(`/venues/${venueId}/bookings/${bookingId}`, { signal: controller.signal }).then(({ data }) => {
+        void apiClient.get<Booking>(`/venues/${venueId}/bookings/${bookingId}`, { signal: controller.signal, _authSessionId: account } as AuthSessionRequestConfig).then(({ data }) => {
             if (!controller.signal.aborted) setResult({ key, ...(String(data.id) === bookingId && String(data.venueId) === venueId
                 ? { booking: data } : { error: 'This reservation is unavailable.' }) });
         }).catch((error: { response?: { status?: number } }) => {
@@ -24,7 +26,7 @@ export function BookingNotificationTarget({ venueId, bookingId, onClose }: {
                 : 'We could not load this reservation. Please try again.' });
         });
         return () => controller.abort();
-    }, [bookingId, key, valid, venueId]);
+    }, [account, bookingId, key, valid, venueId]);
     const current = !valid ? { error: 'This notification destination is unavailable.' } : result?.key === key ? result : null;
     const booking = current && 'booking' in current ? current.booking : undefined;
     return <section aria-label="Reservation notification destination" className="shrink-0 border-b theme-border p-4">
@@ -38,7 +40,7 @@ export function BookingNotificationTarget({ venueId, bookingId, onClose }: {
             <p>{booking.status} · {booking.pitchName}</p>
             <p><time dateTime={booking.startsAt}>{new Date(booking.startsAt).toLocaleString(undefined, { timeZone: booking.timezone })}</time> – <time dateTime={booking.endsAt}>{new Date(booking.endsAt).toLocaleString(undefined, { timeZone: booking.timezone })}</time>{booking.timezone && ` (${booking.timezone})`}</p>
             <p>{booking.totalPrice} {booking.currency}</p>
-            <Link className="app-text-action" to="/stadiums?tab=bookings">My reservations</Link>
         </>}
+        <Link className="app-text-action" to={returnTo}>{returnLabel}</Link>
     </section>;
 }

@@ -122,17 +122,19 @@ export function ScheduleDirectionWorkspace(props: Props) {
         const replies = !cancelled ? event.responseSummary : undefined;
         const scored = ['MATCH', 'FRIENDLY'].includes(event.eventType) && Date.parse(event.endsAt) < now.getTime();
         const typeLabel = t(`schedule.event.${event.eventType.toLowerCase()}`, { defaultValue: kind.label });
-        const trail = cancelled || replies?.cantCome || replies?.pending || event.conflict || scored ? <>
+        const visits = !cancelled ? event.firstVisits : undefined;
+        const trail = cancelled || replies?.cantCome || replies?.pending || visits || event.conflict || scored ? <>
             {cancelled && <Badge tone="danger">{t('schedule.direction.cancelled', { defaultValue: 'Cancelled' })}</Badge>}
             {replies?.cantCome ? <Badge>{t('schedule.direction.cantCome', { defaultValue: '{{count}} can’t come', count: replies.cantCome })}</Badge> : null}
             {replies?.pending ? <Badge tone="warning">{t('schedule.direction.toConfirm', { defaultValue: '{{count}} to confirm', count: replies.pending })}</Badge> : null}
+            {visits ? <Badge className="gk-badge--visit">{t('schedule.direction.firstVisits', { defaultValue: '{{count}} first visit', count: visits })}</Badge> : null}
             {event.conflict && <Badge tone="warning">{t('schedule.direction.overlap', { defaultValue: 'Schedule overlap' })}</Badge>}
             {scored && !cancelled && <ScheduleScore event={event} />}
         </> : undefined;
         return {
             key: event.id, startsAt: event.startsAt, endsAt: event.endsAt, title: event.title, tone: kind.tone, cancelled,
             activity: event.journeys?.length ? 'OUTING' as const : event.eventType, recurring: event.recurring,
-            meta: [squadName(event) || (club ? null : event.ownerLabel), event.subtitle, event.locationText].filter(Boolean).join(' · '),
+            meta: [squadName(event) || (club ? null : event.ownerLabel), event.subtitle, event.locationText].filter(Boolean).join(' · '), who: event.who,
             trail, movable: Boolean(props.canMove?.(event)), onOpen: () => props.onSelect(event), label: `${event.title}, ${typeLabel.toLowerCase()}`,
         };
     });

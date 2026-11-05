@@ -1,26 +1,27 @@
 import React, { lazy, Suspense, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { apiClient } from '../api/axiosConfig';
 import { Loader2, AlertCircle, QrCode } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
+import { googleSignInConfigured } from '../components/auth/googleConfig';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
+import { useSecondFactorLogin, type PrimaryLoginProof } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
+import { formatDate } from '../utils/formatting';
 import {
     buildSignupPath,
     completedAuthDestination,
     getAuthFlow,
-    publicContinuationPath,
     rememberAuthFlow,
     requiredAccountStep,
     resolvePostAuthRedirect,
 } from '../utils/authRedirect';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
+import { AccountClosureReceipt } from '../features/profiles/account/AccountClosureReceipt';
 import {
     authInputClass,
     authInputErrorClass,
@@ -49,9 +50,10 @@ export const LoginPage = () => {
     const [error, setError] = useState('');
     const [showQr, setShowQr] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<'email' | 'password', string>>>({});
-    const [emailNotVerified, setEmailNotVerified] = useState(false);
-    const [isResendingVerification, setIsResendingVerification] = useState(false);
-    const [resendConfirmation, setResendConfirmation] = useState<string | null>(null);
+    // The server knows no account with this email: offered "Create one?" with what was typed kept.
+    const [unknownEmail, setUnknownEmail] = useState(false);
+    // The right sign-in for an account its owner closed in the last 30 days: "Keep my account" signs in with the same proof.
+    const [closing, setClosing] = useState<{ proof: PrimaryLoginProof; keepUntil: string } | null>(null);
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '');
 
     const navigateAfterLogin = (
@@ -94,69 +96,89 @@ export const LoginPage = () => {
         return errors;
     };
 
+    /** Offers "Keep my account" when the server says the account is closing, with the date it is erased. */
+    const closingOffer = (err: unknown, proof: PrimaryLoginProof) => {
+        if (extractApiErrorCode(err) !== 'ACCOUNT_CLOSING') return false;
+        const keepUntil = (err as { response?: { data?: { keepUntil?: unknown } } } | null)?.response?.data?.keepUntil;
+        if (typeof keepUntil !== 'string' || !Number.isFinite(Date.parse(keepUntil))) return false;
+        setClosing({ proof, keepUntil });
+        return true;
+    };
+
+    const signInWithPassword = async (proof: PrimaryLoginProof & { kind: 'password' }) => {
+        setIsLoading(true);
+        setError('');
+        setUnknownEmail(false);
+
+        try {
+            const result = await secondFactor.authenticate(proof);
+            if (!result) return;
+            setPassword(''); setClosing(null);
+            const authenticatedUser = await loginWithAccessToken(result.accessToken);
+            navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true);
+        } catch (err) {
+            if (closingOffer(err, proof)) return;
+            const code = extractApiErrorCode(err);
+            if (code === 'ACCOUNT_NOT_FOUND') { setUnknownEmail(true); return; }
+            // After five failed tries the server asks for a growing wait; other limits are per minute.
+            const wait = Number(isAxiosError(err) ? err.response?.headers?.['retry-after'] : NaN);
+            setError(code === 'SIGN_IN_DELAYED' || code === 'TOO_MANY_REQUESTS'
+                ? t('auth.login.errDelayed', { seconds: Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : 60 })
+                : extractApiErrorMessage(err, t('auth.login.errInvalid')));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const errors = validate();
         setFieldErrors(errors);
         if (Object.keys(errors).length > 0) return;
-
-        setIsLoading(true);
-        setError('');
-        setEmailNotVerified(false);
-        setResendConfirmation(null);
-
-        try {
-            const result = await secondFactor.authenticate({ kind: 'password', email: email.trim(), password });
-            if (!result) return;
-            setPassword('');
-            const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true);
-        } catch (err) {
-            const code = extractApiErrorCode(err);
-            // After five failed tries the server asks for a growing wait; other limits are per minute.
-            const wait = Number(isAxiosError(err) ? err.response?.headers?.['retry-after'] : NaN);
-            setError(code === 'SIGN_IN_DELAYED' || code === 'TOO_MANY_REQUESTS'
-                ? t('auth.login.errDelayed', { seconds: Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : 60 })
-                : extractApiErrorMessage(err, t('auth.login.errInvalid')));
-            setEmailNotVerified(code === 'EMAIL_NOT_VERIFIED');
-        } finally {
-            setIsLoading(false);
-        }
+        setClosing(null);
+        await signInWithPassword({ kind: 'password', email: email.trim(), password });
     };
 
-    const handleResendLoginVerification = async () => {
-        setIsResendingVerification(true);
+    const createInstead = () => {
+        setPassword('');
+        rememberAuthFlow({ email: email.trim().toLowerCase(), nextPath });
+        navigate(buildSignupPath(nextPath));
+    };
+
+    const signInWithGoogle = async (proof: PrimaryLoginProof & { kind: 'google' }) => {
+        setIsLoading(true);
+        setError('');
         try {
-            const res = await apiClient.post<{ message?: string }>('/auth/resend-verification', {
-                email: email.trim(),
-                continuationPath: publicContinuationPath(nextPath),
-            });
-            setError('');
-            setEmailNotVerified(false);
-            setResendConfirmation(res.data?.message ?? 'Verification email sent.');
+            const result = await secondFactor.authenticate(proof);
+            if (!result) return;
+            setClosing(null);
+            rememberAuthFlow({ nextPath, newAccount: result.newAccount === true });
+            const authenticatedUser = await loginWithAccessToken(result.accessToken);
+            navigateAfterLogin({ ...authenticatedUser, accountState: result.accountState ?? authenticatedUser.accountState }, result.mustChangePassword === true, result.newAccount === true);
         } catch (err) {
-            setError(extractApiErrorMessage(err, 'Could not resend the verification email. Please try again.'));
+            if (closingOffer(err, proof)) return;
+            setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
         } finally {
-            setIsResendingVerification(false);
+            setIsLoading(false);
         }
     };
 
     const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
         if (!credentialResponse.credential) return;
-        setIsLoading(true);
-        setError('');
-        try {
-            const result = await secondFactor.authenticate({ kind: 'google', token: credentialResponse.credential });
-            if (!result) return;
-            rememberAuthFlow({ nextPath, newAccount: result.newAccount === true });
-            const authenticatedUser = await loginWithAccessToken(result.accessToken);
-            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true, result.newAccount === true);
-        } catch (err) {
-            setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
-        } finally {
-            setIsLoading(false);
-        }
+        setClosing(null);
+        await signInWithGoogle({ kind: 'google', token: credentialResponse.credential });
+    };
+
+    /** Leaves the closing account alone: the box goes and an empty sign-in form comes back. */
+    const switchAccount = () => {
+        setClosing(null); setEmail(''); setPassword(''); setError(''); setUnknownEmail(false); setFieldErrors({});
+    };
+
+    const keepAccount = () => {
+        if (!closing) return;
+        const proof = closing.proof;
+        void (proof.kind === 'password' ? signInWithPassword({ ...proof, keepAccount: true }) : signInWithGoogle({ ...proof, keepAccount: true }));
     };
 
     return (
@@ -188,33 +210,27 @@ export const LoginPage = () => {
                 <Suspense fallback={<div className="flex flex-col items-center gap-4 py-6"><Loader2 className="h-8 w-8 animate-spin text-[var(--fc-accent)]" /><p className="text-sm text-[var(--fc-text-secondary)]">Generating QR code…</p></div>}>
                     <QrLoginSection onBack={() => setShowQr(false)} />
                 </Suspense>
+            ) : closing ? (
+                // A closing account: Keep my account is the one bright action; the sign-in form returns only on request.
+                <div role="status" className="rounded-xl border border-[var(--color-border)] p-4 text-sm leading-6">
+                    <p className="font-semibold text-[var(--color-text)]">{t('auth.login.closingTitle')}</p>
+                    <p className="text-[var(--color-secondary)]">{t('auth.login.closingBody', { date: formatDate(closing.keepUntil, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>
+                    {error && <p role="alert" className="mt-3 font-semibold text-[color:var(--state-danger)]">{error}</p>}
+                    <button type="button" disabled={isLoading} onClick={keepAccount} className={authPrimaryButtonClass + ' mt-3'}>
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('auth.login.keepAccount')}
+                    </button>
+                    <button type="button" disabled={isLoading} onClick={switchAccount} className="mt-2 min-h-11 w-full text-sm font-semibold app-text-action">
+                        {t('auth.login.useAnotherAccount')}
+                    </button>
+                </div>
             ) : (
                 <>
+                    {location.state?.accountClosureReceipt && <AccountClosureReceipt receipt={location.state.accountClosureReceipt} />}
                     {error && (
                         <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                             <div className="flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5 shrink-0" /> {error}
                             </div>
-                            {emailNotVerified && (
-                                <button
-                                    type="button"
-                                    onClick={() => void handleResendLoginVerification()}
-                                    disabled={isResendingVerification}
-                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--state-danger)] px-4 py-2 text-xs font-semibold text-[color:var(--state-danger)] transition-colors hover:bg-[color:var(--state-danger)] hover:text-[color:var(--color-text)] disabled:opacity-60"
-                                >
-                                    {isResendingVerification ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        'Resend verification email'
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-                    {resendConfirmation && (
-                        <div className="mb-6 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-4 py-3 text-sm font-semibold text-[var(--color-accent)]">
-                            {resendConfirmation}
                         </div>
                     )}
 
@@ -230,6 +246,7 @@ export const LoginPage = () => {
                                 onChange={(e) => {
                                     setEmail(e.target.value);
                                     clearFieldError('email');
+                                    setUnknownEmail(false);
                                 }}
                                 required
                                 autoComplete="email"
@@ -243,6 +260,10 @@ export const LoginPage = () => {
                                     {fieldErrors.email}
                                 </p>
                             )}
+                            {unknownEmail && <div role="status" className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--color-text)]">
+                                <span>{t('auth.login.noAccount')}</span>
+                                <button type="button" onClick={createInstead} className="min-h-11 px-4 text-xs font-semibold text-[var(--color-on-accent)] bg-[var(--color-accent)]">{t('auth.login.goRegister')}</button>
+                            </div>}
                         </div>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
@@ -296,15 +317,9 @@ export const LoginPage = () => {
                             {t('auth.login.qr')}
                         </button>
 
-                        {!isAndroidApp && <GoogleLogin
-                            theme="filled_black"
-                            size="large"
-                            width="100%"
-                            text="continue_with"
+                        {!isAndroidApp && googleSignInConfigured() && <GoogleSignInButton
                             onSuccess={handleGoogleSuccess}
-                            onError={() => {
-                                setError(t('auth.common.googleClosed'));
-                            }}
+                            onError={() => setError(t('auth.common.googleClosed'))}
                         />}
                     </div>}
                 </>

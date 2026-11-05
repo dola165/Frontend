@@ -28,6 +28,10 @@ export function LivePanel() {
   useEffect(() => { mounted.current = true;return () => { mounted.current = false; }; }, []);
   const id = useId();
   if (!page) return null;
+  if (page.status !== 'LIVE') return <SplitPanel title={t('This page is private')} onClose={closePanel}
+    footer={<Button variant="primary" onClick={closePanel}>{t('Done')}</Button>}>
+    <p>{t('This page is private. Review it before publishing again.')}</p>
+  </SplitPanel>;
   const canPublish = !!page.clubId || page.status === 'LIVE' && !!page.organizationId && page.viewer.canEdit && ['OWNER', 'ADMIN', 'CLUB_ADMIN'].includes(page.viewer.role ?? '');
   const url = `${window.location.origin}${page.links.profilePath}`;
   const publish = async () => {

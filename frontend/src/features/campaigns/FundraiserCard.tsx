@@ -9,7 +9,7 @@ import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { Row } from '../store/front/Row';
 import { commerceCount } from '../store/count';
 import { Crest } from '../world/Crest';
-import { campaignMoney, daysLeft, progressOf, type Campaign } from './api';
+import { campaignMoney, daysLeft, progressOf, organizerName, isPersonal, type Campaign } from './api';
 
 /** The bar every fundraiser shows: raised of goal, the share, how many gave, how long is left; "Not reported yet" without a report. */
 export function Progress({ campaign, large }: { campaign: Campaign; large?: boolean }) {
@@ -22,7 +22,7 @@ export function Progress({ campaign, large }: { campaign: Campaign; large?: bool
             {raised === null
                 ? <p className="gk-fund-progress__amounts"><strong>{ct("Not reported yet")}</strong>{goal !== null && <span className="gk-fund-progress__goal">{ct(" · goal ")}{campaignMoney(goal, campaign.currency)}</span>}</p>
                 : <p className="gk-fund-progress__amounts"><strong className="gk-num">{campaignMoney(raised, campaign.currency)}</strong>{goal !== null && <span className="gk-fund-progress__goal">{ct(" raised of ")}{campaignMoney(goal, campaign.currency)}</span>}</p>}
-            <p className="gk-fund-progress__facts">{[donations != null ? commerceCount(donations, 'donation') : null, reached ? ct("Goal reached") : left === null ? null : left === 0 ? ct("Ended") : ct("{v0} {v1} left", { v0: left, v1: ct(left === 1 ? 'day' : 'days') })].filter(Boolean).join(' · ')}</p>
+            <p className="gk-fund-progress__facts">{[raised !== null ? ct("Reported by the organizer") : null, donations != null ? commerceCount(donations, 'donation') : null, reached ? ct("Goal reached") : left === null ? null : left === 0 ? ct("Ended") : ct("{v0} {v1} left", { v0: left, v1: ct(left === 1 ? 'day' : 'days') })].filter(Boolean).join(' · ')}</p>
         </div>
     );
 }
@@ -36,7 +36,7 @@ export function FundraiserCard({ campaign }: { campaign: Campaign }) {
     const picture = campaign.images?.[0];
     return (
         <Link className="gk-fund" to={`/campaigns/${campaign.id}`} state={opportunityReturnState('campaigns', location)}>
-            <span className="gk-fund__by"><Crest src={campaign.clubLogoUrl} name={campaign.clubName} size={36} /><span className="gk-fund__who"><strong>{campaign.clubName}</strong><small>{[ct("Club"), campaign.city, campaign.distanceKm != null ? distance(campaign.distanceKm) : null].filter(Boolean).join(' · ')}</small></span></span>
+            <span className="gk-fund__by"><Crest round={isPersonal(campaign)} src={isPersonal(campaign) ? undefined : campaign.clubLogoUrl} name={organizerName(campaign)} size={36} /><span className="gk-fund__who"><strong>{organizerName(campaign)}</strong><small>{[isPersonal(campaign) ? ct("Personal appeal") : ct("Club"), campaign.city, campaign.distanceKm != null ? distance(campaign.distanceKm) : null].filter(Boolean).join(' · ')}</small></span></span>
             <span className="gk-fund__pic">{picture ? <MediaImage src={resolveMediaUrl(picture)} alt="" loading="lazy" /> : <HeartHandshake aria-hidden="true" />}</span>
             <span className="gk-fund__title">{campaign.title}</span>
             <Progress campaign={campaign} />

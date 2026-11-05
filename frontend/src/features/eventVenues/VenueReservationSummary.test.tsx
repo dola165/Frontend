@@ -6,7 +6,6 @@ import { SquadSessionDetails } from '../squadCommunication/SquadSessionDialog';
 import { sessionEvent } from '../squadCommunication/useSquadSchedule';
 import { TournamentMatchDialog } from '../tournaments/components/TournamentMatchDialog';
 import type { TournamentDetail, TournamentFixtureDto } from '../tournaments/domain';
-vi.mock('../tournaments/components/TournamentFixtureReferees', () => ({ TournamentFixtureReferees: () => <button>Invite tournament referee</button> }));
 const summary: VenueReservationSummaryValue = { venueId: 131, venueName: 'Cardiff Ground', pitchName: 'North Pitch', status: 'CONFIRMED', startsAt: '2027-05-01T10:00:00Z', endsAt: '2027-05-01T11:30:00Z', timezone: 'Europe/London' };
 const session = (status: VenueReservationSummaryValue['status']) => sessionEvent({ id: 4, name: 'U12' }, { id: 5, title: 'Training', starts_at: summary.startsAt, ends_at: summary.endsAt, location: 'Outdated meeting point', status: 'SCHEDULED', cancellation_reason: null, revision: 0, attendance: [], venue_reservation: { ...summary, status } });
 describe('Family and spectator venue summaries', () => {

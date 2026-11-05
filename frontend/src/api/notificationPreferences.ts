@@ -1,7 +1,7 @@
 import { apiClient } from './axiosConfig';
 
 /** The groups a person chooses channels for; TEAM_WORK is listed only for team members. */
-export type NotificationGroupKey = 'TEAM_WORK' | 'MESSAGES' | 'CLUB' | 'FAMILY' | 'MATCHES' | 'OTHER';
+export type NotificationGroupKey = 'TEAM_WORK' | 'MESSAGES' | 'SQUAD_UPDATES' | 'JOB_REQUESTS' | 'CLUB' | 'FAMILY' | 'MATCHES' | 'OTHER';
 export type DeliveryMode = 'OFF' | 'DRY_RUN' | 'LIVE';
 export type NotificationLanguage = 'en' | 'ka';
 
@@ -24,6 +24,8 @@ export interface NotificationPreferences {
     digestTime: string;
     groups: NotificationGroupChoice[];
     devices: NotificationDevice[];
+    /** The kinds of news this person's links need (parent of, plays in, staff at, the team). */
+    needed?: NotificationGroupKey[];
 }
 
 export interface NotificationPreferencesUpdate {
@@ -43,7 +45,8 @@ export interface PushSubscriptionPayload {
     language?: NotificationLanguage;
 }
 
-export interface NotificationTestResult { mode: DeliveryMode; pushDevices: number; email: boolean }
+/** An in-app event acknowledgement, not a promise of external delivery. */
+export interface NotificationTestResult { mode: DeliveryMode; pushDevices: number; email: boolean; eventReference?: number }
 
 export const fetchNotificationPreferences = async (signal?: AbortSignal) =>
     (await apiClient.get<NotificationPreferences>('/notifications/preferences', { signal })).data;
@@ -51,9 +54,14 @@ export const fetchNotificationPreferences = async (signal?: AbortSignal) =>
 export const saveNotificationPreferences = async (update: NotificationPreferencesUpdate) =>
     (await apiClient.put<NotificationPreferences>('/notifications/preferences', update)).data;
 
-/** One group's switches, for the one-tap prompt; everything else stays as it was. */
-export const setNotificationGroup = async (key: NotificationGroupKey, change: { push?: boolean; email?: boolean; language?: NotificationLanguage }) =>
-    (await apiClient.patch<NotificationPreferences>(`/notifications/preferences/groups/${key}`, change)).data;
+/** One press: push and email for every kind of news this person's links need; everything else stays as it was. */
+export const turnOnNeededNotifications = async (language: NotificationLanguage) =>
+    (await apiClient.post<NotificationPreferences>('/notifications/preferences/needed', { language })).data;
+
+/** The language push and email speak to this person: the app's own, saved whenever they switch it. */
+export const saveNotificationLanguage = async (language: NotificationLanguage) => {
+    await apiClient.put('/notifications/preferences/language', { language });
+};
 
 export const registerPushSubscription = async (payload: PushSubscriptionPayload) =>
     (await apiClient.post<NotificationPreferences>('/notifications/push-subscriptions', payload)).data;

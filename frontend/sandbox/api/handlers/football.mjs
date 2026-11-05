@@ -7,6 +7,7 @@ import * as S from '../world-social.mjs';
 import * as C from '../world-club.mjs';
 import * as P from '../pages-data.mjs';
 import { canReadListing, viewed, viewerClubs } from '../football-viewer.mjs';
+import { personaOf } from '../viewer.mjs';
 import { registerMatchOpponents } from './match-opponents.mjs';
 import { registerMatchResults } from './match-results.mjs';
 import { canReadTraining, clubTrainingEvents, publicTrainingClub, trainingVisibility } from './club-training-calendar.mjs';
@@ -182,7 +183,35 @@ get('/referees', ({ query: q }) => {
   const page = pageOf(q);
   return { items: slice(list, page, 24), total: list.length, page, pageSize: 24 };
 });
-get('/referees/me', () => ({ profileAccess: { canManage: false, reason: 'Create a referee profile from Football roles to receive appointments.' }, profile: null, availability: [], appointments: [], appointmentCounts: { current: 0, history: 0, total: 0, returnedHistory: 0 } }));
+// Luka refereeing (the `referee` persona, step 6): his profile and his appointments (between other clubs); everyone
+// else has no referee profile yet.
+const LUKA_REFEREE = { ...F.refereeProfiles[1], user_id: W.ME_ID, full_name: W.me.fullName, qualifications: 'GFF Youth referee', career: [] };
+get('/referees/me', ({ headers }) => {
+  if (personaOf(headers) !== 'referee') return { profileAccess: { canManage: false, reason: 'Create a referee profile from Football roles to receive appointments.' }, profile: null, availability: [], appointments: [], appointmentCounts: { current: 0, history: 0, total: 0, returnedHistory: 0 } };
+  const appointments = F.exchange.filter(l => l.refereeId === W.ME_ID).map(l => F.appointmentView(l, W.me));
+  const past = appointments.filter(a => Date.parse(a.ends_at_iso) <= now() && a.report_submitted_at).length;
+  return { profileAccess: { canManage: true, reason: '' }, profile: LUKA_REFEREE, availability: [], appointments, appointmentCounts: { current: appointments.length - past, history: past, total: appointments.length, returnedHistory: past } };
+});
+// His answers and reports, as the backend's referee routes: accept or decline an invitation, withdraw from a match he took.
+const ownAppointment = id => F.exchange.find(l => l.refereeId === W.ME_ID && F.refereeAppointmentId(l) === Number(id));
+post('/referees/me/appointments/:id/decision', ({ params, body, headers }) => {
+  const l = ownAppointment(params.id); if (!l || personaOf(headers) !== 'referee') return notFound('Appointment not found.');
+  const action = body?.action, status = F.refereeStatusOf(l);
+  if (['ACCEPT', 'DECLINE'].includes(action)) {
+    if (status !== 'INVITED') return conflict('This invitation has already been answered.');
+    l.refereeInvite.status = action === 'ACCEPT' ? 'ACCEPTED' : 'DECLINED';
+  } else if (action === 'WITHDRAW') {
+    if (status !== 'ACCEPTED') return conflict('Only a match you took can be withdrawn from.');
+    l.refereeInvite = { id: F.refereeAppointmentId(l), duty: 'REFEREE', volunteer: false, fee: 60, currency: 'GEL', ...l.refereeInvite, status: 'WITHDRAWN' };
+  } else return reply(400, { status: 400, message: 'Choose accept, decline or withdraw.' });
+  l.revision++;
+  return F.appointmentView(l, W.me);
+});
+put('/referees/me/appointments/:id/report', ({ params, body, headers }) => {
+  const l = ownAppointment(params.id); if (!l || personaOf(headers) !== 'referee') return notFound('Appointment not found.');
+  Object.assign(l, { refereeReport: String(body?.body ?? '').trim(), refereeReportAt: new Date() });
+  return F.appointmentView(l, W.me);
+});
 get('/referees/:id', ({ params }) => {
   const r = F.refereeProfiles.find(x => x.user_id === Number(params.id)); if (!r) return undefined;
   const history = matches.filter(m => m.refereeId === r.user_id && m.status === 'COMPLETED').map(m => ({ id: m.id, title: `${m.home ? 'FC Dinamo Tbilisi Academy' : m.opponentName} v ${m.home ? m.opponentName : 'FC Dinamo Tbilisi Academy'}`, starts_at: local(m.start), timezone: TZ, duty: 'REFEREE', volunteer: !r.accepts_paid, club_name: 'FC Dinamo Tbilisi Academy', opponent_name: m.opponentName }));
@@ -195,7 +224,10 @@ get('/match-exchange', ({ query: q }) => {
   const mine = q.get('mine') === 'true', text = q.get('q'), format = q.get('format'), ageGroup = q.get('ageGroup'), level = q.get('level'), pref = q.get('venuePreference');
   const from = q.get('from') ? new Date(`${q.get('from')}T00:00:00`) : null, to = q.get('to') ? new Date(`${q.get('to')}T23:59:59`) : null;
   const lat = num(q, 'lat', null), lng = num(q, 'lng', null), radius = num(q, 'radiusKm', null);
+  // `active` (with mine): only the matches still to answer, so a long history never hides them (fix round 1).
+  const active = mine && q.get('active') === 'true';
   let list = F.exchange.filter(l => mine ? F.involvesDinamo(l) : l.status === 'OPEN' && !l.requestedClubId && l.start.getTime() > now())
+    .filter(l => !active || (l.status === 'OPEN' && l.end.getTime() > now()) || (l.opponentAnswer === 'WAITING' && l.end.getTime() > now()))
     .filter(l => !format || l.format === format).filter(l => !ageGroup || l.ageGroup === ageGroup).filter(l => !level || l.level === level).filter(l => !pref || l.venuePreference === pref || l.venuePreference === 'EITHER')
     .filter(l => inWindow(l.start, l.end, from, to)).map(l => F.listingView(l))
     .filter(v => matchesText(text, v.title, v.club_name, v.squad_name, v.location_name, v.city, v.opponent_name))
@@ -250,7 +282,7 @@ post('/match-exchange/:id/referees', ({ params, body }) => {
   if (duty === 'REFEREE') {
     l.refereeId = r.user_id; l.refereeInvite = invite; l.refereeRequired = true; l.externalRefereeName = null;
     const request = officialRequests.get(l.id);
-    if (request?.status === 'OPEN') { request.status = 'CLOSED'; request.applications.forEach(a => { if (a.status === 'APPLIED') a.status = 'DECLINED'; }); }
+    if (request?.status === 'OPEN') { request.status = 'CLOSED'; request.applications.forEach(a => { if (a.status === 'PENDING') a.status = 'DECLINED'; }); }
   } else (l.assistants ??= []).push({ refereeId: r.user_id, ...invite });
   l.revision++;
   l.history.push({ id: W.newId(), action: 'REFEREE_INVITED', created_at: iso(new Date()), reason: null });
@@ -290,18 +322,104 @@ get('/match-exchange/:id/coordination', ({ params }) => {
 post('/match-exchange/:id/coordination', ({ body }) => ({ id: W.newId(), authorId: W.ME_ID, authorName: W.me.fullName, body: body?.body || '', createdAt: iso(new Date()) }));
 // Match players per squad, in the frontend's `Team` shape (MatchParticipants.tsx); only our own squads.
 const matchSelections = new Map(); // `${eventId}:${squadId}` -> Set(playerId)
+const callUpAnswers = new Map(); // `${eventId}:${squadId}` -> Map(playerId -> NOT_GOING | UNANSWERED)
 const teamView = (l, s) => {
   const key = `${l.id}:${s.id}`; if (!matchSelections.has(key)) matchSelections.set(key, new Set(s.playerIds.slice(0, 14)));
   const chosen = matchSelections.get(key);
-  return { squadId: s.id, squadName: s.name, canManage: true, players: s.playerIds.map((id, i) => ({ id, name: personById(id).fullName, selected: chosen.has(id), response: !chosen.has(id) ? 'NOT_INVITED' : i % 5 === 3 ? 'UNANSWERED' : 'GOING', revision: l.revision, canRespond: false })) };
+  const answers = callUpAnswers.get(key) ?? new Map();
+  // Step 6: a called-up player is expected; the only answer is "can't come" (one family said so in the seed).
+  return { squadId: s.id, squadName: s.name, canManage: true, players: s.playerIds.map((id, i) => ({ id, name: personById(id).fullName, selected: chosen.has(id),
+    response: !chosen.has(id) ? 'NOT_INVITED' : answers.get(id) ?? (i === 3 ? 'NOT_GOING' : 'UNANSWERED'), revision: l.revision, canRespond: false })) };
 };
 get('/match-arrangements/:id/participants', ({ params }) => {
   const l = F.listingById(params.id); if (!l) return [];
   return [l.hostSquadId, l.opponentSquadId].filter(Boolean).map(id => squadById(id)).filter(s => s && F.isMineClub(s.clubId)).map(s => teamView(l, s));
 });
+// Who played (step 6, part B): at kick-off the called-up players who didn't say they can't come are saved as who
+// played; for 48 hours a squad's match staff take off a no-show, and a player who wasn't called up waits for an
+// independent yes (the other club's, the referee's or a competition's organiser's), never one club's word (fix round 1).
+// As the backend, only the squad's own people see its list; every change moves the list's revision on, and a retry
+// of a change already made (its request id) changes nothing again.
+const whoPlayed = new Map(); // `${eventId}:${squadId}` -> Map(playerId -> { played, added })
+const lineupAdditions = []; // { id, eventId, squadId, playerId, playerName, status }
+const whoPlayedRevision = new Map(), whoPlayedRequests = new Set();
+const revisionOf = l => whoPlayedRevision.get(l.id) ?? 0;
+const bump = l => whoPlayedRevision.set(l.id, revisionOf(l) + 1);
+/** What the other side reads: the first name and last initial (child-safe). */
+const shortName = name => { const parts = String(name ?? 'Player').trim().split(/\s+/); return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0]; };
+const confirmerOf = (l, squadId) => [l.hostSquadId, l.opponentSquadId].some(id => id && id !== squadId) ? 'OTHER_CLUB'
+  : l.refereeId && F.refereeStatusOf(l) === 'ACCEPTED' ? 'REFEREE' : l.origin === 'COMPETITION' ? 'ORGANISER' : 'NOBODY';
+const savedList = (l, s) => {
+  const key = `${l.id}:${s.id}`;
+  if (!whoPlayed.has(key)) whoPlayed.set(key, new Map(teamView(l, s).players.filter(p => p.selected).map(p => [p.id, { played: p.response !== 'NOT_GOING', added: false }])));
+  return whoPlayed.get(key);
+};
+const changeUntil = l => new Date(l.start.getTime() + 48 * 3600e3);
+const whoPlayedView = l => {
+  if (l.start.getTime() > now() || l.status !== 'ARRANGED' || l.origin === 'PAST') return { lockedAt: null, changeUntil: null, revision: 0, teams: [], additions: [] };
+  const teams = [l.hostSquadId, l.opponentSquadId].filter(Boolean).map(id => squadById(id)).filter(s => s && F.isMineClub(s.clubId)).map(s => {
+    const list = savedList(l, s);
+    const waiting = id => lineupAdditions.some(a => a.eventId === l.id && a.playerId === id && a.status === 'PENDING');
+    return { squadId: s.id, squadName: s.name, canChange: true, players: [...list].map(([id, v]) => ({ id, name: personById(id)?.fullName ?? 'Player', played: v.played, added: v.added })),
+      others: s.playerIds.filter(id => !list.has(id) && !waiting(id)).map(id => ({ id, name: personById(id)?.fullName ?? 'Player' })) };
+  });
+  const additions = lineupAdditions.filter(a => a.eventId === l.id && ['PENDING', 'DECLINED'].includes(a.status))
+    .filter(a => F.isMineClub(squadById(a.squadId).clubId) || [l.hostSquadId, l.opponentSquadId].some(id => id && id !== a.squadId && F.isMineClub(squadById(id).clubId)))
+    .map(a => {
+      const own = F.isMineClub(squadById(a.squadId).clubId);
+      return { id: a.id, squadId: a.squadId, squadName: squadById(a.squadId).name, clubName: clubById(squadById(a.squadId).clubId).name,
+        playerName: own ? a.playerName : shortName(a.playerName), shirt: a.shirt ?? null, status: a.status, canDecide: a.status === 'PENDING' && !own, confirmer: confirmerOf(l, a.squadId) };
+    });
+  return { lockedAt: iso(l.start), changeUntil: iso(changeUntil(l)), revision: revisionOf(l), teams, additions };
+};
+const whoPlayedRefusal = l => l.origin === 'PAST' ? 'A match added afterwards had no call-ups, so it has no list of who played.' : l.status !== 'ARRANGED' ? 'Who played is kept for agreed matches.' : l.start.getTime() > now() ? 'Who played is saved at kick-off.'
+  : changeUntil(l).getTime() < now() ? 'Who played can be changed for 48 hours after kick-off.' : null;
+get('/match-arrangements/:id/who-played', ({ params, headers }) => { const l = F.listingById(params.id); return l && canReadListing(l, headers) ? whoPlayedView(l) : notFound('Match not found.'); });
+post('/match-arrangements/:id/squads/:squadId/who-played', ({ params, body }) => {
+  const l = F.listingById(params.id), s = squadById(params.squadId); if (!l || !s || !F.isMineClub(s.clubId)) return notFound();
+  const refusal = whoPlayedRefusal(l); if (refusal) return conflict(refusal);
+  if (whoPlayedRequests.has(`${l.id}:${body?.requestId}`)) return whoPlayedView(l);
+  if (Number(body?.revision) !== revisionOf(l)) return reply(409, { status: 409, code: 'WHO_PLAYED_CHANGED', message: 'Who played changed meanwhile. Here is the latest list.' });
+  const entry = savedList(l, s).get(Number(body?.playerId)); if (!entry) return conflict('This player isn’t on the list of who played.');
+  entry.played = Boolean(body?.played);
+  whoPlayedRequests.add(`${l.id}:${body?.requestId}`); bump(l);
+  return whoPlayedView(l);
+});
+post('/match-arrangements/:id/squads/:squadId/who-played/additions', ({ params, body }) => {
+  const l = F.listingById(params.id), s = squadById(params.squadId); if (!l || !s || !F.isMineClub(s.clubId)) return notFound();
+  const refusal = whoPlayedRefusal(l); if (refusal) return conflict(refusal);
+  if (whoPlayedRequests.has(`${l.id}:${body?.requestId}`)) return whoPlayedView(l);
+  const player = Number(body?.playerId), list = savedList(l, s);
+  if (!s.playerIds.includes(player)) return reply(400, { status: 400, message: 'Choose a player of this squad.' });
+  if (list.get(player)?.played) return conflict('This player is already on the list of who played.');
+  if (lineupAdditions.some(a => a.eventId === l.id && a.playerId === player && a.status === 'PENDING')) return conflict('This player is already waiting to be confirmed.');
+  // Always pending: nothing is confirmed on one club's word; with nobody to ask it waits and says why.
+  lineupAdditions.push({ id: W.newId(), eventId: l.id, squadId: s.id, playerId: player, playerName: personById(player)?.fullName ?? 'Player', shirt: personById(player)?.shirtNumber ?? null, status: 'PENDING' });
+  whoPlayedRequests.add(`${l.id}:${body?.requestId}`); bump(l);
+  return whoPlayedView(l);
+});
+post('/match-arrangements/:id/who-played/additions/:addition', ({ params, body }) => {
+  const l = F.listingById(params.id), a = lineupAdditions.find(x => x.id === Number(params.addition) && x.eventId === Number(params.id)); if (!l || !a) return notFound();
+  if (l.status === 'CANCELLED' || l.status === 'CLOSED') return conflict('This match was called off, so nobody is added to it.');
+  if (a.status !== 'PENDING') return conflict('This added player has already been answered.');
+  if (F.isMineClub(squadById(a.squadId).clubId)) return reply(403, { status: 403, message: 'The other club’s match staff, the referee or the organiser confirm an added player.' });
+  a.status = body?.action === 'CONFIRM' ? 'CONFIRMED' : 'DECLINED';
+  if (a.status === 'CONFIRMED') savedList(l, squadById(a.squadId)).set(a.playerId, { played: true, added: true });
+  bump(l);
+  return whoPlayedView(l);
+});
+// Seed: on the match on now, the other club added a player who wasn't called up, for Dinamo to confirm.
+{
+  const live = F.exchange.find(l => l.status === 'ARRANGED' && l.opponentSquadId && l.start.getTime() <= now() && l.end.getTime() > now() && F.involvesDinamo(l));
+  const theirs = live && [live.hostSquadId, live.opponentSquadId].map(id => squadById(id)).find(s => s.clubId !== DINAMO);
+  if (theirs) lineupAdditions.push({ id: W.newId(), eventId: live.id, squadId: theirs.id, playerId: theirs.playerIds?.[0] ?? -1, playerName: personById(theirs.playerIds?.[0])?.fullName ?? 'Mariam Beridze', status: 'PENDING' });
+}
+// An old link to a squad session that became a match (step 6): its match, for the squad's people. The sandbox's
+// sessions are all still sessions, so this answers "not found" and the calendar opens the session.
+get('/match-arrangements/squads/:id/sessions/:session', () => notFound('Session not found.'));
 get('/match-arrangements/squads/:id/fixtures', ({ params, query: q }) => {
   const from = parseWhen(q.get('from')), to = parseWhen(q.get('to'));
-  return F.exchange.filter(l => (l.hostSquadId === Number(params.id) || l.opponentSquadId === Number(params.id)) && l.opponentSquadId && inWindow(l.start, l.end, from, to) && !matches.some(m => m.id === l.id)).map(exchangeOccurrence);
+  return F.exchange.filter(l => (l.hostSquadId === Number(params.id) || l.opponentSquadId === Number(params.id)) && l.opponentSquadId && inWindow(l.start, l.end, from, to) && (l.canonical || !matches.some(m => m.id === l.id))).map(exchangeOccurrence);
 });
 
 // ============================================================== match history
@@ -322,7 +440,7 @@ function historyFromMatch(m) {
   return { id: `${source}:${m.id}`, source, sourceId: m.id, title: `${home.club.name} vs ${away.club.name}`, startsAt: club ? local(m.start) : iso(m.start), endsAt: club ? local(m.end) : iso(m.end), timezone: club ? null : TZ,
     homeClubId: home.club.id, homeClubName: home.club.name, homeSquadId: home.squad?.id ?? null, homeSquadName: home.squad?.name ?? null, awayClubId: away.club.id, awayClubName: away.club.name, awaySquadId: away.squad?.id ?? null, awaySquadName: away.squad?.name ?? null,
     homeScore: counts ? score?.[0] ?? null : null, awayScore: counts ? score?.[1] ?? null : null, resultStatus: status, fixtureStatus: m.status === 'CANCELLED' ? 'CANCELLED' : counts ? 'COMPLETED' : 'SCHEDULED', legacy: false,
-    locationName: v ? `${v.name}, ${v.city}` : null, tournamentId: null, tournamentName: null, detailPath: source === 'MATCH_EXCHANGE' ? `/match-exchange/${m.id}` : `/calendar?eventId=${m.id}`, canRecordResult: m.start.getTime() < now(), mine: true };
+    locationName: v ? `${v.name}, ${v.city}` : null, tournamentId: null, tournamentName: null, detailPath: source === 'MATCH_EXCHANGE' ? `/matches/${m.id}#result` : `/calendar?eventId=${m.id}`, canRecordResult: m.start.getTime() < now(), mine: true };
 }
 function historyFromFixture(t, f) {
   const st = F.tournamentState.get(t.id), home = st.entries.find(e => e.id === f.homeEntryId), away = st.entries.find(e => e.id === f.awayEntryId), v = venueById(f.locationId);
@@ -332,7 +450,7 @@ function historyFromFixture(t, f) {
   return { id: `TOURNAMENT:${f.id}`, source: 'TOURNAMENT', sourceId: f.id, title: t.name, startsAt: start ? local(start) : null, endsAt: null, timezone: null,
     homeClubId: home?.clubId ?? null, homeClubName: home?.clubName ?? null, homeSquadId: home?.squadId ?? null, homeSquadName: squadName(home), awayClubId: away?.clubId ?? null, awayClubName: away?.clubName ?? null, awaySquadId: away?.squadId ?? null, awaySquadName: squadName(away),
     homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: f.status === 'COMPLETED' ? 'RECORDED' : 'NONE', fixtureStatus: f.status, legacy: t.status === 'COMPLETED' && t.id === 305,
-    locationName: null, tournamentId: t.id, tournamentName: t.name, detailPath: `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult: st.staff.some(a => a.userId === W.ME_ID && a.status === 'ACTIVE' && ['ADMIN', 'STAFF'].includes(a.role)), mine: home?.clubId === DINAMO || away?.clubId === DINAMO };
+    locationName: null, tournamentId: t.id, tournamentName: t.name, detailPath: f.matchId ? `/matches/${f.matchId}` : `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult: st.staff.some(a => a.userId === W.ME_ID && a.status === 'ACTIVE' && ['ADMIN', 'STAFF'].includes(a.role)), mine: home?.clubId === DINAMO || away?.clubId === DINAMO };
 }
 /** A tournament fixture on a calendar: its own kick-off and length, named after its two sides (the history row is thin, as the backend's). */
 function fixtureSpan(t, f) {
@@ -342,7 +460,7 @@ function fixtureSpan(t, f) {
 }
 const allHistory = () => [
   ...matches.filter(m => !leagueReplaced(m)).map(historyFromMatch),
-  ...F.exchange.filter(l => l.opponentSquadId && !matches.some(m => m.id === l.id)).map(l => { const v = F.listingView(l); return { id: `MATCH_EXCHANGE:${l.id}`, source: 'MATCH_EXCHANGE', sourceId: l.id, title: `${v.club_name} vs ${v.opponent_name}`, startsAt: v.starts_at_iso, endsAt: v.ends_at_iso, timezone: TZ, homeClubId: v.club_id, homeClubName: v.club_name, homeSquadId: v.squad_id, homeSquadName: v.squad_name, awayClubId: v.opponent_club_id, awayClubName: v.opponent_name, awaySquadId: v.target_squad_id, awaySquadName: v.opponent_squad_name, homeScore: v.home_score, awayScore: v.away_score, resultStatus: v.result_status || 'NONE', fixtureStatus: v.event_status === 'CANCELLED' ? 'CANCELLED' : v.result_status === 'CONFIRMED' ? 'COMPLETED' : 'SCHEDULED', legacy: false, locationName: v.location_name, tournamentId: null, tournamentName: null, detailPath: `/match-exchange/${l.id}`, canRecordResult: v.can_record_result, mine: F.involvesDinamo(l) }; }),
+  ...F.exchange.filter(l => (l.opponentSquadId || l.outside || l.opponentAnswer || l.origin === 'SESSION') && l.origin !== 'COMPETITION' && l.status !== 'OPEN' && !matches.some(m => m.id === l.id)).map(l => { const v = F.listingView(l); return { id: `MATCH_EXCHANGE:${l.id}`, source: 'MATCH_EXCHANGE', sourceId: l.id, title: `${v.club_name} vs ${v.opponent_name ?? v.outside_opponent ?? "opponent to be named"}`, startsAt: v.starts_at_iso, endsAt: v.ends_at_iso, timezone: TZ, homeClubId: v.club_id, homeClubName: v.club_name, homeSquadId: v.squad_id, homeSquadName: v.squad_name, awayClubId: v.opponent_club_id, awayClubName: v.opponent_name ?? v.outside_opponent, awaySquadId: v.target_squad_id, awaySquadName: v.opponent_squad_name, homeScore: v.home_score, awayScore: v.away_score, resultStatus: v.result_status || 'NONE', fixtureStatus: v.event_status === 'CANCELLED' ? 'CANCELLED' : v.result_status === 'CONFIRMED' ? 'COMPLETED' : 'SCHEDULED', legacy: false, locationName: v.location_name, tournamentId: null, tournamentName: null, detailPath: `/matches/${l.id}#result`, canRecordResult: v.can_record_result, mine: F.involvesDinamo(l) && !(l.opponentAnswer === "WAITING" && !F.isMineClub(F.sq(l.hostSquadId).clubId)) }; }),
   ...F.tournamentList.flatMap(t => F.tournamentState.get(t.id).fixtures.map(f => historyFromFixture(t, f))),
 ];
 const whenOf = value => value ? Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(value) ? value : `${value}+04:00`) : null;
@@ -368,13 +486,24 @@ get('/match-history', ({ query: q }) => {
   return { items: slice(list, page, size).map(({ mine: _m, ...h }) => h), total: list.length, page, pageSize: size };
 });
 get('/match-history/import/options', () => ({ clubs: [{ id: DINAMO, name: clubById(DINAMO).name, squads: F.DINAMO_SQUADS.map(s => ({ id: s.id, name: s.name })) }] }));
+// "Add a past match" (step 6), as the backend: a match of its own (origin PAST, added after its kick-off), the club's own
+// record of the score: final at once against a club outside the app, waiting for the other club's answer otherwise.
+// It had no call-ups, so it has no list of who played; nothing posts its result.
 post('/match-history/import', ({ body }) => {
-  const opp = clubById(body?.opponentClubId), squad = squadById(body?.homeSquadId || body?.awaySquadId) || squadById(101);
-  if (!opp) return reply(400, { status: 400, message: 'Choose a registered opponent.' });
-  const start = parseWhen(body.startsAt) || at(-30, 11), end = parseWhen(body.endsAt) || plusMin(start, 90), home = Boolean(body.homeSquadId);
-  const m = { id: W.newId(), type: 'MATCH', kind: 'HISTORICAL', clubId: DINAMO, squadId: squad.id, opponentClubId: opp.id, opponentName: opp.name, home, start, end, venueId: home ? 202 : opp.venueId ?? 202, status: 'COMPLETED', score: home ? [Number(body.homeScore), Number(body.awayScore)] : [Number(body.awayScore), Number(body.homeScore)], refereeId: null, competition: body.title || 'Historical match record' };
-  matches.push(m);
-  return reply(201, { eventId: m.id, detailPath: `/calendar?eventId=${m.id}`, resultStatus: 'RECORDED', historicalImport: true, homeScore: Number(body.homeScore), awayScore: Number(body.awayScore) });
+  const outside = String(body?.outsideOpponent ?? '').trim();
+  const opp = body?.opponentClubId ? clubById(body.opponentClubId) : null, squad = squadById(body?.homeSquadId) || squadById(101);
+  if (!opp && !outside) return reply(400, { status: 400, message: 'Choose our squad and the opponent: another club in GrassKickZ, or the name of one that isn’t.' });
+  const start = parseWhen(body.startsAt) || at(-30, 11), end = parseWhen(body.endsAt) || plusMin(start, 90);
+  if (end.getTime() > now()) return reply(400, { status: 400, message: 'Choose a match that ended in the past, within the last twenty years.' });
+  const theirs = opp ? F.squadFor(opp.id, squad.ageGroup, squad.gender) : null;
+  const rec = { id: W.newId(), hostSquadId: squad.id, start, end, venueId: null, place: null, title: `${clubById(DINAMO).name} v ${opp?.name ?? outside}`, description: '',
+    level: 'DEVELOPMENT', venuePreference: 'EITHER', refereeRequired: false, opponentSquadId: theirs?.id ?? null, status: 'ARRANGED', proposals: [], bookingId: null, refereeId: null,
+    outside: opp ? null : outside, origin: 'PAST', kind: 'FRIENDLY', revision: 1, ageGroup: squad.ageGroup, format: 'OTHER', created: new Date(), history: [],
+    score: [Number(body.homeScore), Number(body.awayScore)], resultSide: 'HOME', resultActor: W.ME_ID, resultStatus: opp ? 'PROPOSED' : 'FINAL', resultRequired: opp ? ['AWAY'] : [], resultConfirmations: [],
+    resultHistory: [{ id: W.newId(), action: 'REPORT', actor_id: W.ME_ID, actor_side: 'HOME', home_score: Number(body.homeScore), away_score: Number(body.awayScore), previous_home_score: null, previous_away_score: null,
+      previous_status: 'NONE', status: opp ? 'PROPOSED' : 'FINAL', reason: 'Added as a past match by our club; not independently confirmed.', created_at: iso(new Date()), revision: 1 }], resultRevision: 1 };
+  F.exchange.push(rec);
+  return reply(201, { eventId: rec.id, detailPath: `/matches/${rec.id}`, resultStatus: opp ? 'REPORTED' : 'FINAL', historicalImport: true, reportingClubId: DINAMO, homeScore: Number(body.homeScore), awayScore: Number(body.awayScore) });
 });
 
 // ============================================================== tournaments & competitions
@@ -576,7 +705,7 @@ function matchOccurrence(m) {
     start: m.start, end: m.end, ...venueFields(m.venueId), visibility: 'PUBLIC', opponentClubId: m.opponentClubId, squadId: m.squadId, targetSquadId: theirs?.id ?? null, status: cancelled ? 'CANCELLED' : played ? 'COMPLETED' : 'SCHEDULED',
     origin: m.kind === 'FRIENDLY' ? 'MATCH_EXCHANGE' : 'CLUB_CALENDAR', originId: m.kind === 'FRIENDLY' ? m.id : null, homeScore: h.homeScore, awayScore: h.awayScore, resultStatus: h.resultStatus, matchExchangeId: m.kind === 'FRIENDLY' ? m.id : null, canRecordResult: m.start.getTime() < now() && h.resultStatus !== 'CONFIRMED', resultClubId: DINAMO },
     // Squad timetables may mirror the same fixture; sharing the occurrence key lets the calendar merge them into one card.
-    { occurrenceId: `squad:${m.squadId}:${m.id}` });
+    { occurrenceId: `squad:${m.squadId}:${m.id}`, ...(m.kind === 'FRIENDLY' ? { matchRevision: F.listingById(m.id)?.revision ?? null } : {}) });
 }
 function fixtureOccurrence(t, f) {
   const h = historyFromFixture(t, f), st = F.tournamentState.get(t.id), ours = [st.entries.find(e => e.id === f.homeEntryId), st.entries.find(e => e.id === f.awayEntryId)].find(e => e?.clubId === DINAMO), other = [st.entries.find(e => e.id === f.homeEntryId), st.entries.find(e => e.id === f.awayEntryId)].find(e => e && e !== ours);
@@ -586,8 +715,9 @@ function fixtureOccurrence(t, f) {
 }
 function exchangeOccurrence(l) {
   const v = F.listingView(l);
-  return occurrence({ id: l.id, clubId: v.club_id, eventType: 'FRIENDLY', title: `${v.club_name} vs ${v.opponent_name}`, description: v.description, start: l.start, end: l.end, locationName: v.location_name ? `${v.location_name}, ${v.city}` : v.city, lat: v.location_lat, lng: v.location_lng, visibility: 'PUBLIC',
-    opponentClubId: v.opponent_club_id, squadId: v.squad_id, targetSquadId: v.target_squad_id, origin: 'MATCH_EXCHANGE', originId: l.id, matchExchangeId: l.id, homeScore: v.home_score, awayScore: v.away_score, resultStatus: v.result_status || 'NONE' });
+  return occurrence({ id: l.id, clubId: v.club_id, eventType: l.origin === 'COMPETITION' ? 'MATCH' : 'FRIENDLY', title: `${v.club_name} vs ${v.opponent_name}`, description: v.description, start: l.start, end: l.end, locationName: v.location_name ? `${v.location_name}, ${v.city}` : v.city, lat: v.location_lat, lng: v.location_lng, visibility: 'PUBLIC',
+    opponentClubId: v.opponent_club_id, squadId: v.squad_id, targetSquadId: v.target_squad_id, origin: 'MATCH_EXCHANGE', originId: l.id, matchExchangeId: l.id, homeScore: v.home_score, awayScore: v.away_score, resultStatus: v.result_status || 'NONE' },
+    { matchRevision: l.revision });
 }
 const clubCalendar = (clubId, headers) => {
   if (Number(clubId) !== DINAMO) {
@@ -596,11 +726,12 @@ const clubCalendar = (clubId, headers) => {
     for (const t of F.tournamentList) for (const f of F.tournamentState.get(t.id).fixtures) {
       const st = F.tournamentState.get(t.id), e = [st.entries.find(x => x.id === f.homeEntryId), st.entries.find(x => x.id === f.awayEntryId)];
       if (!f.scheduledAt || !e.some(x => x?.clubId === Number(clubId))) continue;
+      if (f.matchId) { out.push(exchangeOccurrence(F.listingById(f.matchId))); continue; }
       const h = historyFromFixture(t, f), other = e.find(x => x && x.clubId !== Number(clubId));
       const span = fixtureSpan(t, f);
       out.push(occurrence({ id: f.id, clubId: Number(clubId), eventType: 'MATCH', title: span.title, description: t.name, start: span.start, end: span.end, ...venueFields(f.locationId), visibility: 'PUBLIC', opponentClubId: other?.clubId ?? null, status: f.status, homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: h.resultStatus }));
     }
-    for (const l of F.exchange.filter(l => squadById(l.hostSquadId).clubId === Number(clubId) && l.opponentSquadId && canReadListing(l, headers) && !matches.some(m => m.id === l.id))) out.push(exchangeOccurrence(l));
+    for (const l of F.exchange.filter(l => squadById(l.hostSquadId).clubId === Number(clubId) && l.opponentSquadId && l.origin !== 'COMPETITION' && canReadListing(l, headers) && !matches.some(m => m.id === l.id))) out.push(exchangeOccurrence(l));
     // A page club's squads with training days and a time: their sessions for the next four weeks, so the calendar and Coming up show them.
     if (P.isPageClub(clubId)) for (const t of P.trainingOf(P.clubPage(clubId))) {
       if (t.invitationPlan) continue;
@@ -617,7 +748,7 @@ const clubCalendar = (clubId, headers) => {
   }
   return [
     ...matches.filter(m => !leagueReplaced(m)).map(matchOccurrence),
-    ...[301, 306].flatMap(id => { const t = F.tournamentById(id); return F.tournamentState.get(id).fixtures.filter(f => f.scheduledAt && [f.homeEntryId, f.awayEntryId].some(eid => F.tournamentState.get(id).entries.find(e => e.id === eid)?.clubId === DINAMO)).map(f => fixtureOccurrence(t, f)); }),
+    ...[301, 306].flatMap(id => { const t = F.tournamentById(id); return F.tournamentState.get(id).fixtures.filter(f => f.scheduledAt && !f.matchId && [f.homeEntryId, f.awayEntryId].some(eid => F.tournamentState.get(id).entries.find(e => e.id === eid)?.clubId === DINAMO)).map(f => fixtureOccurrence(t, f)); }),
     ...F.exchange.filter(l => l.opponentSquadId && !matches.some(m => m.id === l.id) && F.involvesDinamo(l)).map(exchangeOccurrence),
     ...F.clubActivities.map(a => occurrence({ ...a, eventType: a.type, ...venueFields(a.venueId, a.pitch), visibility: F.isPublicActivity(a) ? 'PUBLIC' : 'PRIVATE', recurring: /Goalkeeper clinic|staff meeting/i.test(a.title), status: a.status === 'CANCELLED' ? 'CANCELLED' : undefined })),
   ];
@@ -729,21 +860,24 @@ get('/organizations/:id/tournament-host-clubs', ({ params }) => Number(params.id
 
 // ============================================================== match arrangements (officials, ground, squads)
 const officialRequests = F.officialRequests; // listing id -> request
-const requestView = l => { const v = F.listingView(l), r = officialRequests.get(l.id); return r && { event_id: l.id, title: l.title, location_name: v.location_name, city: v.city, starts_at_iso: v.starts_at_iso, ends_at_iso: v.ends_at_iso, timezone: TZ, volunteer: r.volunteer, fee: r.fee, currency: r.currency, revision: r.revision, status: r.status, applications: r.applications }; };
+const requestView = l => { const v = F.listingView(l), r = officialRequests.get(l.id); return r && { event_id: l.id, event_type: l.kind === 'LEAGUE' ? 'MATCH' : 'FRIENDLY', title: l.title, location_name: v.location_name, city: v.city, starts_at_iso: v.starts_at_iso, ends_at_iso: v.ends_at_iso, timezone: TZ, volunteer: r.volunteer, fee: r.fee, currency: r.currency, revision: r.revision, status: r.status, applications: r.applications, application_status: r.applications.find(a => a.referee_id === W.ME_ID)?.status ?? null }; };
 for (const l of F.exchange.filter(l => l.refereeRequired && !l.refereeId && l.start.getTime() > now()).slice(0, 6)) {
   const i = l.id % 4;
-  officialRequests.set(l.id, { volunteer: i === 0, fee: i === 0 ? 0 : [60, 80, 100][i - 1], currency: 'GEL', revision: 1, status: 'OPEN', applications: F.refereeProfiles.slice(i, i + 2).map(r => ({ referee_id: r.user_id, full_name: r.full_name, status: 'APPLIED' })) });
+  officialRequests.set(l.id, { volunteer: i === 0, fee: i === 0 ? 0 : [60, 80, 100][i - 1], currency: 'GEL', revision: 1, status: 'OPEN', applications: F.refereeProfiles.slice(i, i + 2).map(r => ({ referee_id: r.user_id, full_name: r.full_name, status: 'PENDING' })) });
 }
 get('/match-arrangements/official-requests', () => F.exchange.filter(l => officialRequests.get(l.id)?.status === 'OPEN').map(requestView));
 get('/match-arrangements/:id/official-request', ({ params }) => { const l = F.listingById(params.id); return (l && requestView(l)) || null; });
 post('/match-arrangements/:id/official-request', ({ params, body }) => { const l = F.listingById(params.id); if (!l) return notFound(); officialRequests.set(l.id, { volunteer: body?.volunteer !== false, fee: Number(body?.fee) || 0, currency: body?.currency || 'GEL', revision: 1, status: 'OPEN', applications: [] }); return requestView(l); });
-for (const action of ['apply', 'select', 'close']) post(`/match-arrangements/:id/official-request/${action}`, ({ params, body }) => {
+for (const action of ['apply', 'withdraw', 'select', 'close']) post(`/match-arrangements/:id/official-request/${action}`, ({ params, body }) => {
   const l = F.listingById(params.id), r = officialRequests.get(Number(params.id)); if (!l || !r) return notFound();
   r.revision++;
   if (action === 'close') r.status = 'CLOSED';
   if (action === 'select' && l.refereeId && ['INVITED', 'ACCEPTED'].includes(F.refereeStatusOf(l))) return conflict('Cancel the current official invitation before recruiting a replacement.');
   if (action === 'select') { const id = Number(body?.refereeId) || r.applications[0]?.referee_id; r.status = 'FILLED'; r.applications.forEach(a => { a.status = a.referee_id === id ? 'SELECTED' : 'NOT_SELECTED'; }); l.refereeId = id; l.refereeInvite = null; }
-  if (action === 'apply') r.applications.push({ referee_id: W.ME_ID, full_name: W.me.fullName, status: 'APPLIED' });
+  // As the backend: one offer per referee, PENDING until the club chooses; withdrawing takes it back.
+  const mine = r.applications.find(a => a.referee_id === W.ME_ID);
+  if (action === 'apply') { if (mine) mine.status = 'PENDING'; else r.applications.push({ referee_id: W.ME_ID, full_name: W.me.fullName, status: 'PENDING' }); }
+  if (action === 'withdraw' && mine) mine.status = 'WITHDRAWN';
   return requestView(l);
 });
 const listingAction = fn => ({ params, body }) => { const l = F.listingById(params.id); if (!l) return notFound(); fn(l, body || {}); l.revision++; return F.listingView(l, { detail: true }); };
@@ -751,6 +885,11 @@ post('/match-arrangements/:id/open-opponent-search', listingAction(l => { l.requ
 for (const kind of ['attendance', 'participants']) post(`/match-arrangements/:id/squads/:squadId/${kind}`, ({ params, body }) => {
   const l = F.listingById(params.id), s = squadById(params.squadId); if (!l || !s || !F.isMineClub(s.clubId)) return notFound();
   if (kind === 'participants' && Array.isArray(body?.playerIds)) matchSelections.set(`${l.id}:${s.id}`, new Set(body.playerIds.map(Number)));
+  if (kind === 'attendance') {
+    if (!['NOT_GOING', 'EXPECTED'].includes(body?.response)) return reply(400, { status: 400, message: 'A called-up player is expected: answer only that they can’t come, or take it back.' });
+    const key = `${l.id}:${s.id}`; if (!callUpAnswers.has(key)) callUpAnswers.set(key, new Map());
+    callUpAnswers.get(key).set(Number(body.playerId), body.response === 'NOT_GOING' ? 'NOT_GOING' : 'UNANSWERED');
+  }
   l.revision++; return teamView(l, s);
 });
 // As the backend: the path names the appointment; one no longer live is a conflict.

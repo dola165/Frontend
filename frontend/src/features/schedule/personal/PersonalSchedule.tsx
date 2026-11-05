@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { getAuthSessionId, subscribeAuthSession } from '../../../utils/authStorage';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Badge, Button, ButtonLink, Chip } from '../../../design/primitives';
@@ -34,6 +35,11 @@ type Editor = { mode: 'create' | 'edit'; values: EventCreationFormValues; eventI
  * and trips, in one place. Replying "can't come" happens in the session, never in a wall of dropdowns.
  */
 export function PersonalSchedule() {
+    const account = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+    return <PersonalScheduleView key={account ?? 'signed-out'} />;
+}
+
+function PersonalScheduleView() {
     const navigate = useNavigate();
     const copy = useJourneyCopy();
     const range = useScheduleRange();
@@ -96,7 +102,7 @@ export function PersonalSchedule() {
     return <>
         <ScheduleBoard label="My schedule" range={range} entries={entries} loading={data.loading} error={data.error} onRetry={data.reload} onCreateAt={create}
             actions={<>
-                {data.squads.length > 0 && <ButtonLink size="sm" variant="ghost" to="/squads">Squad schedules</ButtonLink>}
+                {data.squads.length > 0 && <ButtonLink size="sm" variant="ghost" to="/my-squads">Squad schedules</ButtonLink>}
                 <Button size="sm" variant="primary" data-first-tip="new-event" onClick={() => create()}><Plus aria-hidden="true" />New event</Button>
             </>}
             filters={<>
@@ -115,7 +121,7 @@ export function PersonalSchedule() {
             targetEventStartsAt={editor.startsAt ?? null} onCancelled={data.reload} subjectLabel="Only you" onClose={() => setEditor(null)} onSubmit={save} />}
         {open?.kind === 'past' && <PastEventModal event={open.event} clubId={null} clubName={data.context?.clubName ?? 'Club'} canComplete={canManageClubOperations(role)} canRecordResult={false}
             onClose={() => setOpen(null)} onCompleted={() => { setOpen(null); data.reload(); }} />}
-        {open?.kind === 'squad' && <SquadSessionDetails event={open.event as SquadCalendarEvent} canManage={managed.has((open.event as SquadCalendarEvent).squadId ?? -1)} onClose={() => setOpen(null)} onSaved={data.reload} />}
+        {open?.kind === 'squad' && <SquadSessionDetails event={open.event as SquadCalendarEvent} canManage={managed.has((open.event as SquadCalendarEvent).squadId ?? -1)} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); data.reload(); }} />}
         {open?.kind === 'read' && <EventDetailsDialog event={open.event} onClose={() => setOpen(null)} />}
         {(open?.kind === 'journey' || linkedJourney) && <JourneyEventDetails entries={open?.event.journeys ?? [linkedJourney!]} onSaved={data.reload}
             onClose={() => { setOpen(null); if (params.get('journey')) { const next = new URLSearchParams(params); next.delete('journey'); next.delete('journeyChild'); setParams(next, { replace: true }); } }} />}

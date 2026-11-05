@@ -31,3 +31,20 @@ it('does not retry failures automatically and resets the cursor for another iden
     await waitFor(() => expect(apiClient.get).toHaveBeenLastCalledWith('/posts/club/2', expect.objectContaining({ params: { limit: 20 } })));
     expect(result.current.page).toBe(1);
 });
+
+it('retires the previous login page and cursor before the next account response', async () => {
+    const { clearStoredAuth, setStoredUserId, setStoredAccessToken } = await import('../utils/authStorage');
+    setStoredUserId(42); setStoredAccessToken('first-synthetic');
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [post(20)], nextCursor: 20 } }).mockResolvedValueOnce({ data: { posts: [post(19)] } });
+    const { result, unmount } = renderHook(() => usePagedProfilePosts('/posts/club/7'));
+    await waitFor(() => expect(result.current.posts[0]?.id).toBe(20)); act(() => result.current.older());
+    await waitFor(() => expect(result.current.page).toBe(2));
+    let resolve!: (data: { data: { posts: ReturnType<typeof post>[] } }) => void;
+    vi.mocked(apiClient.get).mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+    act(() => { clearStoredAuth(); setStoredUserId(43); setStoredAccessToken('second-synthetic'); });
+    expect(result.current.posts).toEqual([]); expect(result.current.page).toBe(1);
+    expect(apiClient.get).toHaveBeenLastCalledWith('/posts/club/7', expect.objectContaining({ params: { limit: 20 } }));
+    await act(async () => resolve({ data: { posts: [post(3)] } }));
+    expect(result.current.posts.map(item => item.id)).toEqual([3]);
+    unmount(); clearStoredAuth();
+});

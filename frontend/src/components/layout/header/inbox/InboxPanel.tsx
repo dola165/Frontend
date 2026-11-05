@@ -4,7 +4,7 @@ import { BellRing, CheckCheck, type LucideIcon } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote, List, ListRow, Skeleton } from '../../../../design/primitives';
 import { Tabs } from '../../../../design/Tabs';
 import { useJourneyCopy } from '../../../../features/squadCommunication/journeyCopy';
-import { JourneyReminderActions } from '../../../../features/mapPlanning/JourneyReminderActions';
+import { NotificationActions } from '../../../notifications/NotificationActions';
 import { requestDestination, type RequestItem } from '../../../../features/requests/api';
 import { requestIcon } from '../../../../features/requests/requestIcon';
 import type { NotificationItem } from '../../../../types/notifications';
@@ -12,6 +12,7 @@ import { buildNotificationDestination, formatNotificationTime } from '../../../.
 import { useInboxPreview, type InboxCounts } from './useInbox';
 import { useAuth } from '../../../../context/AuthContext';
 import { isCurrentAuthSession } from '../../../../utils/authStorage';
+import { useNoticeWords } from '../../../notifications/useNoticeWords';
 
 type InboxTab = 'needs-you' | 'updates';
 
@@ -25,6 +26,7 @@ export function InboxPanel({ counts, titleId, onNavigate }: { counts: InboxCount
 
 function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; titleId: string; onNavigate: () => void }) {
     const copy = useJourneyCopy();
+    const wordsOf = useNoticeWords();
     const { sessionId } = useAuth();
     const mounted = useRef(true);
     const pending = useRef(false);
@@ -65,7 +67,7 @@ function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; ti
             return (
                 <List label={copy('Decisions waiting for you', 'გადაწყვეტილებები')}>
                     {items.map((item: RequestItem) => (
-                        <ListRow key={item.key} to={requestDestination(item.destination) ?? '/requests?view=INCOMING'} lead={<Glyph icon={requestIcon(item.family)} />}
+                        <ListRow key={item.key} to={requestDestination(item.destination, item.family) ?? '/requests?view=INCOMING'} lead={<Glyph icon={requestIcon(item.family)} />}
                             title={item.title} meta={item.context} />
                     ))}
                 </List>
@@ -114,18 +116,18 @@ function InboxContent({ counts, titleId, onNavigate }: { counts: InboxCounts; ti
                             {preview.updates.data.map(notification => (
                                 <li key={notification.id} className={notification.isRead ? 'gk-inbox__read' : 'gk-inbox__unread'}>
                                     <button type="button" className="gk-list-row" onClick={() => void openUpdate(notification)} aria-busy={opening === notification.id || undefined}
-                                        aria-label={`${notification.isRead ? '' : copy('Unread: ', 'წაუკითხავი: ')}${notification.title}`}>
+                                        aria-label={`${notification.isRead ? '' : copy('Unread: ', 'წაუკითხავი: ')}${wordsOf(notification).title}`}>
                                         <span className="gk-list-row__lead"><Glyph icon={BellRing} /></span>
-                                        <span className="gk-list-row__main"><span className="gk-list-row__title">{notification.title}</span><span className="gk-list-row__meta">{notification.body}</span></span>
+                                        <span className="gk-list-row__main"><span className="gk-list-row__title">{wordsOf(notification).title}</span><span className="gk-list-row__meta">{wordsOf(notification).body}</span></span>
                                         <span className="gk-list-row__trail"><span className="gk-inbox__time">{formatNotificationTime(notification.createdAt)}</span></span>
                                     </button>
-                                    <JourneyReminderActions notification={notification} />
+                                    <NotificationActions notification={notification} />
                                 </li>
                             ))}
                         </ul>)}
                     {preview.markAllFailed && <p className="gk-pop__note" role="alert">{copy('Could not mark updates as read. Try again.', 'სიახლეების წაკითხულად მონიშვნა ვერ მოხერხდა. სცადეთ ხელახლა.')}</p>}
                     <div className="gk-pop__foot">
-                        <Link to="/notifications" onClick={onNavigate}>{copy('All updates', 'ყველა სიახლე')}</Link>
+                        <Link to="/requests?view=updates" onClick={onNavigate}>{copy('All updates', 'ყველა სიახლე')}</Link>
                         <Button size="sm" variant="ghost" disabled={!counts.updates || preview.busy || preview.updates.status !== 'ready'} aria-busy={preview.busy} onClick={() => void preview.markAllRead()}>
                             <CheckCheck aria-hidden="true" />{copy('Mark all as read', 'ყველას წაკითხულად მონიშვნა')}
                         </Button>

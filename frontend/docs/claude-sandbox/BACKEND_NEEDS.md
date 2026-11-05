@@ -252,7 +252,7 @@ New needs are added here as each phase of `ROUND_3_PLAN.md` is built, with the s
 
 | Need | Why | Status |
 |---|---|---|
-| `donateUrl` (the club's GoFundMe page, validated as `https://www.gofundme.com/…`) and `donations` (how many gave) on `CampaignDto` and `CampaignInput` | Donate on GoFundMe on the fundraiser; the donations count on every card | MISSING |
+| `donateUrl` (the club's GoFundMe page, validated as `https://www.gofundme.com/…`) and `donations` (how many gave) on `CampaignDto` and `CampaignInput` | Donate on GoFundMe on the fundraiser; the donations count on every card | PARTIAL (29 Oct, step 4 on `claude/projects-b`): `donateUrl` exists, any https address on gofundme.com, with the fundraiser's project, who reported the amount and who published. `donations` is MISSING |
 | `/campaigns` takes `near=City` and `sort=RELEVANCE` (followed clubs, then the city, then closest to goal), `CLOSEST` (share of goal), `RAISED`; `country` is read; lists carry `distanceKm` | The front's doors and the catalogue's sorts | PARTIAL (19 Oct): `sort=RELEVANCE` (fundraisers in the `near` city first, then newest), `CLOSEST`, `RAISED`, `state=ENDED` and `country` exist. Followed clubs in the relevance order and `distanceKm` are MISSING |
 | Later: the amount raised and the donations read from GoFundMe (their API or a nightly import) instead of the club's report | Honest numbers without the treasurer | PROPOSED |
 

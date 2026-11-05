@@ -7,7 +7,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import type { Match } from '../api';
 import { clubProfile, createArrangement } from './api';
-import { automaticTitle, buildArrangement, draftStarted, localStamp, playedAge, problemsWith, whatHappens, type Draft, type GroundChoice, type Problems } from './matchPlan';
+import { automaticTitle, buildArrangement, draftStarted, localStamp, playedAge, problemsWith, whatHappens, windowed, type Draft, type GroundChoice, type Problems } from './matchPlan';
 import { useDraft } from './useDraft';
 import { useArrangeData } from './useArrangeData';
 import { OpponentField } from './OpponentField';
@@ -28,13 +28,14 @@ const refereeTarget = (draft: Draft, problem: string) => draft.referee === 'EXTE
     : draft.referee === 'INVITE' && !draft.invited ? '#arrange-referee-search'
         : /fee|currency/i.test(problem) ? '#arrange-referee-fee' : '#arrange-referee';
 /** Where focus goes for each problem, in reading order. */
-const FIELD_TARGETS: [keyof Problems, string][] = [['opponent', '#arrange-opponent, #arrange-their-squad + [role=radiogroup] [tabindex="0"]'], ['squad', '[aria-labelledby="arrange-squad-label"] [tabindex="0"], .gk-arrange__other-squad'],
+const FIELD_TARGETS: [keyof Problems, string][] = [['opponent', '#arrange-opponent, #arrange-outside, #arrange-their-squad + [role=radiogroup] [tabindex="0"]'], ['squad', '[aria-labelledby="arrange-squad-label"] [tabindex="0"], .gk-arrange__other-squad'],
     ['date', '#arrange-date'], ['time', '#arrange-time'], ['length', '#arrange-minutes'], ['ground', 'input[name="arrange-ground"]:checked'], ['referee', '#arrange-referee'], ['timezone', '#arrange-timezone']];
 
 /**
- * One short form for a new match, shown in World's frame. `direct` invites a club the coach already knows; `open` posts
- * the date to Open matches so other squads can propose. Neither books or rents a pitch. The draft is kept in the
- * browser's session under `storageKey`, so closing the frame never loses it; once sent, `onSent` shows the match.
+ * One short form for a new match. `direct` invites a club (or names one not in GrassKickZ, which goes straight into
+ * our week); `open` posts an open challenge: a window of days and hours in which other squads answer with a kick-off.
+ * Neither books or rents a pitch. The draft is kept in the browser's session under `storageKey`, so closing never
+ * loses it; once sent, `onSent` says what happened.
  */
 export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, onSent, head }: {
     mode: 'direct' | 'open'; opponentId?: number; squadId?: number; storageKey: string; onSent: (match: Match) => void; /** Shown above the preview. */ head?: ReactNode;
@@ -86,7 +87,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
     const starting = (ground: GroundChoice): GroundChoice => ground.kind === 'LATER' && !draft.groundTouched && data.ours.data?.[0] ? { kind: 'OURS', ground: data.ours.data[0] } : ground;
     const effective: Draft = { ...draft, squadId: data.squadId, targetSquadId: data.targetSquadId, ground: withCity(starting(draft.ground)) };
     const ageGroup = playedAge(draft, data.ourSquad);
-    const problems = problemsWith(effective, mode, now);
+    const problems = problemsWith({ ...effective, ageGroup }, mode, now);
     if (mode === 'direct' && draft.opponent && data.targetSquadId < 0 && data.theirSquads.data) problems.opponent = 'Choose their squad, or let them choose.';
     const shown = checked ? problems : {};
     const title = automaticTitle(effective, data.ourSquad ?? undefined, mode);
@@ -110,7 +111,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
             clear();
             onSent(match);
         } catch (cause) {
-            setError(extractApiErrorMessage(cause, mode === 'direct' ? t("The invitation could not be sent. Your details are kept; try again.") : t("The match could not be posted. Your details are kept; try again.")));
+            setError(extractApiErrorMessage(cause, mode === 'direct' ? t("The invitation could not be sent. Your details are kept; try again.") : t("The open challenge could not be posted. Your details are kept; try again.")));
         } finally { sending.current = false; setBusy(false); }
     }
 
@@ -124,7 +125,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
             <MatchPreview mode={mode} draft={effective} squad={data.ourSquad} ourLogo={data.ownLogo} ageGroup={ageGroup} targetSquadName={targetSquadName}>{head}</MatchPreview>
             <fieldset className="gk-arrange__group" disabled={busy}>
                 <legend className="gk-visually-hidden">{t("Teams")}</legend>
-                {mode === 'direct' && <OpponentField opponent={draft.opponent} ownClubId={data.ownClubId} squads={data.theirSquads} targetSquadId={data.targetSquadId}
+                {mode === 'direct' && <OpponentField opponent={draft.opponent} outside={draft.outside} onOutside={outside => patch({ outside })} ownClubId={data.ownClubId} squads={data.theirSquads} targetSquadId={data.targetSquadId}
                     suggestedSquadId={data.suggestedTheirs} error={shown.opponent}
                     onOpponent={opponent => patch({ opponent, targetSquadId: -1, ...(draft.ground.kind === 'THEIRS' ? { ground: { kind: 'LATER', city: '' }, groundTouched: false }
                         : draft.ground.kind === 'TRAVEL' ? { ground: { kind: 'TRAVEL', city: opponent?.city ?? '' } } : {}) })}
@@ -133,7 +134,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
                 <legend className="gk-visually-hidden">{t("When")}</legend>
-                <KickoffField date={draft.date} time={draft.time} minutes={draft.minutes} format={draft.format} ageGroup={ageGroup} squadAge={data.ageGroup} known={Boolean(data.ourSquad)}
+                <KickoffField date={draft.date} time={draft.time} window={windowed(draft, mode) ? { dateTo: draft.dateTo ?? '', timeTo: draft.timeTo ?? '' } : undefined} minutes={draft.minutes} format={draft.format} ageGroup={ageGroup} squadAge={data.ageGroup} known={Boolean(data.ourSquad)}
                     today={localStamp(now, draft.timezone || zone()).slice(0, 10)} onChange={patch} errors={{ date: shown.date, time: shown.time, length: shown.length }} />
                 {mode === 'open' && data.ourSquad && draft.date && !data.ours.loading && <BeforeYouPost ageGroup={ageGroup} date={draft.date} ownClubId={data.ownClubId}
                     near={data.ours.data?.[0]?.latitude != null && data.ours.data[0].longitude != null ? { lat: data.ours.data[0].latitude, lng: data.ours.data[0].longitude } : null} />}
@@ -163,7 +164,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
                             <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>{t("Keep it")}</Button>
                         </span>
                         : <Button size="sm" variant="ghost" onClick={() => setConfirmReset(true)}>{t("Start over")}</Button>)}
-                    <Button variant="primary" type="submit" disabled={busy} className="gk-arrange__send" data-dola-action="send-match">{busy ? t("Sending…") : mode === 'direct' ? t("Send invitation") : t("Post open match")}</Button>
+                    <Button variant="primary" type="submit" disabled={busy} className="gk-arrange__send" data-dola-action="send-match">{busy ? t("Sending…") : mode === 'open' ? t("Post open challenge") : !draft.opponent && draft.outside?.trim() ? t("Add the match") : t("Send invitation")}</Button>
                 </div>
             </footer>
         </form>

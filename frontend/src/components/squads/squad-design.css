@@ -11,15 +11,6 @@
   min-width: 0;
   color: var(--sd-text);
 }
-.squad-design-public {
-  --sd-bg: var(--club-theme-base);
-  --sd-surface: var(--club-theme-surface);
-  --sd-elevated: var(--color-elevated);
-  --sd-border: var(--club-theme-border-subtle);
-  --sd-text: var(--club-theme-text-primary);
-  --sd-secondary: var(--club-theme-text-secondary);
-  --sd-muted: var(--club-theme-text-muted);
-}
 .squad-design :is(button, input, select, textarea, a):focus-visible {
   outline: 2px solid var(--sd-accent);
   outline-offset: 3px;
@@ -34,15 +25,6 @@
 .sd-primary:hover:not(:disabled) { filter: brightness(1.08); }
 .sd-button:hover:not(:disabled), .sd-icon-button:hover:not(:disabled) { border-color: var(--sd-muted); background: var(--sd-elevated); }
 .sd-icon-button { width: 36px; min-height: 36px; padding: 8px; flex-shrink: 0; }
-.sd-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
-.sd-search { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 12px; border: 1px solid var(--sd-border); border-radius: 8px; background: var(--sd-surface); color: var(--sd-muted); min-width: 0; }
-.sd-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--sd-text); font-size: 13px; padding: 11px 0; outline: none; }
-.sd-search input::placeholder { color: var(--sd-muted); }
-.sd-search:focus-within { border-color: var(--sd-accent); }
-.squad-design .sd-search input:focus-visible { outline: none; }
-.sd-segments { display: inline-flex; flex-wrap: wrap; gap: 3px; padding: 4px; border: 1px solid var(--sd-border); border-radius: 9px; background: var(--sd-surface); }
-.sd-segments button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 11px; border: 0; border-radius: 5px; color: var(--sd-muted); background: transparent; font-size: 12px; font-weight: 600; cursor: pointer; }
-.sd-segments button[aria-pressed="true"], .sd-segments button[aria-selected="true"] { color: var(--sd-text); background: var(--sd-elevated); }
 .sd-empty { display: grid; justify-items: center; gap: 10px; padding: 50px 24px; border: 1px dashed var(--sd-border); border-radius: 10px; text-align: center; color: var(--sd-secondary); }
 .sd-empty h3 { font-size: 18px; font-weight: 650; color: var(--sd-text); }
 .sd-panel { background: var(--sd-surface); border: 1px solid var(--sd-border); border-radius: 10px; }
@@ -50,7 +32,6 @@
 @media (max-width: 600px) {
   .sd-heading { gap: 16px; margin-bottom: 20px; }
   .sd-heading h1, .sd-heading h2 { font-size: 28px; }
-  .sd-toolbar { gap: 9px; }
 }
 
 .club-profile-main-grid.club-profile-main-grid--teams { grid-template-columns: minmax(0, 1280px); justify-content: center; }

@@ -23,6 +23,6 @@ function Receipt({ id }: { id: string }) {
     return () => controller.abort();
   }, [id, key, t]);
   return <main className="gk gk-page-review gk-stack"><h1>{t('Your page request')}</h1>
-    {error ? <EmptyNote title={error} action={<Button onClick={() => setAttempt(value => value + 1)}>{t('Try again')}</Button>} /> : receipt ? <><ReviewDetails receipt={receipt} />{receipt.kind === 'CLAIM' && <p>{t('Submitting a claim does not give editing access or a verified badge.')}</p>}<Button onClick={() => setAttempt(value => value + 1)}>{t('Refresh')}</Button></> : <p role="status">{t('Loading…')}</p>}
+    {error ? <EmptyNote title={error} action={<Button onClick={() => setAttempt(value => value + 1)}>{t('Try again')}</Button>} /> : receipt ? <><ReviewDetails receipt={receipt} /><Button onClick={() => setAttempt(value => value + 1)}>{t('Refresh')}</Button></> : <p role="status">{t('Loading…')}</p>}
   </main>;
 }

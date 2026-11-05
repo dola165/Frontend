@@ -17,7 +17,7 @@ export function TravelDay({ plan, busy, command }: { plan: Plan; busy: boolean; 
     const travel = plan.rights.travel;
     return (
         <Section title="On the day" hint={plan.trip ? `Trip ${plan.trip.status.toLowerCase().replaceAll('_', ' ')}` : undefined}
-            action={plan.trip ? { label: 'Open the travel record', to: `/clubs/${plan.club_id}/workspace?tab=travel&record=${plan.trip.id}` } : undefined}>
+            action={plan.trip ? { label: 'Open the travel record', to: `/clubs/${plan.club_id}/office?tab=tools&tool=travel&record=${plan.trip.id}` } : undefined}>
             {!plan.trip ? (
                 <EmptyNote title="Travel records not connected" action={travel ? <Button size="sm" disabled={busy} onClick={() => void command('connect-trip')}>Connect travel records</Button> : undefined}>
                     Connect the published itinerary to a trip so boarding and arrival can be recorded on the day.
@@ -42,7 +42,7 @@ export function TravelDay({ plan, busy, command }: { plan: Plan; busy: boolean; 
                                     </span>
                                 </div>
                                 {absent === passenger.id && (
-                                    <form className="gk-plan-editor" onSubmit={event => { event.preventDefault(); void command('passengers', { passengerId: passenger.id, status: 'CANCELLED', note: reason }); setAbsent(null); setReason(''); }}>
+                                    <form className="gk-plan-editor" onSubmit={event => { event.preventDefault(); void command('passengers', { passengerId: passenger.id, status: 'CANCELLED', note: reason }).then(saved => { if (saved) { setAbsent(null); setReason(''); } }); }}>
                                         <Field label="Reason" htmlFor={reasonId}><input id={reasonId} className="gk-input" required maxLength={2000} value={reason} onChange={event => setReason(event.target.value)} /></Field>
                                         <div className="gk-plan-editor__actions"><Button type="submit" size="sm" variant="primary">Record absence</Button><Button size="sm" variant="ghost" onClick={() => setAbsent(null)}>Cancel</Button></div>
                                     </form>

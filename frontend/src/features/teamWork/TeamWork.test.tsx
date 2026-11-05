@@ -11,8 +11,8 @@ import { TeamWorkPage } from './TeamWorkPage';
 import { TeamWorkHomeRow } from './TeamWorkHomeRow';
 
 vi.mock('./api', async importOriginal => ({
-    ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
-    createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(),
+    ...await importOriginal<typeof api>(), fetchBoard: vi.fn(), fetchDetail: vi.fn(), fetchBrief: vi.fn(), fetchBriefPackage: vi.fn(), createWork: vi.fn(), changeWork: vi.fn(), fetchPlans: vi.fn(), fetchPlan: vi.fn(),
+    createPlan: vi.fn(), changePlan: vi.fn(), pasteIntoPlan: vi.fn(), fetchTeam: vi.fn(), fetchOutsideChats: vi.fn(), addMember: vi.fn(), newInvite: vi.fn(), removeMember: vi.fn(), fetchVersions: vi.fn(), saveSeen: vi.fn(),
     addPlanStep: vi.fn(), removePlanStep: vi.fn(), setResponsibility: vi.fn(), fetchNow: vi.fn(), writeNow: vi.fn(), addNowComment: vi.fn(), editNowComment: vi.fn(), deleteNowComment: vi.fn(),
     addComment: vi.fn(), addPicture: vi.fn(), addVideo: vi.fn(), deleteWork: vi.fn(), askQuestion: vi.fn(), answerQuestion: vi.fn(), deleteQuestion: vi.fn(), pasteReport: vi.fn(),
 }));
@@ -40,7 +40,7 @@ const steps = [item(11, 'Founders’ design', 'LIVE', 100, { parentId: 1 }), ite
 const started = (author: api.Person) => ({ id: 99, author, at: twoDaysAgo, message: 'Started' });
 const view = (tasks: api.WorkNode[], extra: Partial<api.PlanView> = {}): api.PlanView => ({
     plan: plan(5, 'October work'), tasks, steps: [], changes: [{ id: 1, author: beqa, at: now, message: 'Added Branding and landing' }, started(beqa)], purposeChanges: [],
-    trail: [], team, canManageTeam: true, ...extra,
+    trail: [], team, canManageTeam: true, media: [], ...extra,
 });
 const october = view([{ item: branding, steps }, { item: item(2, 'Registration', 'BLOCKED', 30, { step: 'Waiting for email provider', people: [gio] }), steps: [] },
     { item: item(3, 'Save button on phones', 'PLANNED', 0, { small: true }), steps: [] }]);
@@ -72,6 +72,7 @@ const useLists = (...extra: api.PlanView[]) => {
 beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(api.fetchTeam).mockResolvedValue([{ userId: 1, name: 'Nino', email: 'nino@example.com', admin: true, addedAt: null, pending: false }]);
+    vi.mocked(api.fetchOutsideChats).mockResolvedValue([]);
     useLists();
     vi.mocked(overview.fetchTimeline).mockResolvedValue({ events: [], more: false });
     vi.mocked(overview.fetchOpenQuestions).mockResolvedValue([]);
@@ -434,17 +435,16 @@ it('estimates progress in words, copies a task for AI with a way to answer, and 
     await userEvent.click(within(task).getByRole('button', { name: 'Save update' }));
     expect(api.changeWork).toHaveBeenCalledWith(1, { version: 0, percent: 50 });
 
+    // Copy for AI gathers the brief on the server, copies it and shows what went to the clipboard.
+    vi.mocked(api.fetchBrief).mockResolvedValueOnce({ key: 'GK-1', text: '# GK-1 Branding and landing\nreport: GK-1', files: 2, fileBytes: 3145728 });
     await userEvent.click(within(task).getByRole('button', { name: 'Copy for AI' }));
-    const brief = vi.mocked(navigator.clipboard.writeText).mock.calls[0][0];
-    expect(brief).toContain('Team work task GK-1: Branding and landing');
-    expect(brief).toContain('Done means: not written yet');
-    expect(brief).toContain('in the plan "October work"');
-    expect(brief).toContain('team-work?task=1');
-    expect(brief).toContain('Gio Beridze');
-    expect(brief).toContain('- [live] GK-11 Founders’ design (100%)');
-    expect(brief).toContain('Put the key GK-1 in every commit message');
-    expect(brief).toContain('report: GK-1');
-    expect(await within(task).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    const briefDialog = await screen.findByRole('dialog', { name: 'Copy for AI · GK-1' });
+    expect(await within(briefDialog).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(api.fetchBrief).toHaveBeenCalledWith(1, expect.anything());
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('# GK-1 Branding and landing\nreport: GK-1');
+    expect(within(briefDialog).getByLabelText('The brief, as text')).toHaveValue('# GK-1 Branding and landing\nreport: GK-1');
+    expect(within(briefDialog).getByRole('button', { name: 'Download with files (2, 3.0 MB)' })).toBeInTheDocument();
+    await userEvent.click(within(briefDialog).getAllByRole('button', { name: 'Close' })[0]);
 
     await userEvent.click(within(task).getByRole('button', { name: 'Delete' }));
     const confirm = screen.getByRole('dialog', { name: 'Delete this task?' });
@@ -506,41 +506,82 @@ it('lists the team’s accounts without remove buttons, makes the account and on
     expect(await within(panel).findByRole('alert')).toHaveTextContent('not on the team list');
 });
 
-it('stays up to date: shows the latest backend, remembers my version, lists only what I am missing and copies the update message', async () => {
+it('says which release I am on and what I am missing, remembers what I saw, checks my project folders and copies a message that keeps my work', async () => {
     const commit = (id: string, title: string, date: string, merge = false) => ({ id: id.padEnd(40, '0'), date, author: 'Dola', title, merge });
-    vi.mocked(api.fetchVersions).mockResolvedValue({ backend: { known: true, branch: 'codex/real-backend-integration-20261017', commits: [
-        commit('148b8c6d', 'Format the media files', '2026-10-22T19:38:58+04:00'),
-        commit('02896b0e', 'Merge branch \'refs/heads/golive/teamwork-5\' into codex/real-backend-integration-20261017', '2026-10-22T19:30:00+04:00', true),
-        commit('9f8c21b8', 'Only the team’s own six accounts', '2026-10-21T19:15:26+04:00'),
-        commit('715d88c1', 'Plans with a status', '2026-10-20T10:00:00+04:00'),
-    ] } });
+    const release = (number: number, backend: string, summary: string, tasks: { id: number; key: string; title: string; status: string; how: 'BRANCH' }[] = []) =>
+        ({ number, date: '2026-10-24', backend: backend.padEnd(40, '0'), web: `c9d357${number}`.padEnd(40, '0'), summary: { en: summary, ka: summary }, tasks });
+    vi.mocked(api.fetchVersions).mockResolvedValue({
+        backend: { known: true, branch: 'codex/real-backend-integration-20261017', commits: [
+            commit('148b8c6d', 'Format the media files', '2026-10-22T19:38:58+04:00'),
+            commit('02896b0e', 'Merge branch \'refs/heads/golive/teamwork-5\' into codex/real-backend-integration-20261017', '2026-10-22T19:30:00+04:00', true),
+            commit('9f8c21b8', 'Only the team’s own six accounts', '2026-10-21T19:15:26+04:00'),
+            commit('715d88c1', 'Plans with a status', '2026-10-20T10:00:00+04:00'),
+        ] },
+        place: 'COPY', liveOrigin: 'https://app.grasskickz.com',
+        build: { known: true, head: '9f8c21b8'.padEnd(40, '0'), branch: 'codex/real-backend-integration-20261017', builtAt: now, dirty: 0 },
+        at: { known: true, release: 4, changes: 0 },
+        live: { release: 5, changes: 0, source: 'LIVE_SITE', checkedAt: now },
+        releases: [release(5, '148b8c6d', 'A chat for every task', [{ id: 1, key: 'GK-1', title: 'Branding and landing', status: 'LIVE', how: 'BRANCH' }]), release(4, '9f8c21b8', 'The team chat')],
+        seen: { release: 3, backend: null, web: null, at: twoDaysAgo },
+    });
+    vi.mocked(api.saveSeen).mockResolvedValue({ release: 4, backend: '9f8c21b8'.padEnd(40, '0'), web: null, at: now });
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
-    localStorage.removeItem('gk.teamWork.myVersion');
+    // The browser's folder picker hands over the folder that holds my projects.
+    type Tree = { [name: string]: Tree | string };
+    const folder = (name: string, tree: Tree): unknown => ({
+        kind: 'directory', name,
+        async *values() { for (const [entry, value] of Object.entries(tree)) yield typeof value === 'string' ? { kind: 'file', name: entry } : folder(entry, value); },
+        async getDirectoryHandle(entry: string) { const value = tree[entry]; if (!value || typeof value === 'string') throw new DOMException(entry, 'NotFoundError'); return folder(entry, value); },
+        async getFileHandle(entry: string) { const value = tree[entry]; if (typeof value !== 'string') throw new DOMException(entry, 'NotFoundError'); return { getFile: async () => ({ text: async () => value }) }; },
+    });
+    const picker = vi.fn().mockResolvedValue(folder('IdeaProjects', {
+        GrassKickZ: { '.git': { config: '[remote "origin"]\n\turl = https://github.com/dola165/GrassKickZ.git\n', HEAD: `${'9f8c21b8'.padEnd(40, '0')}\n` }, src: { main: { java: { ge: { dola: { talanti: {} } } } } } },
+        AgentDola: { '.git': { config: '[remote "origin"]\n\turl = https://github.com/cotnetavkhelidzed-code/AgentDola.git\n', HEAD: 'ref: refs/heads/main\n' } },
+    }));
+    Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: picker });
     mount('/team-work');
     await userEvent.click(await screen.findByRole('button', { name: 'What changed' }));
     expect(screen.getByTestId('where')).toHaveTextContent('view=changes');
     expect(await screen.findByRole('heading', { name: 'What changed', level: 1 })).toBeInTheDocument();
-    expect(await screen.findByText('Format the media files', { selector: '.tw-latest__commit' })).toBeInTheDocument();
-    expect(screen.getByText('Not known for this build')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Recent changes' })).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText('My backend version'), '9f8c21b8'.padEnd(40, '0'));
-    expect(screen.getByRole('heading', { name: 'You’re missing 1' })).toBeInTheDocument();
-    const missingList = screen.getByRole('heading', { name: 'You’re missing 1' }).parentElement!;
-    expect(within(missingList).getByText('Format the media files')).toBeInTheDocument();
-    expect(within(missingList).getByText('merged: golive/teamwork-5')).toBeInTheDocument();
-    expect(within(missingList).queryByText('Plans with a status')).not.toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('gk.teamWork.myVersion')!)).toEqual({ backend: '9f8c21b8'.padEnd(40, '0') });
+    // The answer comes first, in words: the release, that this is a copy, and how far behind live it is.
+    expect(await screen.findByRole('heading', { name: 'You’re on release 4 · your local copy', level: 2 })).toBeInTheDocument();
+    expect(screen.getByText('1 release behind live (release 5): you’re missing release 5.')).toBeInTheDocument();
+    const fresh = screen.getByRole('heading', { name: /New since you last looked/ }).parentElement!;
+    expect(within(fresh).getByText('The team chat')).toBeInTheDocument();
+    expect(within(fresh).getByText(/on release 3/)).toBeInTheDocument();
+    const behind = screen.getByRole('heading', { name: 'What your copy is missing' }).parentElement!;
+    expect(within(behind).getByText('A chat for every task')).toBeInTheDocument();
+    expect(within(behind).getByRole('link', { name: 'GK-1 Branding and landing' })).toHaveAttribute('href', '/team-work?task=1');
+    await waitFor(() => expect(api.saveSeen).toHaveBeenCalledWith({ release: 4, backend: '9f8c21b8'.padEnd(40, '0'), web: null }));
 
-    await userEvent.clear(screen.getByLabelText('Or paste the backend commit id'));
-    await userEvent.type(screen.getByLabelText('Or paste the backend commit id'), '148b8c6');
-    expect(screen.getByRole('heading', { name: 'You are up to date' })).toBeInTheDocument();
+    // Every change, folded below, newest first.
+    await userEvent.click(screen.getByText('Every change, day by day'));
+    const recent = screen.getByRole('heading', { name: 'Recent changes' }).parentElement!;
+    expect(within(recent).getByText('Format the media files')).toBeInTheDocument();
+    expect(within(recent).getByText('merged: golive/teamwork-5')).toBeInTheDocument();
 
+    // My computer: the folder I pick is read in the browser, each copy listed with where it stands.
+    await userEvent.click(screen.getByRole('button', { name: 'Check my project folders' }));
+    const computer = await screen.findByRole('list', { name: 'Projects in IdeaProjects' });
+    expect(within(computer).getByText('IdeaProjects/GrassKickZ').closest('li')).toHaveTextContent('Release 4 · 1 change behind this copy');
+    expect(within(computer).getByText('IdeaProjects/AgentDola').closest('li')).toHaveTextContent('Different project · bring your work over');
+
+    // The update message aims at what is live, names what was found, and the button copies exactly it.
     const message = screen.getByLabelText('The message for Claude or Codex') as HTMLTextAreaElement;
-    expect(message.value).toContain('github.com/dola165/GrassKickZ — reach at least commit 148b8c6');
-    expect(message.value).toContain('whether this computer was already up to date');
-    await userEvent.click(screen.getByRole('button', { name: 'Copy update message' }));
+    expect(message.value).toContain('up to release 5 without losing anything');
+    expect(message.value).toContain('github.com/dola165/GrassKickZ, at commit 148b8c6 or newer.');
+    expect(message.value).toContain('- IdeaProjects/GrassKickZ: backend, a detached HEAD at 9f8c21b; release 4, 1 change behind.');
+    expect(message.value).toContain('a different project');
+    expect(message.value).toContain('leave it as it is');
+    await userEvent.click(screen.getByRole('button', { name: 'Copy the update message' }));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(message.value);
+    // A different project was found, so the message for moving its work over is one press away.
+    const moving = screen.getByLabelText('The message for moving work') as HTMLTextAreaElement;
+    expect(moving.value).toContain('- IdeaProjects/AgentDola');
+    await userEvent.click(screen.getByRole('button', { name: 'Copy the moving message' }));
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(moving.value);
+    Reflect.deleteProperty(window, 'showDirectoryPicker');
     await userEvent.click(screen.getByRole('button', { name: 'Overview' }));
     expect(screen.getByTestId('where')).not.toHaveTextContent('view=');
 });
@@ -622,6 +663,26 @@ it('shows what one person is doing, with their responsibility, and the Team page
     const note = screen.getByRole('link', { name: 'Now: Finishing sign-up · then roles · now' });
     expect(note).toHaveAttribute('href', '/team-work?who=3');
     expect(note).toHaveAttribute('title', 'Finishing sign-up\nthen roles');
+});
+
+it('says on the Team page who on the team list cannot use the team chats, and why, so nobody is missing from them unseen', async () => {
+    vi.mocked(api.fetchBoard).mockResolvedValue({ items: [], trail: [], canManageTeam: true, team: [] });
+    vi.mocked(api.fetchOutsideChats).mockResolvedValue([
+        { email: 'admin.gio@talanti.ge', userId: 7, name: 'Gio Beridze', accountState: 'ACTIVE', reason: 'DOB_REQUIRED', inChats: true },
+        { email: 'admin.otto@talanti.ge', userId: 8, name: 'Otto', accountState: 'ACTIVE', reason: 'UNDER_18', inChats: false },
+        { email: 'admin.new@talanti.ge', userId: null, name: null, accountState: null, reason: 'NO_ACCOUNT', inChats: false },
+    ]);
+    mount();
+    await userEvent.click(await within(await screen.findByRole('navigation', { name: 'Team work' })).findByRole('button', { name: 'Team' }));
+    const outside = await screen.findByRole('region', { name: 'Not in the team chats yet' });
+    const rows = within(outside).getAllByRole('listitem');
+    expect(rows[0]).toHaveTextContent('Gio Beridze');
+    expect(rows[0]).toHaveTextContent('In the chats');
+    expect(rows[0]).toHaveTextContent('the app asks for their birth date');
+    expect(rows[1]).toHaveTextContent('Left out');
+    expect(rows[1]).toHaveTextContent('birth date says under 18');
+    expect(rows[2]).toHaveTextContent('admin.new@talanti.ge');
+    expect(rows[2]).toHaveTextContent('No account has this email yet.');
 });
 
 it('puts every open task under Now, live and cancelled work in grey rows at the bottom, and the same tasks one per line in List', async () => {

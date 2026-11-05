@@ -32,7 +32,8 @@ export interface PlayersPageProps {
     onTrialEndsChange: (userId: number, trialEndsOn: string) => Promise<void>;
     onRetry: () => void; onPageChange: (page: number) => void;
     onMessagePlayer?: (userId: number, playerName?: string) => void;
-    onSendConsentEmail?: (userId: number, parentEmail?: string | null) => Promise<boolean> | void;
+    onFamilyLink?: (userId: number) => Promise<import('../../parents/familyLinks').FamilyLink>;
+    onFamilySent?: () => void;
     onTabChange: (tab: WorkspaceTab) => void;
 }
 
@@ -83,7 +84,7 @@ export function PlayersPage(p: PlayersPageProps) {
     const changePage = (page: number) => { setQuery(''); p.onPageChange(page); };
     const actions = {
         pendingKey: p.pendingKey, canManagePlayerStatuses: p.canManagePlayerStatuses, onPlayerStatusChange: p.onPlayerStatusChange, onTrialEndsChange: p.onTrialEndsChange,
-        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onSendConsentEmail: p.onSendConsentEmail,
+        onReviewJoining: p.onReviewJoining, onOpenAdmissions: () => p.onTabChange('admissions'), onMessagePlayer: p.onMessagePlayer, onFamilyLink: p.onFamilyLink, onFamilySent: p.onFamilySent,
     };
     const managed = (player: ClubPlayerAffiliation) => p.joiningPlayerIds?.includes(player.userId) === true;
 
@@ -94,7 +95,7 @@ export function PlayersPage(p: PlayersPageProps) {
         { id: 'position', label: copy('sort3', 'Position'), width: 'minmax(110px, 1fr)', sortable: true, render: player => player.position ? squadLabel(player.position, t) : EMPTY_CELL },
         { id: 'number', label: copy('numberShort', 'No.'), width: '56px', sortable: true, render: player => player.jerseyNumber != null ? <span className="gk-num">{player.jerseyNumber}</span> : EMPTY_CELL },
         { id: 'status', label: copy('sort1', 'Status'), width: 'minmax(130px, 1.1fr)', sortable: true, render: player => <PlayerStatus player={player} now={now} /> },
-        { id: 'consent', label: copy('parentConsent', 'Parent consent'), width: 'minmax(150px, 1.2fr)', sortable: true, render: player => <PlayerConsent player={player} needed={playerChoices(player, actions, managed(player)).consentToSend} /> },
+        { id: 'consent', label: copy('parentConsent', 'Parent consent'), width: 'minmax(150px, 1.2fr)', sortable: true, render: player => <PlayerConsent player={player} needed={playerChoices(player, actions, managed(player)).familyToReach} /> },
         ...(shown.some(player => player.status === 'TRIALIST') ? [{ id: 'trialEnds', label: t('trialists.trialEnds'), narrowLabel: t('trialists.trialEnds'), width: '110px', sortable: true, render: (player: ClubPlayerAffiliation) => {
             const days = player.status === 'TRIALIST' ? daysFromToday(player.trialEndsOn, now) : null;
             return days === null ? EMPTY_CELL : <span className={days < 0 ? 'gk-dt-date--late' : days <= 3 ? 'gk-dt-date--soon' : undefined}>{formatDate(player.trialEndsOn!, { day: 'numeric', month: 'short' })}</span>;

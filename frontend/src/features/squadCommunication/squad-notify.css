@@ -1,0 +1,8 @@
+/* Notify a squad: the dialog from My squads › Updates. */
+.gk .sq-notify { display: grid; gap: var(--gk-3); }
+.gk .sq-notify__row { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .sq-notify__count { margin-left: 6px; color: var(--gk-text-3); font-variant-numeric: tabular-nums; }
+.gk .sq-notify__field { display: grid; gap: 6px; }
+.gk .sq-notify__label { font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .sq-notify__hint { margin: 0; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .sq-notify__done { margin: 0; font-size: var(--gk-fs-sm); }

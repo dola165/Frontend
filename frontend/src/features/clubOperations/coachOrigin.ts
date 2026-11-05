@@ -1,16 +1,15 @@
 import type { OperationRecord } from './api';
 import { operationTab } from './workspaceNavigation';
+import { isOfficeTool, officeToolPath } from '../clubOffice/officeLinks';
 
 const positiveId = (value: string | null) => value !== null && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
 
 /** Coach overview cards open the same authorized record, carrying a destination token rather than a return URL. */
 export function coachRecordHref(club: number, record: Pick<OperationRecord, 'id' | 'module' | 'squad_id'>) {
-    const query = new URLSearchParams({ tab: operationTab(record.module), record: String(record.id) });
-    if (record.squad_id) {
-        query.set('squad', String(record.squad_id));
-        query.set('coachReturn', 'my-squads'); query.set('coachClub', String(club));
-    }
-    return `/clubs/${club}/workspace?${query}`;
+    const tool = operationTab(record.module);
+    const context: Record<string, string> = { record: String(record.id) };
+    if (record.squad_id) Object.assign(context, { squad: String(record.squad_id), coachReturn: 'my-squads', coachClub: String(club) });
+    return isOfficeTool(tool) ? officeToolPath(club, tool, context) : `/clubs/${club}/office`;
 }
 
 /** Navigation only: current server-confirmed role scope is required; record/API rights remain authoritative. */

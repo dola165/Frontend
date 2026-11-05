@@ -169,6 +169,8 @@
 .tc-root .tc-pill svg { width: 15px; height: 15px; }
 .tc-root .tc-pill--top { top: 8px; }
 .tc-root .tc-pill--bottom { bottom: 8px; }
+/* New messages from others wait below the place being read. */
+.tc-root .tc-pill[data-new] { border-color: var(--gk-accent); background: var(--gk-accent); color: var(--gk-on-accent); }
 .tc-root .tc-typing {
     min-height: 18px;
     margin: 0;

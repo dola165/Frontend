@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecruitmentApplication, type RecruitmentReceipt } from './RecruitmentApplication';
 const api=vi.hoisted(()=>({get:vi.fn(),post:vi.fn(),refresh:vi.fn()}));
@@ -19,8 +19,9 @@ describe('Recruitment offer consent',()=>{
  });
  it('shows actual scope and access before asking for acceptance',()=>{show();expect(screen.getByText('U14')).toBeTruthy();expect(screen.getByText('development: write')).toBeTruthy();expect(screen.getByText(/Employment terms and qualifications/)).toBeTruthy();expect(api.post).not.toHaveBeenCalled();});
  it('requires confirmation, records acceptance once and refreshes authority',async()=>{show();fireEvent.click(screen.getByRole('button',{name:'Review acceptance'}));expect(api.post).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Accept offer'}));await waitFor(()=>expect(api.refresh).toHaveBeenCalledTimes(1));expect(api.post).toHaveBeenCalledExactlyOnceWith('/recruitment/applications/5/respond',{accept:true});expect(screen.queryByRole('button',{name:'Review acceptance'})).toBeNull();});
+ it('a coach who accepts an offer lands in My squads',async()=>{render(<MemoryRouter><Routes><Route path="/" element={<RecruitmentApplication applicationId={5} initial={receipt}/>}/><Route path="/my-squads" element={<p>My squads page</p>}/></Routes></MemoryRouter>);fireEvent.click(screen.getByRole('button',{name:'Review acceptance'}));fireEvent.click(screen.getByRole('button',{name:'Accept offer'}));expect(await screen.findByText('My squads page')).toBeTruthy();});
  it('lets the applicant leave a confirmation without a write',()=>{show();fireEvent.click(screen.getByRole('button',{name:'Decline offer'}));fireEvent.click(screen.getByRole('button',{name:'Keep reviewing'}));expect(api.post).not.toHaveBeenCalled();});
  it('shows stale-offer reason and withdrawal without acceptance',()=>{show({...receipt,status:'EXPIRED',canRespond:false,unavailableReason:'The job changed or closed after this offer was sent.'});expect(screen.getByText(/The job changed/)).toBeTruthy();expect(screen.queryByRole('button',{name:'Review acceptance'})).toBeNull();expect(screen.getByRole('button',{name:'Withdraw application'})).toBeTruthy();});
  it('does not claim success on a failed response and offers receipt reload',async()=>{api.post.mockRejectedValue(new Error('connection interrupted'));show();fireEvent.click(screen.getByRole('button',{name:'Review acceptance'}));fireEvent.click(screen.getByRole('button',{name:'Accept offer'}));await screen.findByRole('button',{name:'Reload receipt'});expect(api.refresh).not.toHaveBeenCalled();expect(screen.getByRole('button',{name:'Accept offer'})).toBeTruthy();});
- it('preserves an ended appointment as accepted history',()=>{show({...receipt,status:'ACCEPTED',canRespond:false,canWithdraw:false,appointment:{status:'ENDED'}});expect(screen.getByText(/Recorded appointment: ended/)).toBeTruthy();expect(screen.queryByRole('button',{name:'Review acceptance'})).toBeNull();});
+ it('preserves an ended appointment as accepted history',()=>{show({...receipt,status:'ACCEPTED',canRespond:false,canWithdraw:false,appointment:{status:'ENDED'}});expect(screen.getByText(/Your job: ended/)).toBeTruthy();expect(screen.queryByRole('button',{name:'Review acceptance'})).toBeNull();});
 });

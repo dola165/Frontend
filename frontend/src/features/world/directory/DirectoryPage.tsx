@@ -10,6 +10,7 @@ import { StageHead } from '../stage/WorldStage';
 import { useWorldArea } from '../useWorldArea';
 import { useWorldData } from '../useWorldData';
 import { useWorldLayout } from '../useWorldLayout';
+import { useFinder } from '../finder/finderContext';
 import { directoryArea } from './useDirectoryData';
 import { DirectoryBody } from './DirectoryBody';
 import { DirectoryFilters } from './DirectoryFilters';
@@ -74,7 +75,10 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
     // Beside the map (the default): no header row; the map fills the screen and a column on its left holds the search,
     // the lists as kinds (one at a time, each with its pin's colour) and the filters as long lines. Above the map: a
     // header row, the filters on one line, the results below.
-    const { side, toggle } = useWorldLayout();
+    const layout = useWorldLayout();
+    // Parent Hub's club finder: the filters on one line above the map, the pop-up's own title, no layout switch.
+    const finder = Boolean(useFinder());
+    const side = layout.side && !finder, toggle = layout.toggle;
     const sources = allSources.filter(item => signedIn || !item.personal);
     const extras = extraTabs.filter(item => signedIn || !item.personal);
     const state = useDirectoryState(sources, { tabAlias, tabValues, signedIn, opening });
@@ -128,10 +132,10 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
         <div className="gk-world-directory">
             <StageHead>
                 <header className="gk-world-head">
-                    <div className="gk-world-head__titles"><h1>{title}</h1>{(state.source.subtitle || subtitle) && <p>{state.source.subtitle ? t(state.source.subtitle) : subtitle}</p>}</div>
+                    {finder ? <h1 className="gk-visually-hidden">{title}</h1> : <div className="gk-world-head__titles"><h1>{title}</h1>{(state.source.subtitle || subtitle) && <p>{state.source.subtitle ? t(state.source.subtitle) : subtitle}</p>}</div>}
                     {tabs.length > 1 && <Tabs className="gk-world-head__tabs" label={title} value={extra?.id ?? state.source.id} items={tabs} onChange={choose} />}
                     {searchable && <DirectorySearch state={state} />}
-                    <div className="gk-world-head__actions">{actions}<FiltersPlacement side={false} toggle={toggle} /></div>
+                    {!finder && <div className="gk-world-head__actions">{actions}<FiltersPlacement side={false} toggle={toggle} /></div>}
                     {/* The filters: one line above the map and the list alike, the same height on every tab. */}
                     <div className="gk-world-head__filters" data-pop-frame>{searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />}</div>
                 </header>

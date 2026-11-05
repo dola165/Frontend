@@ -9,12 +9,12 @@ vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 2
 import { PageReviewQueue } from './PageReviewQueue';
 import { PageReviewReceipt } from './PageReviewReceipt';
 
-const row: PageReview = { id: 'request-uuid', revision: 1, kind: 'CLAIM', ref: { type: 'club', id: 7 }, name: 'Synthetic managed FC', status: 'PENDING', claimantId: 3, canApprove: true, canDecide: true, ownershipAtSubmission: '', evidence: { phone: '+995555123456', role: 'COACH' }, reason: null, submittedAt: '2026-10-18T00:00:00Z', reviewedAt: null };
+const row: PageReview = { id: 'request-uuid', revision: 1, ref: { type: 'club', id: 7 }, name: 'Synthetic managed FC', status: 'PENDING', requesterId: 3, canApprove: true, canDecide: true, ownershipAtSubmission: '', evidence: { phone: '+995555123456', action: 'VERIFIED_BADGE', legalName: 'Synthetic managed FC LLC' }, reason: null, submittedAt: '2026-10-18T00:00:00Z', reviewedAt: null };
 function queue() { return render(<MemoryRouter initialEntries={['/admin/page-reviews?review=request-uuid']}><PageReviewQueue /></MemoryRouter>); }
 beforeEach(() => { vi.resetAllMocks();api.fetchPageReviews.mockResolvedValue([row]); });
-it('shows claimant evidence and keeps approval separate from ownership transfer', async () => {
+it('shows the verification evidence and links the requester', async () => {
   api.decidePageReview.mockResolvedValue({ ...row, status: 'APPROVED' });queue();await screen.findByLabelText('Review reason');
-  expect(screen.getByText('Approving claim evidence keeps existing access. Ownership changes only through an explicit transfer.')).toBeInTheDocument();
+  expect(screen.getByText('Synthetic managed FC LLC')).toBeInTheDocument();expect(screen.getByRole('link', { name: 'View requester profile' })).toHaveAttribute('href', '/profile/3');
   expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();fireEvent.change(screen.getByLabelText('Review reason'), { target: { value: 'Synthetic evidence checked' } });
   fireEvent.click(screen.getByRole('button', { name: 'Approve' }));await waitFor(() => expect(api.decidePageReview).toHaveBeenCalledWith(row.id, expect.objectContaining({ expectedVersion: 1, outcome: 'APPROVED', reason: 'Synthetic evidence checked' })));
   await waitFor(() => expect(api.fetchPageReviews).toHaveBeenCalledWith('APPROVED', expect.any(AbortSignal)));

@@ -88,7 +88,7 @@ export interface NameMatch<T extends NameCandidate> { candidate: T; exact: boole
 /**
  * Known pages that look like the typed name, best first. Every distinctive word typed must match a word of the known
  * name (so "Rustavi Lions" never finds "Rustavi Community FC"), or every word of the known name must be among those typed.
- * `exact` is a copy of a known name: it goes to that page (its claim), never to a second page.
+ * `exact` is a copy of a known name: the sheet says it is already on GrassKickZ and offers to open it.
  */
 export function findSimilar<T extends NameCandidate>(typed: string, candidates: readonly T[], { town, limit = 5 }: { town?: string | null; limit?: number } = {}): NameMatch<T>[] {
   const typedWords = distinctive(typed);

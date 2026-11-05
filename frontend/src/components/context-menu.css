@@ -1,0 +1,56 @@
+/* The right-click menu (ContextMenu.tsx): one quiet column at the pointer, over everything. */
+.gk-cm-layer { position: fixed; inset: 0; z-index: 1200; pointer-events: none; }
+.gk-cm-layer .gk-cm {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--gk-line);
+    border-radius: var(--gk-r);
+    background: var(--gk-surface);
+    box-shadow: var(--gk-elevation);
+    color: var(--gk-text);
+    font-size: var(--gk-fs-sm);
+    pointer-events: auto;
+    /* It is placed before it shows (useLayoutEffect): no sliding into place. */
+    transition: none;
+}
+.gk-cm-layer .gk-cm__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 32px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: var(--gk-r-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.gk-cm-layer .gk-cm__item:hover, .gk-cm-layer .gk-cm__item:focus-visible { background: var(--gk-hover); outline: none; }
+.gk-cm-layer .gk-cm__item:focus-visible { box-shadow: inset 0 0 0 2px var(--gk-focus); }
+.gk-cm-layer .gk-cm__item[data-danger] { color: var(--gk-danger); }
+.gk-cm-layer .gk-cm__item[aria-disabled='true'] { color: var(--gk-text-3); cursor: default; }
+.gk-cm-layer .gk-cm__item[aria-disabled='true']:hover { background: none; }
+.gk-cm-layer .gk-cm__icon { display: inline-flex; flex: 0 0 16px; width: 16px; height: 18px; align-items: center; color: var(--gk-text-2); }
+.gk-cm-layer .gk-cm__item[data-danger] .gk-cm__icon { color: inherit; }
+.gk-cm-layer .gk-cm__icon svg { width: 16px; height: 16px; }
+.gk-cm-layer .gk-cm__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk-cm-layer .gk-cm__label { overflow-wrap: anywhere; }
+.gk-cm-layer .gk-cm__reason { color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); }
+.gk-cm-layer .gk-cm__line { height: 1px; margin: 4px 6px; background: var(--gk-line); }
+
+/* Fingers: rows a finger can hit. */
+@media (pointer: coarse) {
+    .gk-cm-layer .gk-cm__item { min-height: 44px; align-items: center; }
+}
+
+/* A held finger opens the menu, not the phone's own text and picture callout. */
+.gk-cm-target { -webkit-touch-callout: none; }

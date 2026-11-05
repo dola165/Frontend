@@ -1,0 +1,108 @@
+/* Projects (step 4): the club's planner on the one frame. Compact like Home: 13px rows, quiet greys, one bright thing per row. */
+.gk .pj-page { display: flex; flex-direction: column; gap: var(--gk-5); padding-block: var(--gk-5); font-size: var(--gk-fs-sm); }
+.gk .pj-loading { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .pj-head { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+.gk .pj-head__text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.gk .pj-head__title { margin: 0; flex: 1; min-width: 0; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 700; overflow-wrap: anywhere; }
+.gk .pj-head__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .pj-back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; color: var(--gk-text-2); font-weight: 600; text-decoration: none; }
+.gk .pj-back:hover { color: var(--gk-text); }
+.gk .pj-back svg { width: 15px; height: 15px; }
+.gk .pj-switch select { min-height: 32px; width: auto; max-width: 260px; font-size: var(--gk-fs-sm); }
+
+.gk .pj-block { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .pj-block__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .pj-label { margin: 0; font-size: var(--gk-fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--gk-text-3); }
+.gk .pj-quiet { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+.gk .pj-list .gk-list-row { min-height: 52px; }
+.gk .pj-row .gk-list-row__title { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; font-weight: 600; }
+.gk .pj-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-text-3); }
+.gk .pj-dot[data-tone='amber'] { background: var(--gk-warning); }
+.gk .pj-wait { display: inline-flex; align-items: center; gap: 6px; color: var(--gk-warning); font-size: var(--gk-fs-sm); font-weight: 600; white-space: nowrap; }
+.gk .pj-wait svg { width: 15px; height: 15px; color: var(--gk-text-3); }
+
+/* Progress: a thin bar, the club's green; the wide one heads the money. */
+.gk .pj-bar { display: block; width: 96px; height: 6px; border-radius: var(--gk-r-pill); background: var(--gk-sunken); overflow: hidden; }
+.gk .pj-bar[data-wide] { width: 100%; height: 8px; }
+.gk .pj-bar__fill { display: block; height: 100%; border-radius: inherit; background: var(--gk-accent); }
+
+/* One project: the money and the steps on the left, files, talk and people on the right. */
+.gk .pj-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--gk-6); align-items: start; }
+.gk .pj-col { display: flex; flex-direction: column; gap: var(--gk-6); min-width: 0; }
+.gk .pj-money { padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .pj-money__line { margin: 0; color: var(--gk-text-2); }
+.gk .pj-money__line strong { color: var(--gk-text); font-size: var(--gk-fs-lg); }
+.gk .pj-give { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; color: var(--gk-accent); font-weight: 650; text-decoration: none; }
+.gk .pj-give:hover { text-decoration: underline; }
+.gk .pj-give svg { width: 15px; height: 15px; }
+.gk .pj-actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+
+.gk .pj-steps-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .pj-step { display: flex; align-items: center; gap: var(--gk-3); min-height: 48px; padding: 6px var(--gk-3); border-top: 1px solid var(--gk-line); }
+.gk .pj-step:first-child { border-top: 0; }
+.gk .pj-step[data-done] .pj-step__title { color: var(--gk-text-3); text-decoration: line-through; text-decoration-color: var(--gk-line-strong); }
+.gk .pj-step__title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--gk-2); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gk .pj-tick { display: grid; place-items: center; flex: none; width: 22px; height: 22px; padding: 0; border: 1.5px solid var(--gk-line-strong); border-radius: 6px; background: var(--gk-surface); color: var(--gk-on-accent); cursor: pointer; }
+.gk .pj-tick[aria-pressed='true'] { border-color: var(--gk-accent); background: var(--gk-accent); }
+.gk .pj-tick:disabled { cursor: default; opacity: .7; }
+.gk .pj-tick svg { width: 14px; height: 14px; }
+.gk .pj-step__edit { display: flex; align-items: center; gap: var(--gk-2); flex: none; }
+.gk .pj-step__edit .gk-input { min-height: 32px; font-size: var(--gk-fs-sm); }
+.gk .pj-step__who { width: 150px; }
+.gk .pj-step__day { width: 140px; }
+.gk .pj-step__who-read { display: flex; align-items: center; gap: 6px; flex: none; color: var(--gk-text-2); }
+.gk .pj-add-step { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .pj-add-step .gk-input { min-height: 34px; width: auto; flex: 0 1 150px; font-size: var(--gk-fs-sm); }
+.gk .pj-add-step .gk-input:first-of-type { flex: 1 1 220px; }
+
+.gk .pj-people { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--gk-2) var(--gk-4); }
+.gk .pj-people li { display: flex; align-items: center; gap: 6px; }
+.gk .pj-waiting-face { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--gk-sunken); color: var(--gk-text-3); }
+.gk .pj-waiting-face svg { width: 14px; height: 14px; }
+.gk .pj-waiting-remove { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-3); cursor: pointer; }
+.gk .pj-waiting-remove:hover { color: var(--gk-text); background: var(--gk-sunken); }
+.gk .pj-waiting-remove svg { width: 14px; height: 14px; }
+.gk .pj-history summary { cursor: pointer; }
+.gk .pj-history ol { list-style: none; margin: var(--gk-2) 0 0; padding: 0; }
+.gk .pj-history li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px var(--gk-3); padding: 6px 0; border-top: 1px solid var(--gk-line); }
+.gk .pj-history li:first-child { border-top: 0; }
+
+/* Dialogs: New project's four kinds, and the small forms. */
+.gk .pj-form { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .pj-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.gk .pj-field-row { display: flex; flex-wrap: wrap; gap: var(--gk-4); }
+.gk .pj-money-input { display: flex; gap: var(--gk-2); }
+.gk .pj-money-input select { width: auto; }
+.gk .pj-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gk .pj-kinds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-2); }
+.gk .pj-kind { display: flex; flex-direction: column; gap: 4px; padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .pj-kind:hover { border-color: var(--gk-line-strong); }
+.gk .pj-kind[aria-checked='true'] { border-color: var(--gk-accent); box-shadow: inset 0 0 0 1px var(--gk-accent); }
+.gk .pj-kind__head { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .pj-kind__head svg { width: 17px; height: 17px; color: var(--gk-accent); }
+.gk .pj-kind__line { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .pj-steps { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.gk .pj-steps span { padding: 1px 7px; border: 1px solid var(--gk-line); border-radius: 6px; color: var(--gk-text-2); font-size: var(--gk-fs-xs); }
+
+@media (max-width: 900px) {
+    .gk .pj-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+    .gk .pj-head { flex-wrap: wrap; }
+    /* A title keeps its words; the switch and New project go under it. */
+    .gk .pj-head__title { min-width: 10ch; }
+    .gk .pj-kinds { grid-template-columns: minmax(0, 1fr); }
+    .gk .pj-step { flex-wrap: wrap; }
+    .gk .pj-step__edit { width: 100%; padding-left: 34px; }
+    .gk .pj-step__who, .gk .pj-step__day { flex: 1; width: auto; min-width: 0; }
+    .gk .pj-bar:not([data-wide]) { width: 56px; }
+}
+
+/* Quieter rows: a step's change button shows on hover and focus, the shape and marks stay calm. */
+.gk .pj-step__open { opacity: 0; }
+.gk .pj-step:hover .pj-step__open, .gk .pj-step__open:focus-visible { opacity: 1; }
+@media (hover: none) { .gk .pj-step__open { opacity: 1; } }
+.gk .pj-mark { display: inline-grid; place-items: center; flex: none; border-radius: var(--gk-r); background: var(--gk-sunken); color: var(--gk-text-2); font-weight: 700; letter-spacing: .01em; }
+.gk .pj-mark[data-squad] { background: var(--gk-accent-soft); color: var(--gk-accent-strong); }
+.gk .pj-project .work-media__list li.work-media__file { width: min(320px, 100%); }
+.gk .pj-ask { display: flex; gap: var(--gk-2); }

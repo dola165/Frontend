@@ -43,7 +43,7 @@ export function listingPlace(m: Match, places: Places): Placement | null {
     const own = m.location_lat != null && m.location_lng != null ? { lat: m.location_lat, lng: m.location_lng } : null;
     const at = own ?? places.club(m.club_id);
     return at ? { lat: at.lat, lng: at.lng, approximate: own ? undefined : 'club', noun: ['match', 'matches'], label: m.title,
-        meta: [`${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)}`, m.location_name].filter(Boolean).join(' · '), tone: 'match', to: `/match-exchange/${m.event_id}` } : null;
+        meta: [`${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)}`, m.location_name].filter(Boolean).join(' · '), tone: 'match', to: `/matches/${m.event_id}?from=world` } : null;
 }
 
 const EVENT_PIN: Record<string, Placement['tone']> = { MATCH: 'match', TOURNAMENT: 'tournament', TRYOUT: 'trial', TRAINING: 'training' };

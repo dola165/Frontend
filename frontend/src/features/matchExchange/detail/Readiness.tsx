@@ -10,12 +10,14 @@ import { groundState, refereeState, type State } from './matchState';
 export function Readiness({ match: m, now, conversation }: { match: Match; now: number; conversation?: ConversationDto | null }) {
     const { copy } = useJourneyCopy();
     const t = useWorldCopy();
+    const opponentKnown = Boolean(m.opponent_name || m.outside_opponent);
     const next = copy(m.event_status === 'CANCELLED' ? 'cancelled' : m.event_status === 'COMPLETED' ? 'finished'
         : new Date(m.ends_at_iso).getTime() <= now ? 'nextResult'
-            : !m.opponent_name ? 'nextOpponent' : m.referee_status === 'REPLACEMENT_NEEDED' ? (new Date(m.starts_at_iso).getTime() <= now ? 'nextHostLate' : 'nextHostReferee')
+            : !opponentKnown ? 'nextOpponent' : m.referee_status === 'REPLACEMENT_NEEDED' ? (new Date(m.starts_at_iso).getTime() <= now ? 'nextHostLate' : 'nextHostReferee')
                 : !['BOOKED', 'HOST_CONFIRMED'].includes(m.venue_status) ? 'nextHostVenue'
                     : m.referee_status === 'INVITED' ? 'nextReferee' : m.referee_status === 'NEEDED' ? 'nextHostInvite' : 'ready');
-    const opponent: State = m.event_status === 'CANCELLED' ? { label: 'Cancelled', tone: 'danger' } : m.opponent_name ? { label: 'Agreed', tone: 'accent' } : { label: m.requested_club_id ? 'Invited' : 'Needed', tone: 'warning' };
+    const opponent: State = m.event_status === 'CANCELLED' ? { label: 'Cancelled', tone: 'danger' } : opponentKnown ? { label: 'Agreed', tone: 'accent' }
+        : { label: m.requested_club_id || m.opponent_answer === 'WAITING' ? 'Invited' : 'Needed', tone: 'warning' };
     const closed = m.event_status === 'CANCELLED' || m.event_status === 'COMPLETED';
     const communication = closed ? copy('communicationClosed') : t(!m.opponent_name ? 'After opponent agreement' : conversation === undefined ? 'Checking…' : conversation ? 'Ready' : 'Available in Messages');
     const rows: [string, State][] = [[copy('opponent'), opponent], [copy('pitchVenue'), groundState(m)], [copy('officials'), refereeState(m)]];
@@ -26,7 +28,7 @@ export function Readiness({ match: m, now, conversation }: { match: Match; now: 
                 <dl className="gk-match-readiness__rows">
                     {rows.map(([name, state]) => <div key={name}><dt>{name}</dt><dd><Badge tone={state.tone}>{t(state.label)}</Badge></dd></div>)}
                 </dl>
-                {m.can_arrange && <p className="gk-match-readiness__talk">{copy('communication')}: <strong>{communication}</strong>
+                {m.can_arrange && !m.outside_opponent && <p className="gk-match-readiness__talk">{copy('communication')}: <strong>{communication}</strong>
                     {m.listing_status === 'ARRANGED' && m.opponent_name && conversation !== undefined && !closed && <> · <Link className="gk-match-link" to={conversation ? `/messages?conversationId=${conversation.id}` : '/messages'}>
                         {t(conversation ? 'Open the exact match conversation' : 'Open Messages to find this match conversation')}</Link></>}
                 </p>}

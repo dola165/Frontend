@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useIdentityImageEditor } from '../../../hooks/useIdentityImageEditor';
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { extractApiErrorMessage } from "../../../utils/apiError";
 import { listingReadiness, validateVenueForm } from '../flowValidation';
 import { saveVenue, type Venue, type VenueDraft } from "../api";
@@ -102,7 +103,7 @@ export function useListingEditor({ venue, onSave, target }: ListingEditorProps) 
           : "Draft saved. Add pitches and complete the listing before publishing.",
       );
     } catch (err) {
-      setError(extractApiErrorMessage(err, "Your changes could not be saved."));
+      if (!promptEmailConfirmation(err)) setError(extractApiErrorMessage(err, "Your changes could not be saved."));
     } finally {
       submitting.current = false;
       setBusy(false);

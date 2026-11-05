@@ -15,8 +15,12 @@ export const NEAR_KM = 40;
  * when one is given.
  */
 export function nearParams(params: URLSearchParams, area?: DirectoryArea, country?: string | null) {
-    if (country) params.set('countryCode', country);
-    if (!area?.centre) return params;
+    const named = params.has('city') || params.has('country') || params.has('countryCode') || params.has('hostId');
+    if (country && !params.has('countryCode')) params.set('countryCode', country);
+    if (named || !area?.centre) {
+        if (area?.city && !named) params.set('city', area.city);
+        return params;
+    }
     params.set('latitude', String(area.centre.lat));
     params.set('longitude', String(area.centre.lng));
     params.set('radiusKm', String(NEAR_KM));

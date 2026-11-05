@@ -1,4 +1,5 @@
 import type { ClubPlayerAffiliation, PlayerAffiliationStatus } from '../../clubs/domain';
+import type { FamilyLink } from '../../parents/familyLinks';
 
 export interface PlayerRowActions {
     pendingKey: string | null;
@@ -8,7 +9,10 @@ export interface PlayerRowActions {
     onReviewJoining?: (userId: number) => void;
     onOpenAdmissions: () => void;
     onMessagePlayer?: (userId: number, playerName?: string) => void;
-    onSendConsentEmail?: (userId: number, parentEmail?: string | null) => Promise<boolean> | void;
+    /** "Send to the family": the card's family link for any chat (owner, 2 November 2026). */
+    onFamilyLink?: (userId: number) => Promise<FamilyLink>;
+    /** The card went to the family: the list reads the row again, which now says it is waiting. */
+    onFamilySent?: () => void;
 }
 
 export const playerName = (player: ClubPlayerAffiliation) => player.fullName || player.username || `Player #${player.userId}`;
@@ -17,9 +21,9 @@ export const trialDay = (player: ClubPlayerAffiliation, now: number) => player.s
 /** What can be done with a player from the list, worked out once for the row, its actions and its details. */
 export function playerChoices(player: ClubPlayerAffiliation, actions: PlayerRowActions, admissionManaged: boolean) {
     const trialist = player.status === 'TRIALIST', current = player.status === 'ACTIVE' || trialist, consent = player.parentalConsentStatus;
-    const consentToSend = current && Boolean(player.requiresParentalConsent) && (!consent || consent === 'NOT_REQUIRED') && Boolean(actions.onSendConsentEmail);
-    const canResend = Boolean(player.parentEmail && current && actions.onSendConsentEmail) && (consent === 'PENDING' || consent === 'EXPIRED' || consent === 'DECLINED');
+    // A child's card with no parent's yes yet goes to the family as a link; once confirmed there is nothing to send.
+    const familyToReach = current && Boolean(player.requiresParentalConsent) && consent !== 'CONFIRMED' && Boolean(actions.onFamilyLink);
     const canChange = actions.canManagePlayerStatuses && !admissionManaged;
     const changes: PlayerAffiliationStatus[] = player.status === 'ACTIVE' && canChange ? ['TRIALIST', 'PAST', 'REMOVED'] : trialist && canChange ? ['REMOVED'] : [];
-    return { trialist, consentToSend, canResend, changes, hasDetails: trialist || (!admissionManaged && (consentToSend || canResend)) || changes.length > 0 };
+    return { trialist, familyToReach, changes, hasDetails: trialist || (!admissionManaged && familyToReach) || changes.length > 0 };
 }

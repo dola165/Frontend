@@ -1,7 +1,7 @@
 import { connectedWorkspaces, type ConnectedWorkspace } from './connectedWorkspaces';
 import { useId, useState, type FocusEvent, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown } from 'lucide-react';
 import { type NavigationCapabilities } from '../../context/navigationCapabilities';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 import { Crest } from '../../features/world/Crest';
@@ -10,8 +10,6 @@ import { useWorldData } from '../../features/world/useWorldData';
 import '../../design/design.css';
 import './workspace-access.css';
 
-/** The switcher lists a few workspaces; everything else is one tap away under "All my workspaces". */
-const SWITCHER_LIMIT = 4;
 const clubIdOf = (workspace: ConnectedWorkspace) => workspace.key.startsWith('club:') ? Number(workspace.key.slice(5)) : null;
 
 function WorkspaceCrest({ workspace, size }: { workspace: ConnectedWorkspace; size: number }) {
@@ -22,12 +20,14 @@ function WorkspaceCrest({ workspace, size }: { workspace: ConnectedWorkspace; si
 }
 
 /**
- * The person's workspace as one row: crest and name, "Workspace" underneath, the whole row opens it. Only someone
- * with more than one workspace gets the small switcher beside it; the one opened last leads next time.
+ * The person's club or workspace as one row, the whole row opening it. Their club is "My club" with its crest and
+ * name, and opens the club page (owner, 28 October 2026: My club left the top bar for here); any other workspace keeps
+ * its name with "Workspace" underneath. Only someone with more than one gets the small switcher beside it; the one
+ * opened last leads next time.
  */
 export function WorkspaceAccess({ caps, userId }: { caps?: NavigationCapabilities; userId?: number }) {
   const copy = useJourneyCopy();
-  const links = connectedWorkspaces(caps);
+  const links = connectedWorkspaces(caps).map(w => { const club = clubIdOf(w); return club === null ? w : { ...w, path: `/clubs/${club}` }; });
   const [open, setOpen] = useState(false);
   const id = useId();
   const [last, setLast] = useState<string>(() => { try { return localStorage.getItem(`gk:workspace:${userId}`) ?? ''; } catch { return ''; } });
@@ -35,22 +35,22 @@ export function WorkspaceAccess({ caps, userId }: { caps?: NavigationCapabilitie
   if (!links.length) return null;
   const current = links.find(w => w.path === last) ?? links[0];
   const others = links.filter(w => w.path !== current.path);
-  const subtitle = (w: ConnectedWorkspace) => clubIdOf(w) !== null && !w.path.endsWith('/workspace') ? copy('Club page', 'კლუბის გვერდი') : copy('Workspace', 'სამუშაო სივრცე');
+  const title = (w: ConnectedWorkspace) => clubIdOf(w) !== null ? copy('My club', 'ჩემი კლუბი') : w.label;
+  const subtitle = (w: ConnectedWorkspace) => clubIdOf(w) !== null ? w.label : copy('Workspace', 'სამუშაო სივრცე');
   const close = (event: KeyboardEvent<HTMLDivElement>) => { if (event.key === 'Escape' && open) { setOpen(false); event.currentTarget.querySelector<HTMLButtonElement>('.workspace-access__switch')?.focus(); } };
   const leave = (event: FocusEvent<HTMLDivElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false); };
   return <div className="workspace-access" onKeyDown={close} onBlur={leave}>
     <div className="workspace-access__row">
       <Link to={current.path} className="workspace-access__main" title={current.label} onClick={() => select(current.path)}>
         <WorkspaceCrest workspace={current} size={36} />
-        <span className="workspace-access__text"><strong>{current.label}</strong><small>{subtitle(current)}</small></span>
+        <span className="workspace-access__text"><strong>{title(current)}</strong><small>{subtitle(current)}</small></span>
       </Link>
       {others.length > 0 && <button type="button" className="workspace-access__switch" aria-expanded={open} aria-controls={id} aria-label={copy('Switch workspace', 'სამუშაო სივრცის შეცვლა')} onClick={() => setOpen(!open)}><ChevronsUpDown size={16} aria-hidden="true" /></button>}
     </div>
     {open && <nav id={id} aria-label={copy('Switch workspace', 'სამუშაო სივრცის შეცვლა')} className="workspace-access-list">
-      {others.slice(0, SWITCHER_LIMIT).map(w => <Link key={w.key} to={w.path} className="workspace-access-link" title={w.label} onClick={() => select(w.path)}>
-        <WorkspaceCrest workspace={w} size={28} /><span><strong>{w.label}</strong><small>{subtitle(w)}</small></span>
+      {others.map(w => <Link key={w.key} to={w.path} className="workspace-access-link" title={w.label} onClick={() => select(w.path)}>
+        <WorkspaceCrest workspace={w} size={28} /><span><strong>{title(w)}</strong><small>{subtitle(w)}</small></span>
       </Link>)}
-      <Link className="workspace-access-link workspace-access-all" to="/workspaces" onClick={() => setOpen(false)}>{copy('All my workspaces', 'ყველა სამუშაო სივრცე')}<ArrowUpRight size={14} aria-hidden="true" /></Link>
     </nav>}
   </div>;
 }

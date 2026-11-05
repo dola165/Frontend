@@ -146,6 +146,10 @@ export function Button({ variant = 'secondary', size = 'md', iconOnly = false, c
 export function ButtonLink({ variant = 'secondary', size = 'md', iconOnly = false, className, ...rest }: LinkProps & { variant?: ButtonVariant; size?: 'md' | 'sm'; iconOnly?: boolean }) {
     return <Link className={buttonClass(variant, size, iconOnly, className)} {...rest} />;
 }
+/** A button-looking link that leaves the app: a phone call, WhatsApp, the maps app, a calendar file. */
+export function ButtonAnchor({ variant = 'secondary', size = 'md', iconOnly = false, className, ...rest }: ComponentPropsWithoutRef<'a'> & { variant?: ButtonVariant; size?: 'md' | 'sm'; iconOnly?: boolean }) {
+    return <a className={buttonClass(variant, size, iconOnly, className)} {...rest} />;
+}
 
 export type BadgeTone = 'neutral' | 'accent' | 'warning' | 'danger' | 'info' | 'violet';
 export function Badge({ tone = 'neutral', children, className }: { tone?: BadgeTone; children: ReactNode; className?: string }) {
@@ -192,6 +196,11 @@ export function EmptyNote({ title, children, action }: { title: ReactNode; child
             {action}
         </div>
     );
+}
+
+/** A part of a page that didn't load: one quiet line and Try again. A failed load is never "not for you". */
+export function LoadFailed({ text, retry, onRetry }: { text: string; retry: string; onRetry: () => void }) {
+    return <p className="gk-load-failed" role="status"><span>{text}</span><span aria-hidden="true">·</span><Button size="sm" variant="ghost" onClick={onRetry}>{retry}</Button></p>;
 }
 
 export function Skeleton({ height = 16, width = '100%' }: { height?: number; width?: number | string }) {

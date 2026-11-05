@@ -22,6 +22,14 @@ beforeEach(() => {
 });
 
 describe('An explicit job publisher', () => {
+    it('can publish a personal trainer request while optional club setup has not loaded', async () => {
+        sessionStorage.setItem('gk.job.draft:1', JSON.stringify({ ...draft, posterKind: 'PERSON', clubId: null, clubName: undefined }));
+        vi.mocked(fetchMyClubMembershipContext).mockImplementation(() => new Promise(() => {}));
+        open();
+        fireEvent.click(await screen.findByRole('button', { name: 'Publish' }));
+        await screen.findByRole('heading', { name: 'Published job' });
+        expect(postJob).toHaveBeenCalledWith(expect.objectContaining({ posterKind: 'PERSON', clubId: null, requiredRole: null, applyMethod: 'IN_APP' }));
+    });
     it('recovers an uncertain publication after reload with the same saved request and payload', async () => {
         vi.mocked(fetchMyClubMembershipContext).mockResolvedValue(membership);
         vi.mocked(postJob).mockRejectedValueOnce(new Error('Response lost')).mockResolvedValue({ id: 900, title: draft.title } as never);
@@ -71,7 +79,7 @@ describe('An explicit job publisher', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Post as myself instead' }));
         fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
         await screen.findByRole('heading', { name: 'Published job' });
-        expect(postJob).toHaveBeenCalledWith(expect.objectContaining({ posterKind: 'PERSON', clubId: null, title: draft.title, applyMethod: 'MESSAGE' }));
+        expect(postJob).toHaveBeenCalledWith(expect.objectContaining({ posterKind: 'PERSON', clubId: null, title: draft.title, applyMethod: 'IN_APP', requiredRole: null }));
     });
 
     it('does not retarget an existing club draft when a different club is in the address', async () => {

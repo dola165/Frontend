@@ -50,7 +50,7 @@ export function AppointmentCard({ appointment: a, reload, embedded = false }: { 
         <button className="mx-refresh" disabled={busy} onClick={reload} aria-label={copy("refresh")} title={copy("refresh")}><RefreshCw size={16} aria-hidden="true" /></button>
       </div>
     </div>
-    <h3>{embedded ? copy("yourAppointment") : workspace ? <button className="rw-title-button" onClick={() => workspace.openMatch(a.event_id)}>{a.title}</button> : <Link to={`/match-exchange/${a.event_id}#${anchor}`}>{a.title}</Link>}</h3>
+    <h3>{embedded ? copy("yourAppointment") : workspace ? <button className="rw-title-button" onClick={() => workspace.openMatch(a.event_id)}>{a.title}</button> : <Link to={`/matches/${a.event_id}?from=referee#${anchor}`}>{a.title}</Link>}</h3>
     {!embedded && <p className="mx-appointment-teams">{a.club_name} · {a.opponent_name || copy("opponentPending")}</p>}
     <div className="mx-appointment-overview">
       <div className="mx-appointment-facts">
@@ -69,7 +69,7 @@ export function AppointmentCard({ appointment: a, reload, embedded = false }: { 
     <div className="mx-actions mx-appointment-decisions">
       {blocker === "AVAILABILITY_REQUIRED" && (workspace ? <button onClick={() => workspace.addAvailability(a)}>{copy("availability")}</button> : <Link className="mx-button" to="/referees/me#availability">{copy("availability")}</Link>)}
       {blocker === "PROFILE_REQUIRED" && <Link className="mx-button" to="/referees/me#profile">{copy("profile")}</Link>}
-      {blocker === "REFEREE_ROLE_REQUIRED" && <Link className="mx-button" to="/account/roles">{copy("roles")}</Link>}
+      {blocker === "REFEREE_ROLE_REQUIRED" && <Link className="mx-button" to="/account/football">{copy("roles")}</Link>}
       {["APPOINTMENT_CONFLICT", "PERSONAL_EVENT_CONFLICT"].includes(blocker || "") && <Link className="mx-button" to="/calendar">{copy("schedule")}</Link>}
       {a.status === "INVITED" && future && <>
         <button className="mx-primary" disabled={busy || !can("ACCEPT")} onClick={() => decision("ACCEPT", "accepted")}>{copy("accept")}</button>

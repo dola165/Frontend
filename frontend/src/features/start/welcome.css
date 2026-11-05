@@ -1,107 +1,133 @@
-/* "Set up your profile" over Home, and Home's "Finish setting up" card. Scoped under .gk; tokens only; compact like Home. */
-.gk .gk-setup-dialog { min-width: 0; max-height: min(85dvh, 820px); }
-.gk .gk-setup-dialog .gk-dialog__title { font-size: var(--gk-fs-3xl); line-height: var(--gk-lh-3xl); }
-.gk .gk-setup-dialog .gk-dialog__description { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
-.gk .gk-setup-dialog .gk-dialog__foot { position: relative; }
-.gk .gk-setup-dialog .gk-dialog__foot .gk-setup__back { margin-right: auto; }
-/* Your profile: wide, for the editing column beside the page. */
-.gk .gk-dialog.gk-setup-dialog--wide { max-width: min(1200px, 90vw); height: min(90dvh, 900px); max-height: none; }
-.gk .gk-setup__bar { height: 4px; overflow: hidden; border-radius: 2px; background: var(--gk-line); }
-.gk .gk-setup__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--gk-accent); transition: width .2s var(--gk-ease); }
-.gk .gk-setup { display: flex; flex: 1; flex-direction: column; gap: var(--gk-3); min-width: 0; min-height: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
-.gk .gk-setup__loading { display: flex; flex-direction: column; gap: var(--gk-2); }
-.gk .gk-setup__form { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; }
-.gk .gk-setup__hint { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
-.gk .gk-setup__error { margin: 0; color: var(--gk-danger); font-size: var(--gk-fs-sm); }
-.gk .gk-setup__spin { width: 14px; height: 14px; animation: gk-setup-spin 1s linear infinite; }
-@keyframes gk-setup-spin { to { transform: rotate(360deg); } }
-.gk .gk-setup__link { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
-.gk .gk-setup__link:disabled { opacity: .6; cursor: default; }
-.gk .gk-setup__link svg { width: 13px; height: 13px; }
-.gk .gk-setup__link:focus-visible { outline: none; box-shadow: var(--gk-focus); border-radius: 4px; }
-
-/* No role chosen: a small note at Next, not another dialog. */
-.gk .gk-setup-other { position: absolute; right: var(--gk-5); bottom: calc(100% + var(--gk-2)); z-index: 1; display: flex; flex-direction: column; gap: var(--gk-2); width: min(320px, calc(100% - 2 * var(--gk-5))); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); box-shadow: var(--gk-elevation); animation: gk-setup-pop .15s var(--gk-ease); }
-.gk .gk-setup-other p { margin: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
-.gk .gk-setup-other__actions { display: flex; justify-content: flex-end; gap: var(--gk-2); }
-@keyframes gk-setup-pop { from { opacity: 0; transform: translateY(4px); } }
-
-/* Clubs: groups of tiles, each with a small heading. */
-.gk .gk-setup-group { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); }
-.gk .gk-setup-group > .gk-tiles { align-self: stretch; }
-.gk .gk-setup-group h3 { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; }
-
-/* Create a page: how a page looks, the pages' own header and tabs, small. */
-.gk .gk-setup-sample { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0; }
-.gk .gk-setup-sample__frame { overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-bg); }
-.gk .gk-setup-sample__page > .gk-page { min-height: 0; }
-.gk .gk-setup-sample__page .gk-profile__body { display: none; }
-
-/* About you: the photo with one action, the town in small text. */
-.gk .gk-setup__photo { display: flex; align-items: center; gap: var(--gk-3); }
-.gk .gk-setup__photo-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.gk .gk-setup__photo-text small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
-.gk .gk-setup__town { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-1) var(--gk-3); margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
-.gk .gk-setup__town strong { color: var(--gk-text); font-weight: 600; }
-.gk .gk-setup__town .gk-input { width: auto; min-height: 30px; padding-block: 2px; font-size: var(--gk-fs-sm); }
-
-/* What do you do?: chips in the field, matches as you type, suggestions to tap. */
-.gk .gk-skills { position: relative; display: flex; flex-direction: column; gap: var(--gk-2); }
-.gk .gk-skills__field { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-1); min-height: 40px; padding: var(--gk-1) var(--gk-2); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-bg); cursor: text; }
-.gk .gk-skills__field:focus-within { border-color: var(--gk-accent); box-shadow: var(--gk-focus); }
-.gk .gk-skills__chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px var(--gk-2); border-radius: 999px; background: var(--gk-accent-soft); color: var(--gk-text); font-size: var(--gk-fs-sm); font-weight: 600; animation: gk-setup-pop .12s var(--gk-ease); }
-.gk .gk-skills__chip button { display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--gk-text-2); cursor: pointer; }
-.gk .gk-skills__chip button:hover { background: color-mix(in srgb, var(--gk-text) 10%, transparent); }
-.gk .gk-skills__chip svg { width: 12px; height: 12px; }
-.gk .gk-skills__input { flex: 1; min-width: 120px; padding: 4px; border: 0; background: none; color: var(--gk-text); font: inherit; outline: none; }
-.gk .gk-skills__matches { position: absolute; top: calc(100% - var(--gk-1)); left: 0; right: 0; z-index: 2; margin: 0; padding: var(--gk-1); list-style: none; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); box-shadow: var(--gk-elevation); }
-.gk .gk-skills__matches li { padding: var(--gk-1) var(--gk-2); border-radius: 6px; cursor: pointer; }
-.gk .gk-skills__matches li:hover { background: var(--gk-accent-soft); }
-.gk .gk-skills__suggestions { display: flex; flex-wrap: wrap; gap: var(--gk-1); }
-.gk .gk-skills__suggestion { display: inline-flex; align-items: center; gap: 4px; padding: 3px var(--gk-2); border: 1px solid var(--gk-line); border-radius: 999px; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; transition: border-color .15s var(--gk-ease), color .15s var(--gk-ease); }
-.gk .gk-skills__suggestion:hover { border-color: var(--gk-accent); color: var(--gk-text); }
-.gk .gk-skills__suggestion svg { width: 12px; height: 12px; }
-
-/* Your profile: the editing column beside the page itself. */
-.gk .gk-setup-editor { display: grid; flex: 1; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: var(--gk-4); min-height: 0; }
-.gk .gk-setup-editor__tabs { display: none; }
-.gk .gk-setup-editor__edit { display: flex; flex-direction: column; gap: var(--gk-3); min-height: 0; overflow-y: auto; padding-right: var(--gk-1); }
-.gk .gk-setup-editor__preview { min-width: 0; min-height: 0; overflow: auto; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-bg); }
-.gk .gk-setup-editor__page .gk-profile-preview > .gk-page { min-height: 0; }
-.gk .gk-setup-toggles { display: flex; flex-wrap: wrap; gap: var(--gk-1); }
-.gk .gk-setup-toggles button { padding: 3px var(--gk-2); border: 1px solid var(--gk-line); border-radius: 999px; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
-.gk .gk-setup-toggles button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); background: var(--gk-accent-soft); color: var(--gk-text); font-weight: 600; }
-.gk .gk-setup-history { display: flex; flex-direction: column; gap: var(--gk-1); margin: 0 0 var(--gk-1); padding: 0; list-style: none; }
-.gk .gk-setup-history li { display: flex; flex-direction: column; }
-.gk .gk-setup-history small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
-.gk .gk-setup-history__form { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); }
-.gk .gk-setup-history__actions { display: flex; justify-content: flex-end; gap: var(--gk-2); }
-
+/* The welcome over Home (two screens). Scoped under .gk; tokens only; compact like Home. */
+.gk .gk-dialog.gk-welcome-dialog { min-width: 0; }
+/* Choosing (step 1, a business’s kind): wide and tall enough for big tiles. */
+.gk .gk-dialog.gk-welcome-dialog--choose { max-width: min(1040px, 94vw); max-height: min(94dvh, 980px); }
+/* Working through a list (clubs, work): wide, as tall as the list up to most of the screen, then scrolling inside. */
+.gk .gk-dialog.gk-welcome-dialog--work { max-width: min(1180px, 94vw); max-height: min(90dvh, 980px); }
+.gk .gk-welcome-dialog .gk-dialog__title { font-size: var(--gk-fs-4xl); line-height: 1.2; }
+.gk .gk-welcome-dialog .gk-dialog__description { font-size: var(--gk-fs-lg); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gk-3); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact .gk-tile { min-height: 84px; align-items: flex-start; padding: var(--gk-3) var(--gk-4); }
+.gk .gk-welcome-dialog--work .gk-tiles--compact .gk-tile strong { font-size: var(--gk-fs-lg); }
+/* A club tile: where and how far, then the programme that takes the age (or its followers). */
+.gk .gk-welcome-club { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-welcome-club__fit { display: inline-flex; align-items: flex-start; gap: 4px; color: var(--gk-text); }
+.gk .gk-welcome-club__fit svg { flex: none; width: 13px; height: 13px; margin-top: 2px; color: var(--gk-accent); }
+/* A business's kind: one tap each, as big as the choice it is. */
+.gk .gk-welcome-dialog--choose .gk-tiles--act { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--gk-3); }
+.gk .gk-welcome-dialog--choose .gk-tiles--act .gk-tile { min-height: 96px; align-items: center; padding: var(--gk-4); font-size: var(--gk-fs-xl); }
+.gk .gk-welcome-dialog--choose .gk-tiles--act .gk-tile__text strong { font-size: var(--gk-fs-xl); line-height: 1.3; }
+.gk .gk-welcome-dialog--choose .gk-welcome__mark { width: 44px; height: 44px; }
+.gk .gk-welcome-dialog--choose .gk-welcome__mark svg { width: 22px; height: 22px; }
 @media (max-width: 640px) {
-  .gk .gk-setup-dialog, .gk .gk-dialog.gk-setup-dialog--wide { width: 100%; max-width: none; height: 94dvh; max-height: 94dvh; }
-  .gk .gk-setup-dialog .gk-dialog__title { font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); }
-  /* "Skip setup" on its own line, so the step's title keeps the width. */
-  .gk .gk-setup-dialog .gk-dialog__head { flex-direction: column-reverse; align-items: stretch; gap: 0; padding-top: var(--gk-3); }
-  .gk .gk-setup-dialog .gk-dialog__head > .gk-btn { align-self: flex-end; margin-right: calc(-1 * var(--gk-2)); }
-  .gk .gk-setup-dialog .gk-dialog__foot > .gk-btn { flex: 0 1 auto; }
-  .gk .gk-setup-dialog .gk-dialog__foot > .gk-btn:last-child { flex: 1; }
-  .gk .gk-setup-editor { display: flex; flex-direction: column; gap: var(--gk-3); }
-  .gk .gk-setup-editor__tabs { display: flex; gap: var(--gk-1); padding: 2px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); }
-  .gk .gk-setup-editor__tabs button { flex: 1; padding: var(--gk-1); border: 0; border-radius: 6px; background: none; color: var(--gk-text-2); font: inherit; font-weight: 600; cursor: pointer; }
-  .gk .gk-setup-editor__tabs button[aria-selected='true'] { background: var(--gk-accent-soft); color: var(--gk-text); }
-  .gk .gk-setup-editor[data-pane='edit'] .gk-setup-editor__preview, .gk .gk-setup-editor[data-pane='preview'] .gk-setup-editor__edit { display: none; }
-  .gk .gk-setup-editor__edit { overflow: visible; padding-right: 0; }
+  .gk .gk-dialog.gk-welcome-dialog { max-width: none; height: 100dvh; max-height: none; border-radius: 0; border-width: 0; }
+  .gk .gk-welcome-dialog .gk-dialog__title { font-size: var(--gk-fs-3xl); }
+}
+.gk .gk-welcome-dialog .gk-dialog__foot { flex-wrap: wrap; }
+.gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__back,
+.gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__follow { margin-right: auto; }
+/* "I'm here to follow football": a real button with a heart, lighter than the tiles above it. */
+.gk .gk-welcome__follow { gap: var(--gk-3); min-height: 60px; padding: var(--gk-2) var(--gk-5) var(--gk-2) var(--gk-3); border: 1px solid color-mix(in srgb, var(--gk-danger) 30%, var(--gk-line)); border-radius: var(--gk-r-lg);
+  background: color-mix(in srgb, var(--gk-danger) 7%, var(--gk-surface)); text-align: left; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }
+.gk .gk-welcome__follow:hover { border-color: color-mix(in srgb, var(--gk-danger) 60%, var(--gk-line)); background: color-mix(in srgb, var(--gk-danger) 12%, var(--gk-surface)); }
+.gk .gk-welcome__follow-mark { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--gk-danger-soft); color: var(--gk-danger); }
+.gk .gk-welcome__follow-mark svg { width: 20px; height: 20px; fill: currentColor; }
+.gk .gk-welcome__follow > span:last-child { display: flex; flex-direction: column; gap: 2px; font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
+.gk .gk-welcome__follow small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 500; }
+.gk .gk-welcome { display: flex; flex: 1; flex-direction: column; gap: var(--gk-3); min-width: 0; min-height: 0; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
+.gk .gk-welcome__loading { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-welcome__hint { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-welcome__spin { width: 14px; height: 14px; animation: gk-welcome-spin 1s linear infinite; }
+/* The one quiet grey line under a step ("Already in a club?", "See all on the map"). */
+.gk .gk-welcome__quiet { align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-md); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.gk .gk-welcome__quiet:hover { color: var(--gk-text); }
+.gk .gk-welcome__quiet:focus-visible { outline: none; box-shadow: var(--gk-focus); border-radius: var(--gk-r-sm); }
+@keyframes gk-welcome-spin { to { transform: rotate(360deg); } }
+
+/* Step 1: size shows weight. Two large tiles, two medium ones under them, each drawn in its own colour (--wt). */
+.gk .gk-wtiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-4); }
+.gk .gk-wtile { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gk-3); min-width: 0; padding: var(--gk-4);
+  border: 1px solid color-mix(in srgb, var(--wt) 36%, var(--gk-line)); border-radius: var(--gk-r-lg); color: var(--gk-text); font: inherit; text-align: left; overflow: hidden; isolation: isolate;
+  background: radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--wt) 30%, transparent), transparent 60%), linear-gradient(160deg, color-mix(in srgb, var(--wt) 20%, var(--gk-surface)), color-mix(in srgb, var(--wt) 8%, var(--gk-surface)));
+  transition: transform .25s var(--gk-ease), box-shadow .25s var(--gk-ease), border-color .2s var(--gk-ease), opacity .2s var(--gk-ease), filter .2s var(--gk-ease); }
+.gk button.gk-wtile { cursor: pointer; }
+.gk button.gk-wtile:focus-visible, .gk .gk-wtile__half:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-wart { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; color: var(--wt); pointer-events: none; transition: transform .4s var(--gk-ease); }
+.gk .gk-wart__lines { fill: none; stroke: currentColor; stroke-width: 2.5; opacity: .34; }
+.gk .gk-wart__mark { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
+/* A soft scrim from the words up, so the drawing never fights the text. */
+.gk .gk-wtile::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(to top, color-mix(in srgb, var(--gk-surface) 72%, transparent), transparent 62%); }
+.gk .gk-wart__fill { fill: currentColor; fill-opacity: .38; }
+.gk .gk-wart g.gk-wart__fill { stroke: none; }
+.gk .gk-wtile--large { min-height: 340px; padding: var(--gk-5); }
+.gk .gk-wtile--medium { min-height: 200px; }
+.gk .gk-wtile__text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.gk .gk-wtile__text strong { font-size: var(--gk-fs-4xl); line-height: 1.15; font-weight: 700; }
+.gk .gk-wtile--medium .gk-wtile__text strong { font-size: var(--gk-fs-3xl); line-height: 1.2; }
+.gk .gk-wtile__line { color: var(--gk-text); font-size: var(--gk-fs-lg); line-height: 1.4; }
+.gk .gk-wtile--medium .gk-wtile__line { font-size: var(--gk-fs-md); }
+.gk .gk-wtile__text small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-wtile__icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: var(--gk-2); border-radius: 50%; background: color-mix(in srgb, var(--wt) 22%, var(--gk-surface)); color: var(--wt); }
+.gk .gk-wtile--medium .gk-wtile__icon { width: 36px; height: 36px; }
+.gk .gk-wtile__icon svg { width: 21px; height: 21px; }
+/* What happens next: two lines that open on hover and focus. */
+.gk .gk-wtile__next { display: flex; flex-direction: column; gap: 1px; max-height: 0; opacity: 0; transform: translateY(6px); overflow: hidden; color: var(--gk-text); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600;
+  transition: max-height .25s var(--gk-ease), opacity .2s var(--gk-ease), transform .25s var(--gk-ease); }
+.gk .gk-wtile__halves { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--gk-2); }
+.gk .gk-wtile__half { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; min-height: 60px; padding: var(--gk-3) var(--gk-4); border: 1px solid color-mix(in srgb, var(--wt) 34%, var(--gk-line)); border-radius: var(--gk-r);
+  background: color-mix(in srgb, var(--gk-surface) 84%, transparent); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer;
+  transition: background .15s var(--gk-ease), border-color .15s var(--gk-ease), transform .2s var(--gk-ease); }
+.gk .gk-wtile__halflabel { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-xl); font-weight: 650; }
+.gk .gk-wtile__halflabel svg { width: 18px; height: 18px; color: var(--wt); }
+.gk .gk-wtile__half .gk-wtile__next { font-weight: 500; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-wtile__half:hover, .gk .gk-wtile__half:focus-visible { border-color: var(--wt); background: color-mix(in srgb, var(--wt) 16%, var(--gk-surface)); }
+/* With a mouse: the tile under it lifts, the others dim, and it says what happens next. */
+@media (hover: hover) and (min-width: 641px) {
+  .gk .gk-wtiles:has(button.gk-wtile:is(:hover, :focus-visible), .gk-wtile__half:is(:hover, :focus-visible)) .gk-wtile:not(:hover, :focus-visible, :has(:focus-visible)) { opacity: .5; filter: saturate(.5); }
+  .gk button.gk-wtile:is(:hover, :focus-visible), .gk .gk-wtile--play:is(:hover, :has(:focus-visible)) { transform: translateY(-4px); border-color: color-mix(in srgb, var(--wt) 60%, var(--gk-line)); box-shadow: var(--gk-elevation); }
+  .gk .gk-wtile:is(:hover, :focus-visible) .gk-wart { transform: scale(1.04); }
+  .gk button.gk-wtile:is(:hover, :focus-visible) > .gk-wtile__next, .gk .gk-wtile__half:is(:hover, :focus-visible) > .gk-wtile__next { max-height: 72px; opacity: 1; transform: none; }
+  .gk .gk-wtile__half:is(:hover, :focus-visible) { transform: translateY(-2px); }
+}
+/* On a touch screen or a phone the two lines always show, smaller. */
+@media (hover: none), (max-width: 640px) {
+  .gk .gk-wtile__next { max-height: none; opacity: 1; transform: none; color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 500; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gk .gk-wtile, .gk .gk-wart, .gk .gk-wtile__next, .gk .gk-wtile__half { transition: none; }
+  .gk .gk-wtile, .gk .gk-wtile .gk-wart, .gk .gk-wtile__half { transform: none !important; }
+}
+@media (max-width: 640px) {
+  .gk .gk-wtiles { grid-template-columns: minmax(0, 1fr); gap: var(--gk-2); }
+  .gk .gk-wtile { padding: var(--gk-3); }
+  .gk .gk-wtile--large { min-height: 200px; padding: var(--gk-4); }
+  .gk .gk-wtile--medium { min-height: 120px; }
+  .gk .gk-wtile__text strong { font-size: var(--gk-fs-3xl); }
+  .gk .gk-wtile--medium .gk-wtile__text strong { font-size: var(--gk-fs-2xl); }
+  .gk .gk-wtile__halflabel { font-size: var(--gk-fs-lg); }
+  .gk .gk-welcome-dialog .gk-dialog__foot .gk-welcome__follow { flex: 1; }
 }
 
-/* Finish setting up, on Home. */
-.gk.gk-welcome-card { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); }
-.gk .gk-welcome-card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); }
-.gk .gk-welcome-card__head h2 { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; }
-.gk .gk-welcome-card__rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
-.gk .gk-welcome-card__row { display: flex; align-items: center; gap: var(--gk-2); min-height: 44px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); color: var(--gk-text); font-size: var(--gk-fs-sm); font-weight: 600; transition: border-color .15s var(--gk-ease); }
-.gk .gk-welcome-card__row:hover { border-color: var(--gk-line-strong); }
-.gk .gk-welcome-card__row:focus-visible { outline: none; box-shadow: var(--gk-focus); }
-.gk .gk-welcome-card__row > svg { width: 16px; height: 16px; color: var(--gk-text-3); }
-.gk .gk-welcome-card__icon { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .gk-welcome-card__icon svg { width: 15px; height: 15px; }
-.gk .gk-welcome-card__label { flex: 1; min-width: 0; }
+/* Step 2: a field or two, then tiles. */
+.gk .gk-welcome__fields { display: flex; flex-wrap: wrap; gap: var(--gk-3); }
+.gk .gk-welcome__field { display: flex; flex-direction: column; gap: 4px; min-width: 160px; color: var(--gk-text-3); font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .gk-welcome__mark { display: grid; flex: none; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-welcome__mark svg { width: 16px; height: 16px; }
+.gk .gk-welcome-chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-welcome-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: 999px; background: var(--gk-surface); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-welcome-chip[aria-pressed='true'] { border-color: var(--gk-accent); background: var(--gk-accent-soft); }
+.gk .gk-welcome-chip svg { width: 14px; height: 14px; color: var(--gk-accent); }
+.gk .gk-welcome-chip:focus-visible { outline: none; box-shadow: var(--gk-focus); }
+.gk .gk-welcome__switch { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); cursor: pointer; }
+.gk .gk-welcome__switch input { width: 18px; height: 18px; accent-color: var(--gk-accent); }
+.gk .gk-welcome__switch span { display: flex; flex-direction: column; gap: 1px; }
+.gk .gk-welcome__switch small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+/* Work: the listings near the person that match, as the chips are tapped. */
+.gk .gk-wjobs { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-wjobs__count { margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .gk-wjobs__count strong { color: var(--gk-text); font-size: var(--gk-fs-2xl); font-variant-numeric: tabular-nums; margin-right: 2px; }
+.gk .gk-wjobs__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-wjobs__row { display: flex; align-items: center; gap: var(--gk-3); min-height: 52px; padding: var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); }
+.gk .gk-wjobs__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gk .gk-wjobs__text strong { overflow: hidden; font-size: var(--gk-fs-md); text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-wjobs__text small { overflow: hidden; color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-overflow: ellipsis; white-space: nowrap; }

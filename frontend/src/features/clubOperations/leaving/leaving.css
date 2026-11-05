@@ -1,0 +1,37 @@
+/* Leaving a club, handing it over and closing it; one club for staff. Scoped under `.gk .lv-*`; tokens only. */
+.gk .lv-body { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .lv-picks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow-y: auto; }
+.gk .lv-pick { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 48px; padding: var(--gk-2) var(--gk-3); border: 0; border-radius: var(--gk-r); background: transparent; color: var(--gk-text); text-align: left; cursor: pointer; }
+.gk .lv-pick:hover, .gk .lv-pick:focus-visible { background: var(--gk-sunken); }
+.gk .lv-pick > span { display: flex; flex-direction: column; min-width: 0; }
+.gk .lv-pick small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .lv-empty { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+.gk .lv-empty p { margin: 0; }
+.gk .lv-hint { display: flex; align-items: center; gap: var(--gk-2); margin: 0; font-size: var(--gk-fs-sm); }
+.gk .lv-hint svg { width: 16px; height: 16px; flex: none; }
+.gk .lv-kept { margin: 0; padding-left: var(--gk-5); display: flex; flex-direction: column; gap: var(--gk-1); }
+
+/* "You're staff at {club}. Leave {club} first", where a second club's job is refused */
+.gk .lv-other, .gk.lv-other { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-3); }
+
+/* Ownership on People: a handover to answer, a vanished Owner, the reclaim under way */
+.gk .lv-owner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-3); }
+.gk .lv-owner__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 280px; }
+.gk .lv-owner__text small { color: var(--gk-text-2); }
+
+/* Choose your club */
+.gk .lv-choose { max-width: 760px; }
+.gk .lv-clubs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .lv-club { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 64px; padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); text-align: left; cursor: pointer; }
+.gk .lv-club[aria-pressed='true'] { border-color: var(--gk-accent); background: var(--gk-accent-soft); }
+.gk .lv-club__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.gk .lv-club__text small { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .lv-club__ends { color: var(--gk-warning); }
+.gk .lv-choose__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); margin-top: var(--gk-4); }
+
+/* Home's card while a club is to be chosen */
+.gk.lv-card { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); }
+.gk .lv-card__icon { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .lv-card__icon svg { width: 20px; height: 20px; }
+.gk .lv-card__text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 260px; min-width: 0; }
+.gk .lv-card__text small { color: var(--gk-text-2); }

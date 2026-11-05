@@ -54,7 +54,7 @@ export function MyOrganizationsPage() {
   // Every other workspace (squads, tournaments, other clubs, the person's own hubs) once the cards are known, so the
   // account menu's one "Your workspaces" line reaches everything it used to list.
   const listed = new Set([
-    ...(organizations ?? []).flatMap(o => o.clubId ? [`/clubs/${o.clubId}`, `/clubs/${o.clubId}/workspace`] : [`/organizations/${o.id}`, `/organizations/${o.id}/workspace`]),
+    ...(organizations ?? []).flatMap(o => o.clubId ? [`/clubs/${o.clubId}`, `/clubs/${o.clubId}/office`] : [`/organizations/${o.id}`, `/organizations/${o.id}/workspace`]),
     ...(venues.length ? connectedWorkspaces(capabilities).filter(item => item.group === 'Venues').map(item => item.path) : []),
   ]);
   const others = !venuesOnly && (organizations || error !== null) ? workspaceDestinations(capabilities, null, copy).filter(place => !listed.has(place.path)) : [];
@@ -86,7 +86,7 @@ export function MyOrganizationsPage() {
           <p className="mt-3 text-[var(--text-secondary)]">{(organization?.venueCount ?? 0) > 0 ? `${pc('{count} venues listed', { count: organization?.venueCount ?? 0 })} · ` : ''}{pc('Profile, activities and team.')}</p>
           <div className="organization-card-links">
             <Link className="venue-button venue-button--primary" to={organization?.clubId ? `/clubs/${organization.clubId}` : `/organizations/${id}`}>{pc('View profile')}</Link>
-            {organization?.canOpenWorkspace !== false && <Link className="venue-button" to={organization?.clubId ? `/clubs/${organization.clubId}/workspace` : `/organizations/${id}/workspace`}><Settings2 size={16}/>{pc('Open workspace')}</Link>}
+            {organization?.canOpenWorkspace !== false && <Link className="venue-button" to={organization?.clubId ? `/clubs/${organization.clubId}/office` : `/organizations/${id}/workspace`}><Settings2 size={16}/>{organization?.clubId ? copy('Club office', 'კლუბის ოფისი') : pc('Open workspace')}</Link>}
           </div>
         </article>;
       })}

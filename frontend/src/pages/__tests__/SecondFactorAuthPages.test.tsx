@@ -30,6 +30,7 @@ const verify = async () => {
 };
 beforeEach(() => {
     vi.resetAllMocks(); localStorage.clear(); sessionStorage.clear(); clearStoredAuth();
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'synthetic.apps.googleusercontent.com');
     login.mockResolvedValue({ id: 7, profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true, dob: '2000-01-01' });
     vi.mocked(useAuth).mockReturnValue({ loginWithAccessToken: login, isAuthenticated: false } as unknown as ReturnType<typeof useAuth>);
     vi.mocked(apiClient.post).mockImplementation(async (url, body) => {
@@ -47,6 +48,14 @@ it('requires the second factor on the password Login page and retries only the s
     expect(login).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/home'));
 });
+afterEach(() => { vi.unstubAllEnvs(); });
+
+it.each([LoginPage, RegisterPage])('hides Google on the %s page when the web has no Google client ID', Page => {
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '');
+    render(<MemoryRouter><Page /></MemoryRouter>);
+    expect(screen.queryByRole('button', { name: 'Test Google sign-in' })).not.toBeInTheDocument();
+    expect(document.querySelector('form')).toBeInTheDocument();
+});
 
 it.each([LoginPage, RegisterPage])('requires the second factor for Google in the %s page', async Page => {
     render(<MemoryRouter><Page /></MemoryRouter>);
@@ -55,11 +64,11 @@ it.each([LoginPage, RegisterPage])('requires the second factor for Google in the
     expect(apiClient.post).toHaveBeenLastCalledWith('/auth/google', { token: 'synthetic-google-proof', oneTimeCode: '123456' }, expect.anything());
 });
 
-it.each([LoginPage, RegisterPage])('explains the explicit account-linking requirement on the %s page without accepting credentials', async Page => {
+it.each([LoginPage, RegisterPage])('sends an unconfirmed existing account to password sign-in on the %s page without accepting credentials', async Page => {
     vi.mocked(apiClient.post).mockRejectedValue({ response: { status: 409, data: { code: 'provider_link_required' } } });
     render(<MemoryRouter><Page /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Test Google sign-in' }));
-    expect(await screen.findByText('Sign in using your existing method, then open Account → Linked Accounts to connect Google.')).toBeInTheDocument();
+    expect(await screen.findByText('This email already has an account. Sign in with your password and confirm your email; then Google works too.')).toBeInTheDocument();
     expect(login).not.toHaveBeenCalled();
 });
 
@@ -73,26 +82,65 @@ it('handles the existing-account challenge after registration auto-login without
     expect(vi.mocked(apiClient.post).mock.calls.filter(([url]) => url === '/auth/login')).toHaveLength(2);
 });
 
-it('registers without a role, keeps the town for the first run and preserves the email verification step', async () => {
-    vi.mocked(apiClient.post).mockResolvedValue({ data: { emailVerificationRequired: true } });
+it('registers without a role, keeps the town for the welcome and signs in at once, unconfirmed email and all', async () => {
+    vi.mocked(apiClient.post).mockImplementation(async url => ({ data: url === '/auth/register' ? {} : { accessToken: 'verified-token' } }));
     render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(screen.queryByText(/at least 13/)).not.toBeInTheDocument();
     change('auth-name', 'Example Parent'); change('auth-email', 'PARENT@example.test');
     change('auth-password', 'SyntheticPassword1');
     fireEvent.change(document.getElementById('auth-town')!, { target: { value: 'Rustavi' } });
-    change('auth-dob', '2020-01-01'); fireEvent.submit(document.querySelector('form')!);
-    expect(apiClient.post).not.toHaveBeenCalled();
     change('auth-dob', '1990-01-01'); fireEvent.submit(document.querySelector('form')!);
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/verify-email'));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/start'));
     expect(apiClient.post).toHaveBeenCalledWith('/auth/register', expect.objectContaining({
         fullName: 'Example Parent', email: 'parent@example.test', dateOfBirth: '1990-01-01',
     }), expect.anything());
     expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty('town');
     expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty('role');
-    expect(apiClient.post).toHaveBeenCalledTimes(1);
-    expect(login).not.toHaveBeenCalled();
-    expect(getAuthFlow()).toMatchObject({ email: 'parent@example.test', newAccount: true, awaitingVerification: true, town: 'Rustavi' });
-    expect(getAuthFlow().nextPath).toBeUndefined();
+    expect(login).toHaveBeenCalledWith('verified-token');
+    expect(getAuthFlow()).toMatchObject({ email: 'parent@example.test', newAccount: true, town: 'Rustavi' });
+});
+
+it('sends under-13s to a parent, stores nothing, and keeps that answer when an older date is tried next', async () => {
+    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
+    change('auth-name', 'Example Child'); change('auth-email', 'child@example.test');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', `${new Date().getFullYear() - 9}-01-01`);
+    fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByText('Under-13s join through a parent')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send this to my parent' })).toBeInTheDocument();
+    expect(apiClient.post).not.toHaveBeenCalled();
+    const stored = Object.values(localStorage).join(' ');
+    expect(stored).not.toContain('child@example.test');
+    // A fresh form on the same device, now claiming to be an adult: the same answer.
+    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /></MemoryRouter>);
+    const forms = document.querySelectorAll('form');
+    const second = forms[forms.length - 1];
+    const field = (id: string) => second.querySelector(`#${id}`)!;
+    fireEvent.change(field('auth-name'), { target: { value: 'Example Child' } }); fireEvent.change(field('auth-email'), { target: { value: 'child@example.test' } });
+    fireEvent.change(field('auth-password'), { target: { value: 'SyntheticPassword1' } }); fireEvent.change(field('auth-dob'), { target: { value: '1990-01-01' } });
+    fireEvent.submit(second);
+    expect(await screen.findAllByText('Under-13s join through a parent')).toHaveLength(2);
+    expect(apiClient.post).not.toHaveBeenCalled();
+});
+
+it('signs a 13 to 15-year-old up without a parent’s email, then waits for the parent they add by link', async () => {
+    vi.mocked(apiClient.post).mockImplementation(async url => ({ data: url === '/auth/register' ? { accountState: 'AWAITING_PARENT' } : { accessToken: 'verified-token', accountState: 'AWAITING_PARENT' } }));
+    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
+    change('auth-name', 'Example Teen'); change('auth-email', 'teen@example.test');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', `${new Date().getFullYear() - 14}-01-01`);
+    fireEvent.submit(document.querySelector('form')!);
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/waiting-for-parent'));
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/register', expect.not.objectContaining({ parentEmail: expect.anything() }), expect.anything());
+    expect(document.getElementById('auth-parent-email')).toBeNull();
+});
+
+it('shows the parent answer when the server finds the person under 13, and says nothing about a blocked retry', async () => {
+    vi.mocked(apiClient.post).mockRejectedValueOnce({ response: { status: 400, data: { code: 'AGE_BELOW_MINIMUM' } } });
+    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /></MemoryRouter>);
+    change('auth-name', 'Example Person'); change('auth-email', 'person@example.test');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', '1990-01-01');
+    fireEvent.submit(document.querySelector('form')!);
+    expect(await screen.findByText('Under-13s join through a parent')).toBeInTheDocument();
 });
 
 it('signs up with email only: a phone number is not accepted', async () => {
@@ -108,7 +156,7 @@ it.each([
     { nextPath: undefined, expected: '/start', token: 'synthetic-parent-default' },
     { nextPath: '/consent?token=synthetic-consent', expected: '/consent?token=synthetic-consent', token: 'synthetic-parent-consent' },
 ])('keeps a new account’s destination through email verification and login: $expected', async ({ nextPath, expected, token }) => {
-    rememberAuthFlow({ email: 'parent@example.test', newAccount: true, awaitingVerification: true, nextPath });
+    rememberAuthFlow({ email: 'parent@example.test', newAccount: true, nextPath });
     vi.mocked(apiClient.post).mockImplementation(async (url) => url === '/auth/verify-email'
         ? { data: { email: 'parent@example.test' } }
         : { data: { accessToken: 'verified-token' } });
@@ -132,7 +180,7 @@ it.each([
     await waitFor(() => expect(screen.getByTestId('location').textContent).toBe(expected));
     // App consumes this state once the final route renders. Login must retain it
     // through the account-boundary remount (covered in AuthContinuation.test).
-    expect(getAuthFlow()).toMatchObject({ newAccount: true, awaitingVerification: false });
+    expect(getAuthFlow()).toMatchObject({ newAccount: true });
     expect(getAuthFlow().nextPath).toBe(nextPath);
 });
 

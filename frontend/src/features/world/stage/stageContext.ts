@@ -25,10 +25,14 @@ export interface StageMap {
     /** A stated reach drawn as a dashed ring (the chosen referee's area). */ reach?: MapReach;
     /** Room kept free at the top for something floating over the map (the day strip), in pixels. */ insetTop?: number;
     /** The chosen match's away day: a dashed line from the travelling side to the ground. */ away?: MapLine;
+    /** Where the person searches from ("You"), which they can drag; `onMove` gets the new place. */ you?: MapYou;
 }
 
 /** A straight line between two places with its label at the middle ("≈ 10 km") and what the label means ("As the crow flies"). */
 export interface MapLine { from: { lat: number; lng: number; name?: string }; to: { lat: number; lng: number }; label: string; title: string }
+
+/** The person's own place on the map: the town they gave, a place they dragged "You" to, or their device's (never stored). */
+export interface MapYou { lat: number; lng: number; label: string; onMove?: (lat: number, lng: number) => void }
 
 /** A circle of `km` around a place, as someone states it (approximate). */
 export interface MapReach { lat: number; lng: number; km: number; label: string }

@@ -8,11 +8,12 @@ import * as api from '../api';
 import { fetchPage, type Ground, type PageView } from '../../pages/api';
 import * as bookings from '../trainingBookings/api';
 import { fetchVenues } from '../../venues/api';
+import { apiClient } from '../../../api/axiosConfig';
 
 const auth = vi.hoisted(() => ({ user: { id: 7 }, sessionId: 'training-session' }));
 configure({ asyncUtilTimeout: 5000 });
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
-vi.mock('../../../utils/authStorage', () => ({ getAuthSessionId: () => auth.sessionId, isCurrentAuthSession: (id: string) => id === auth.sessionId }));
+vi.mock('../../../utils/authStorage', async original => ({ ...await original<typeof import('../../../utils/authStorage')>(), getAuthSessionId: () => auth.sessionId, isCurrentAuthSession: (id: string) => id === auth.sessionId }));
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('../api', () => ({ sessions: vi.fn(), previewSquadEvent: vi.fn(), createSquadEvent: vi.fn() }));
 vi.mock('../../pages/api', () => ({ fetchPage: vi.fn() }));
@@ -40,6 +41,12 @@ const today = new Date(2026, 9, 21, 10, 0);
 beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(today);
     vi.clearAllMocks(); sessionStorage.clear(); localStorage.clear(); auth.sessionId = 'training-session';
+    // Existing session links now resolve through the current-authority occurrence reader.
+    vi.mocked(apiClient.get).mockImplementation(async url => {
+        if (url === '/match-arrangements/squads/11/sessions/81') throw { response: { status: 404 } };
+        if (url === '/squad-communication/11/events/81') return { data: { session: { id: 81, title: 'Training', starts_at: '2026-10-19T17:00:00Z', ends_at: '2026-10-19T18:00:00Z', status: 'SCHEDULED', attendance: [] }, history: [] } };
+        throw new Error(`Unexpected training setup read: ${url}`);
+    });
     vi.mocked(api.sessions).mockResolvedValue([]);
     vi.mocked(fetchPage).mockResolvedValue(savedPage());
     vi.mocked(api.previewSquadEvent).mockImplementation(async (_id, plan) => ({ occurrences: [{ startsAt: plan.startsAt, endsAt: plan.endsAt }], participantCount: plan.playerIds.length, notificationRecipients: 3, conflictingOccurrences: 0, requestResponses: plan.requestResponses }));
@@ -125,7 +132,7 @@ it.each([
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Close setup' })); });
     expect(currentRoute().pathname).toBe(expected.pathname);
     expect([...currentRoute().searchParams]).toEqual([...expected.searchParams]);
-    expect(screen.getByTestId('calendar-context')).toHaveTextContent('2026-10-19|81');
+    expect(await screen.findByTestId('calendar-context')).toHaveTextContent('2026-10-19|81');
     expect(screen.queryByRole('region', { name: 'Training setup' })).not.toBeInTheDocument();
     expect(api.createSquadEvent).not.toHaveBeenCalled(); expect(api.previewSquadEvent).not.toHaveBeenCalled();
 });
@@ -262,3 +269,4 @@ it('does not send a reviewed reservation after its login retires', async () => {
     await screen.findByText('Your account changed. Reopen the squad.');
     expect(bookings.createTraining).not.toHaveBeenCalled(); expect(api.createSquadEvent).not.toHaveBeenCalled();
 });
+

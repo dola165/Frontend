@@ -3,6 +3,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { spaces, type SquadSpace } from '../../../squadCommunication/api';
 import { clubSquads } from '../../../matchExchange/arrange/api';
 import { ageGroupOf, defaultFormat } from '../../../matchExchange/arrange/matchPlan';
+import { ages } from '../../../matchExchange/api';
 import type { PublicSquad } from '../../../clubs/publicJourney';
 import { useWorldData } from '../../useWorldData';
 import { useWorldSession } from '../../worldSession';
@@ -10,7 +11,13 @@ import type { WorldRole } from '../roles';
 import { shared } from '../../cache';
 
 /** A squad the coach works with, with what World filters by: age group, gender and the format it plays. */
-export interface MySquad { id: number; clubId: number; name: string; ageGroup: string; gender: 'MALE' | 'FEMALE' | 'MIXED' | null; format: string; sideSize: number }
+export interface MySquad { id: number; clubId: number; name: string; ageGroup: string; publishedAgeGroup?: string; gender: 'MALE' | 'FEMALE' | 'MIXED' | null; format: string; sideSize: number }
+
+/** A published category is evidence for discovery; the Arrange draft's SENIOR fallback is not. */
+export const publishedAgeGroup = (category?: string | null) => {
+    const value = category?.trim().toUpperCase();
+    return value && ages.includes(value) ? value : undefined;
+};
 
 /** Youngest first: U8 before U14 before seniors and veterans. */
 const ageRank = (ageGroup: string) => { const under = /^U(\d+)/.exec(ageGroup); return under ? Number(under[1]) : ageGroup === 'SENIOR' ? 100 : 200; };
@@ -23,11 +30,11 @@ const genderOf = (value?: string | null): MySquad['gender'] => value === 'MALE' 
  * Squads from the squad spaces the person manages (or from a whole club's squads), with the gender each club
  * publishes. The format follows the age group (the backend keeps no squad format).
  */
-export function squadsFrom(managed: { id: number; clubId: number; name: string; category: string }[], published: PublicSquad[]): MySquad[] {
+export function squadsFrom(managed: { id: number; clubId: number; name: string; category?: string | null }[], published: PublicSquad[]): MySquad[] {
     const gender = new Map(published.map(squad => [squad.id, genderOf(squad.gender)]));
     return managed.map(squad => {
         const ageGroup = ageGroupOf(squad.category), format = defaultFormat(ageGroup);
-        return { id: squad.id, clubId: squad.clubId, name: squad.name, ageGroup, gender: gender.get(squad.id) ?? null, format, sideSize: sideSizeOf(format) };
+        return { id: squad.id, clubId: squad.clubId, name: squad.name, ageGroup, publishedAgeGroup: publishedAgeGroup(squad.category), gender: gender.get(squad.id) ?? null, format, sideSize: sideSizeOf(format) };
     }).sort((a, b) => ageRank(a.ageGroup) - ageRank(b.ageGroup) || a.name.localeCompare(b.name));
 }
 

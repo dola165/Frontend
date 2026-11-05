@@ -8,9 +8,10 @@
 //   * GET/PUT /users/me/feed-preferences { town: { name, latitude, longitude } | null, topics: Topic[], activity: 'PLAY' | 'COACH' | 'PARENT' | 'WATCH' | null }
 //     Topics: CLUBS | YOUTH | MATCHES | TOURNAMENTS | WOMENS | JOBS | STORE. The town is where the feed is local to.
 //   * POST /feed/events { events: [{ postId, type: SEEN | OPENED | HIDDEN | LESS | UNDO_LESS, at }] } → 202 { accepted }
-//     The server records follows itself. LESS demotes posts on that topic from that author for the person.
+//     The server records follows itself. Kept for later learning; nothing reorders the feed (step 7).
 import * as W from './world.mjs';
 import * as C from './world-club.mjs';
+import { profilePhone } from './profile-phones.mjs';
 
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
 /** A sandbox token in the JWT shape the app reads (`sub` is the account id). */
@@ -39,7 +40,7 @@ export const TOPICS = ['CLUBS', 'YOUTH', 'MATCHES', 'TOURNAMENTS', 'WOMENS', 'JO
 export const ACTIVITIES = ['PLAY', 'COACH', 'PARENT', 'WATCH'];
 export const EVENT_TYPES = ['SEEN', 'OPENED', 'HIDDEN', 'LESS', 'UNDO_LESS', 'FOLLOWED', 'UNFOLLOWED'];
 /** Where people give up creating a page: each step of the funnel, recorded with the feed's events (no post attached). */
-export const FUNNEL_EVENTS = ['PAGE_CREATE_OPENED', 'PAGE_TYPE_CHOSEN', 'PAGE_CREATED', 'PAGE_BOX_FILLED', 'PAGE_LIVE', 'PAGE_SHARED', 'PAGE_CLAIM_STARTED', 'PAGE_CLAIM_FINISHED'];
+export const FUNNEL_EVENTS = ['PAGE_CREATE_OPENED', 'PAGE_TYPE_CHOSEN', 'PAGE_CREATED', 'PAGE_BOX_FILLED', 'PAGE_LIVE', 'PAGE_SHARED'];
 
 // ---------------------------------------------------------------- registered accounts
 export const accounts = new Map(); // id -> account
@@ -52,7 +53,7 @@ export function createAccount({ fullName, email = null, phone = null, password, 
     id, fullName: parts.join(' '), firstName: parts[0], lastName: parts.slice(1).join(' '), email: email ? String(email).trim().toLowerCase() : null,
     phone: phone ? normalizePhone(phone) : null, password, dateOfBirth, createdAt: new Date(),
     preferences: { town: townRecord(town), topics: [], activity: null, updatedAt: null },
-    roles: [], clubFollows: new Set(), demoted: new Set(), events: [],
+    roles: [], clubFollows: new Set(), events: [],
   };
   accounts.set(id, account);
   return account;
@@ -72,6 +73,19 @@ const tokenViewer = headers => {
 /** The person a request is for: a registered account's token or cookie, else coach Luka. */
 export const viewerId = headers => { const id = tokenViewer(headers) ?? cookieViewer(headers); return id != null && accounts.has(id) ? id : W.ME_ID; };
 export const isNewcomer = headers => viewerId(headers) !== W.ME_ID;
+/**
+ * Sandbox personas, all still Luka's account with other club access (set by /__mode/… on the server): `analyst` (a
+ * few tools, two read-only), `member` (membership, no job), `headcoach` (head coach of U14 and U16, not an admin) and
+ * `physio` (one job with only the medical tools, no membership) and `attendance` (a Custom job with only Attendance,
+ * no membership); for Projects (handlers/projects.mjs) `commercial`, `facilities`, `projectcoach` and `kitparent`; for
+ * step 6 `referee`, Luka refereeing with no club access (My matches).
+ * Home (world-home.mjs) `media`, the media officer, who posts as the club and is otherwise the equipment manager.
+ * None: the Owner and head coach.
+ */
+export const PERSONAS = ['analyst', 'member', 'headcoach', 'physio', 'attendance', 'teammanager', 'gkcoach', 'headofcoaching', 'kit', 'helper', 'commercial', 'facilities', 'projectcoach', 'kitparent', 'referee', 'media'];
+export const personaOf = headers => { const found = /(?:^|;\s*)gk-sandbox-persona=([a-z]+)(?:;|$)/.exec(String(headers?.cookie ?? ''))?.[1]; return PERSONAS.includes(found) ? found : null; };
+/** Not the club's Owner or an Admin: every persona. */
+export const restrictedPersona = headers => personaOf(headers) !== null;
 
 /** The `/users/me` projection of a registered account: nobody has confirmed a link yet, so no workspaces. */
 export const accountProjection = a => ({
@@ -90,6 +104,8 @@ export const accountProfile = (a, viewer) => ({
   heightCm: null, weightKg: null, followerCount: 0, followingCount: 0, isFollowedByMe: false, careerHistory: [], avatarUrl: null, bannerUrl: null,
   dateOfBirth: viewer === a.id ? a.dateOfBirth : null, isPrivate: false, roleProfiles: a.roles.filter(r => r.published || viewer === a.id),
   footballProfile: { roles: a.roles.map(r => r.role), appointments: [], entries: [] },
+  // The phone added for colleagues, to the person only; never the phone they signed up with.
+  phone: viewer === a.id ? profilePhone(a.id) : null,
 });
 
 // ---------------------------------------------------------------- what the feed knows about a person
@@ -97,9 +113,6 @@ const lukaPreferences = { town: townRecord('Tbilisi'), topics: [], activity: 'CO
 export const preferencesOf = id => id === W.ME_ID ? lukaPreferences : account(id)?.preferences ?? null;
 /** Clubs a person follows: Luka's live in the club domain, a registered account's on the account. */
 export const clubFollowsOf = id => id === W.ME_ID ? C.followed : account(id)?.clubFollows ?? new Set();
-const lukaDemoted = new Set();
-/** `${author}:${topic}` pairs the person asked to see less of. */
-export const demotedOf = id => id === W.ME_ID ? lukaDemoted : account(id)?.demoted ?? new Set();
 const lukaEvents = [];
 /** Everything recorded for the learning algorithm later: what the person saw, opened, hid and followed. */
 export const eventsOf = id => id === W.ME_ID ? lukaEvents : account(id)?.events ?? [];

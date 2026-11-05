@@ -1,0 +1,5 @@
+/* A link to share: QR code beside the address and Copy · WhatsApp · Print. Scoped under `.gk .gk-share`; tokens only. */
+.gk .gk-share { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3); }
+.gk .gk-share__qr { flex: none; line-height: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r); overflow: hidden; }
+.gk .gk-share__actions { display: flex; flex: 1 1 240px; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .gk-share__buttons { display: flex; flex-wrap: wrap; gap: var(--gk-2); }

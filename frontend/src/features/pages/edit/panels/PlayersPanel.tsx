@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../../components/auth/emailConfirmationPrompt';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Copy, MessageCircle, Users } from 'lucide-react';
@@ -37,7 +38,7 @@ export function PlayersPanel() {
     const target = { type: refType, id: refId };
     ensureJoinLinks(target, controller.signal).then(updated => { if (!controller.signal.aborted) replace(updated); return fetchArrivals(target, controller.signal); })
       .then(list => { if (!controller.signal.aborted) { setArrivals(list); setFailed(''); } })
-      .catch(failure => { if (!controller.signal.aborted) setFailed(extractApiErrorMessage(failure, t('Could not load joining requests. Try again.'))); });
+      .catch(failure => { if (!controller.signal.aborted && !promptEmailConfirmation(failure)) setFailed(extractApiErrorMessage(failure, t('Could not load joining requests. Try again.'))); });
     return () => controller.abort();
   }, [refType, refId, status, replace, reload, t]);
   useGuideTask('players', {
@@ -84,7 +85,7 @@ export function PlayersPanel() {
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void decide(arrival, 'DECLINE')}>{t('Decline')}</Button>
           </li>
         ))}</List>}
-        {arrivals && page.boxes.players.waiting > arrivals.length && <ButtonLink size="sm" to={`/clubs/${page.clubId}/workspace?tab=admissions`}>{t('View all joining requests')}</ButtonLink>}
+        {arrivals && page.boxes.players.waiting > arrivals.length && <ButtonLink size="sm" to={`/clubs/${page.clubId}/office?tab=tools&tool=admissions`}>{t('View all joining requests')}</ButtonLink>}
       </div> : undefined}>
       {squads.length === 0
         ? <EmptyNote title={t('Add your teams first')} action={<Button size="sm" variant="primary" onClick={() => openPanel('squads')}>{t('Which teams?')}</Button>}>{t('Each team gets its own join link.')}</EmptyNote>
@@ -97,7 +98,7 @@ export function PlayersPanel() {
                 {links[squad.id] && !failed && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`https://wa.me/?text=${encodeURIComponent(t('Add your child to {squad} at {page}: {url}', { squad: squad.name, page: page.identity.name, url: url(squad.id) }))}`} target="_blank" rel="noopener noreferrer" onClick={() => void shared()}><MessageCircle aria-hidden="true" />WhatsApp</a>}
               </span>} />
           ))}</List>
-          {page.clubId && <ButtonLink variant="ghost" to={`/clubs/${page.clubId}/squads${current ? `?squad=${current.id}` : ''}`}>{t('Manage squad roster')}</ButtonLink>}
+          {page.clubId && <ButtonLink variant="ghost" to={`/clubs/${page.clubId}?tab=teams${current ? `&squad=${current.id}` : ''}`}>{t('Manage squad roster')}</ButtonLink>}
         </div>}
     </SplitPanel>
   );

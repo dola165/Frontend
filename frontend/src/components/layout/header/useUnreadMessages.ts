@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { chatApi } from '../../../api/chat';
 import { useAuth } from '../../../context/AuthContext';
+import { subscribeNotificationsChanged } from '../../../utils/notifications';
 
 /**
  * Conversations with unread messages, from the first page of the conversation list (most recent first).
- * Refreshes every minute while visible, when the person returns to the app, and on entering or leaving
- * Messages (where reading a thread clears it), rather than on every page change.
+ * Refreshes every minute while visible, when the person returns to the app, on entering or leaving
+ * Messages (where reading a thread clears it), and as soon as a chat is read anywhere, rather than on every page change.
  */
 export function useUnreadMessages(): number | null {
     const { sessionId } = useAuth();
@@ -20,7 +21,8 @@ export function useUnreadMessages(): number | null {
         const refresh = () => setRevision(value => value + 1);
         const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 60_000);
         window.addEventListener('focus', refresh);
-        return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+        const stop = subscribeNotificationsChanged(change => { if (change?.chatRead) refresh(); });
+        return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); stop(); };
     }, []);
 
     useEffect(() => {

@@ -13,10 +13,8 @@ import {
 import type { TournamentDetail, TournamentFixtureDto } from "../domain";
 import { distinctParticipantNames } from "../participantLabels";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { TournamentFixtureReferees } from "./TournamentFixtureReferees";
 import { VenueReservationSummary } from '../../eventVenues/VenueReservationSummary';
-import { ExtensionSurface } from '../../capabilities/ExtensionBoundary';
-import { isExtensionCapabilityAvailable } from '../../capabilities/extensions';
+import { ScoreInputs } from '../../scores/ScoreInputs';
 
 interface Props {
   tournament: TournamentDetail;
@@ -150,45 +148,24 @@ export function TournamentMatchDialog({
             {notice}
           </p>
         )}
-        <div className="tw-score-inputs">
-          <label>
-            {homeLabel}
-            <input
-              aria-label={copy("Home score", "მასპინძლის ანგარიში")}
-              type="number"
-              min={0}
-              max={999}
-              step={1}
-              value={home}
-              onChange={(e) => setHome(e.target.value)}
-              disabled={
-                busy ||
-                !canScore ||
-                !scoringOpen ||
-                fixture.status === "CANCELLED" ||
-                fixture.homeEntryId == null
-              }
-            />
-          </label>
-          <label>
-            {awayLabel}
-            <input
-              aria-label={copy("Away score", "სტუმრის ანგარიში")}
-              type="number"
-              min={0}
-              max={999}
-              step={1}
-              value={away}
-              onChange={(e) => setAway(e.target.value)}
-              disabled={
-                busy ||
-                !canScore ||
-                !scoringOpen ||
-                fixture.status === "CANCELLED" ||
-                fixture.awayEntryId == null
-              }
-            />
-          </label>
+        <div className="gk">
+          <ScoreInputs
+            home={{ name: homeLabel }}
+            away={{ name: awayLabel }}
+            value={{ home, away }}
+            onChange={(value) => {
+              setHome(value.home);
+              setAway(value.away);
+            }}
+            disabled={
+              busy ||
+              !canScore ||
+              !scoringOpen ||
+              fixture.status === "CANCELLED" ||
+              fixture.homeEntryId == null ||
+              fixture.awayEntryId == null
+            }
+          />
         </div>
         {tied &&
           knockout &&
@@ -258,10 +235,7 @@ export function TournamentMatchDialog({
           </div>
         )}
         <VenueReservationSummary value={fixture.venueReservation}/>
-        <ExtensionSurface capability="tournamentRefereeManagement"><TournamentFixtureReferees key={`${fixture.id}:${fixture.scheduledAt}:${fixture.status}:${fixture.locationId}`}
-          tournamentId={tournament.id} fixtureId={fixture.id} canManage={canManage} scheduledAt={fixture.scheduledAt}
-          open={fixture.status === "SCHEDULED" && ["PLANNING", "ACTIVE"].includes(tournament.status)} /></ExtensionSurface>
-        {canManage && isExtensionCapabilityAvailable('eventVenueAttachment') && <a className="tw-button" href={`/event-venues?type=TOURNAMENT_FIXTURE&id=${fixture.id}`} target="_blank" rel="noopener noreferrer">{copy('Stadium reservation', 'სტადიონის დაჯავშნა')} ↗</a>}
+
         {canManage &&
           ["PLANNING", "ACTIVE"].includes(tournament.status) &&
           fixture.status === "SCHEDULED" &&

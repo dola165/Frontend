@@ -1,6 +1,6 @@
 import { usePagesCopy } from '../../pages/copy';
 import { useSearchParams } from 'react-router-dom';
-import { Globe2, Instagram, Mail, MapPin, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
+import { Facebook, Globe2, Instagram, Mail, MapPin, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
 import { Badge, ButtonLink, List, ListRow, Panel, Section } from '../../../design/primitives';
 import { safePublicUrl } from '../presentation';
 import { summarizeClubTrust, toPhoneHref, toWhatsappHref } from '../../../components/club/clubProfileInfo';
@@ -17,9 +17,12 @@ export function ClubContactTab({ club }: { club: ClubProfile }) {
     const page = usePageEditIfAny()?.page ?? null;
     const number = page ? page.identity.contact.phone : club.whatsappNumber, email = page ? page.identity.contact.email : club.email;
     const phone = toPhoneHref(number), whatsapp = toWhatsappHref(number);
+    // The links typed in the page's Contact box, the same the server keeps for the club (http(s) only).
+    const social = page?.identity.social;
     const links = [
-        { href: safePublicUrl(club.websiteUrl), label: 'Website', icon: Globe2 },
-        { href: safePublicUrl(club.instagramUrl), label: 'Instagram', icon: Instagram },
+        { href: safePublicUrl(social ? social.website : club.websiteUrl), label: 'Website', icon: Globe2 },
+        { href: social ? social.instagram ? safePublicUrl(`https://www.instagram.com/${encodeURIComponent(social.instagram)}`) : undefined : safePublicUrl(club.instagramUrl), label: 'Instagram', icon: Instagram },
+        { href: safePublicUrl(social ? social.facebook : club.facebookUrl), label: 'Facebook', icon: Facebook },
         { href: safePublicUrl(club.facebookMessengerUrl), label: 'Messenger', icon: MessageCircle },
         ...club.opportunities.filter(o => safePublicUrl(o.externalLink)).slice(0, 4).map(o => ({ href: safePublicUrl(o.externalLink), label: o.type === 'FUNDRAISING' ? 'Fundraising' : o.type === 'JOB' ? 'Jobs' : 'Volunteer', icon: Globe2 })),
     ].filter((link): link is { href: string; label: string; icon: typeof Globe2 } => Boolean(link.href));

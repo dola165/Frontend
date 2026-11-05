@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -61,7 +62,7 @@ function Inbox({ target, standalone, onAccepted }: { target: string; standalone:
         onAccepted?.();
         await refreshNavigationCapabilities().catch(() => { if (current()) setError('Invitation accepted. Reload to refresh your navigation.'); });
       }
-    } catch (failure) { if (current()) setError(extractApiErrorMessage(failure, '') || 'Could not respond to this invitation.'); }
+    } catch (failure) { if (current() && !promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, '') || 'Could not respond to this invitation.'); }
     finally { submitting.current = false; if (current()) { setBusy(false); setAttempt(v => v + 1); } }
   }
   const failure = error || (loaded ? result?.error ?? '' : '');

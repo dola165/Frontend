@@ -48,5 +48,7 @@ export function useProfileImageControls<K extends ImageKind>({ enabled, scope, i
             aspectRatio={editor.source.type === 'banner' ? 3 : 1} roundPreview={editor.source.type === 'avatar'}
             onClose={editor.close} onCropComplete={editor.save} isProcessing={!!busy} error={editor.error} />}
     </>;
-    return { coverAction, imageAction, dialogs };
+    // Open the pickers from another place on the page (an empty photo or cover); the actions above must be on the page.
+    const pickImage = () => imageInput.current?.click(), pickCover = () => coverInput.current?.click();
+    return { coverAction, imageAction, dialogs, pickImage, pickCover, busy };
 }

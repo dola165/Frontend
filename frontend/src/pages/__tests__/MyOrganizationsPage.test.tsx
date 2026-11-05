@@ -74,7 +74,7 @@ it.each(['DRAFT', 'LIVE'])('returns all owned page kinds with their %s state and
     const profile = item.clubId ? `/clubs/${item.clubId}` : `/organizations/${item.id}`;
     expect(card.getByText(status === 'DRAFT' ? 'Draft' : 'Live')).toBeInTheDocument();
     expect(card.getByRole('link', { name: 'View profile' })).toHaveAttribute('href', profile);
-    expect(card.getByRole('link', { name: 'Open workspace' })).toHaveAttribute('href', `${profile}/workspace`);
+    expect(card.getByRole('link', { name: item.clubId ? 'Club office' : 'Open workspace' })).toHaveAttribute('href', item.clubId ? `${profile}/office` : `${profile}/workspace`);
   }
   expect(screen.queryByText('FC Dinamo Tbilisi Academy')).not.toBeInTheDocument();
 });
@@ -83,7 +83,7 @@ it('keeps legacy club and other organization links without inventing a publicati
   reply([row(901, 'Legacy club', { clubId: 1, kinds: ['CLUB', 'VENUE'], venueCount: 2 }), row(54, 'Legacy organizer', { organizationType: 'OTHER' })]);
   render(tree());
   const cards = await screen.findAllByRole('article');
-  expect(within(cards[0]).getByRole('link', { name: 'Open workspace' })).toHaveAttribute('href', '/clubs/1/workspace');
+  expect(within(cards[0]).getByRole('link', { name: 'Club office' })).toHaveAttribute('href', '/clubs/1/office');
   expect(within(cards[0]).getByText(/2 venues listed/)).toBeInTheDocument();
   expect(within(cards[1]).getByRole('link', { name: 'View profile' })).toHaveAttribute('href', '/organizations/54');
   expect(within(cards[1]).getByRole('link', { name: 'Open workspace' })).toHaveAttribute('href', '/organizations/54/workspace');

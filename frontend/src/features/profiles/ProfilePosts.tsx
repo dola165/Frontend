@@ -31,7 +31,7 @@ export function ProfilePosts({ feed, composer, empty, preview }: {
                 onLikeToggle={feed.toggleLike} onReactionChange={feed.changeReaction}
                 onToggleComments={feed.toggleComments} onSubmitComment={feed.submitComment}
                 pendingLikes={feed.pendingLikes} likeErrors={feed.likeErrors} commentsErrors={feed.commentsErrors}
-                onRetryComments={postId => void feed.loadComments(postId, true)}
+                onRetryComments={postId => feed.loadComments(postId, true)}
                 onSelectPost={post => feed.open(post)} />}
             {preview && more && <ButtonLink className="gk-profile-posts__all" to={preview.allTo}>{preview.allLabel ?? copy('See all posts', 'ყველა პოსტის ნახვა')}</ButtonLink>}
             {!preview && !pages.loading && (pages.hasNewer || pages.hasOlder) && <nav className="gk-profile-posts__pages" aria-label={copy('Post pages', 'პოსტების გვერდები')}>
@@ -46,7 +46,7 @@ export function ProfilePosts({ feed, composer, empty, preview }: {
                 likeError={feed.selected ? feed.likeErrors[feed.selected.id] : null}
                 commentsLoading={feed.selected ? feed.commentsLoading[feed.selected.id] === true : false}
                 commentsError={feed.selected ? feed.commentsErrors[feed.selected.id] : null}
-                onRetryComments={postId => void feed.loadComments(postId, true)} />
+                onRetryComments={postId => feed.loadComments(postId, true)} />
         </div>
     );
 }

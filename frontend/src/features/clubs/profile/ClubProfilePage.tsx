@@ -1,19 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Camera, MapPin, ShieldCheck } from 'lucide-react';
-import { toast } from 'sonner';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, GkRoot, PageFrame, Panel, Skeleton } from '../../../design/primitives';
+import { LinkedText } from '../../../design/LinkedText';
 import { ProfileLayout } from '../../../design/profile/ProfileLayout';
-import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { ClubManagementModal, type ClubManagementTab } from '../../../components/club/ClubManagementModal';
 import { ClubEnquiryModal } from '../../../components/club/ClubEnquiryModal';
-import { buildLoginRedirectPath } from '../../../utils/authRedirect';
-import { extractApiErrorMessage } from '../../../utils/apiError';
-import { playerPath, positivePlayerId } from '../../parents/playerSelection';
 import { ProfileMediaTab } from '../../profiles/ProfileMediaTab';
 import { useProfileImageControls } from '../../profiles/useProfileImageControls';
-import { dissolveClub } from '../api';
 import { clubRoleLabel } from '../domain';
 import { profileKindLabel } from '../presentation';
 import { ClubAboutTab } from './ClubAboutTab';
@@ -22,6 +17,8 @@ import { ClubContactTab } from './ClubInfoTabs';
 import { ClubFacilitiesTab } from './ClubFacilitiesTab';
 import { ClubInfo } from './ClubInfo';
 import { ClubInvolvedTab } from './ClubInvolvedTab';
+import { ClubJoinDialog } from './join/ClubJoinDialog';
+import { joinPartFrom, type JoinPart } from './join/joinFit';
 import { ClubPeopleTab } from './ClubPeopleTab';
 import { ClubPostsTab } from './ClubPostsTab';
 import { ClubSide } from './ClubSide';
@@ -41,7 +38,7 @@ import { RearrangeFrame } from '../../pages/edit/Rearrange';
 import { usePageEdit } from '../../pages/edit/context';
 import './club-profile.css';
 
-const managementTabs: ClubManagementTab[] = ['personnel', 'players', 'invites', 'applications', 'roles', 'squads', 'tryouts'];
+const managementTabs: ClubManagementTab[] = ['personnel', 'players', 'invites', 'applications', 'squads', 'tryouts'];
 const managementTabFrom = (value: string | null) => managementTabs.find(tab => tab === value) ?? null;
 
 /** A club's public page: its posts first, then its photos, story, squads, people, places and ways to get involved. */
@@ -56,33 +53,27 @@ export function ClubProfilePage() {
 
 function ClubProfileView({ id }: { id: number }) {
     const navigate = useNavigate();
-    const location = useLocation();
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
-    const { club, loading, failed, permissions: can, refresh, toggleFollow, leftClub, updateImage, forgetMembership } = useClubProfile(id);
+    const { club, loading, failed, permissions: can, refresh, followChanged, leftClub, updateImage } = useClubProfile(id);
     // The page under edit (identity, boxes, layout): absent on a backend without pages, and then nothing here changes.
     const edit = usePageEdit();
     const pt = usePagesCopy();
     const page = edit.page, editing = edit.editing;
     const [enquiry, setEnquiry] = useClubEnquiry(club);
-    const [notice, setNotice] = useState('');
     const [squadsRevision, setSquadsRevision] = useState(0);
     // Edits go to the page; the club record, its squads and its posts are read again the moment edit mode or the
     // share card closes, so Done shows the page exactly as visitors now see it, with no reload.
     const [postsRevision, setPostsRevision] = useState(0);
-    const shown = useRef({ editing, live: edit.panel === 'live' });
-    useEffect(() => {
-        const before = shown.current;
-        shown.current = { editing, live: edit.panel === 'live' };
-        if (!(before.editing && !editing) && !(before.live && edit.panel !== 'live')) return;
-        refresh(); setSquadsRevision(value => value + 1); setPostsRevision(value => value + 1);
-    }, [editing, edit.panel, refresh]);
-    const [dissolveOpen, setDissolveOpen] = useState(false);
-    const [dissolving, setDissolving] = useState(false);
+    const live = edit.panel === 'live';
+    const [shown, setShown] = useState({ editing, live });
+    if (shown.editing !== editing || shown.live !== live) {
+        setShown({ editing, live });
+        if ((shown.editing && !editing) || (shown.live && !live)) { refresh(); setSquadsRevision(value => value + 1); setPostsRevision(value => value + 1); }
+    }
     const images = useProfileImageControls({ enabled: can.isLeader, scope: `club:${id}`, imageKind: 'logo', hasCover: Boolean(club?.bannerUrl), onSave: updateImage });
     const tab = clubTabFrom(params.get('tab'));
     const managing = params.get('manageClub') === '1' && can.canManage;
-    const player = positivePlayerId(params.get('player'));
 
     const setTab = (next: ClubTab) => {
         const query = new URLSearchParams(params);
@@ -97,25 +88,22 @@ function ClubProfileView({ id }: { id: number }) {
         if (open && managementTab) query.set('managementTab', managementTab); else query.delete('managementTab');
         return query;
     }, { replace: true });
-    const follow = async () => {
-        if (status !== 'authenticated') return navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
-        setNotice('');
-        try { await toggleFollow(); } catch (error) { setNotice(extractApiErrorMessage(error, 'Following could not be saved. Please try again.')); }
-    };
-    const join = () => navigate(playerPath(`/clubs/${id}?tab=teams`, player));
+    // Join opens the pop-up over the page; the part shown is in the address (`join=play|child|help`, `1` to let it choose).
+    // Once Join was offered here it stays open after a request goes through (the person's standing changes under it).
+    const [joinOffered, setJoinOffered] = useState(false);
+    if (can.canJoin && !joinOffered) setJoinOffered(true);
+    const joining = params.has('join') && joinOffered;
+    const setJoin = (part: JoinPart | '1' | null, push = false, player?: number) => setParams(current => {
+        const query = new URLSearchParams(current);
+        if (part) query.set('join', part); else query.delete('join');
+        if (player) query.set('player', String(player));
+        return query;
+    }, { replace: !push });
+    // Opened here, closing goes back over its own step, so Back never shows the same page twice.
+    const joinOpenedHere = useRef(false);
+    const join = () => { joinOpenedHere.current = true; setJoin('1', true); };
+    const closeJoin = () => { if (joinOpenedHere.current) { joinOpenedHere.current = false; navigate(-1); } else setJoin(null); };
     const message = () => { if (club) setEnquiry({ name: club.name, path: `/clubs/${club.id}?tab=teams`, squadIds: [] }); };
-    const dissolve = async () => {
-        if (!club || dissolving) return;
-        setDissolving(true);
-        try {
-            await dissolveClub(club.id);
-            setDissolveOpen(false);
-            forgetMembership();
-            toast.success('Club dissolved');
-            navigate('/world/clubs', { replace: true });
-        } catch (error) { toast.error(extractApiErrorMessage(error, 'The club could not be dissolved.')); }
-        finally { setDissolving(false); }
-    };
 
     if ((loading && !club) || (edit.loading && !page && !edit.notFound)) return <ClubLoading />;
     if (!club) return <ClubUnavailable failed={failed} onRetry={refresh} />;
@@ -124,6 +112,8 @@ function ClubProfileView({ id }: { id: number }) {
     // The academy and its club point at each other right under the name, not at the bottom of the page.
     const linked = club.presentation?.affiliations.find(a => a.status === 'ACTIVE');
     const place = club.addressText || [club.cityName, club.countryName].filter(Boolean).join(', ');
+    // The one-line About shows its web addresses as links, like the story.
+    const about = page?.identity.about || club.description || '';
     return <>
         <RearrangeFrame><ProfileLayout className="gk-club-page"
             identity={{
@@ -137,17 +127,17 @@ function ClubProfileView({ id }: { id: number }) {
                     <><strong>{club.followerCount.toLocaleString()}</strong>{pt(club.followerCount === 1 ? 'follower' : 'followers')}</>,
                     <><strong>{club.memberCount.toLocaleString()}</strong>{pt(club.memberCount === 1 ? 'member' : 'members')}</>,
                 ],
-                summary: page?.identity.about || club.description || undefined,
+                summary: about ? <LinkedText text={about} /> : undefined,
             }}
             banner={page ? page.identity.cover?.url ?? null : club.bannerUrl}
             bannerAction={editing ? <Button size="sm" onClick={() => edit.openPanel('cover')}><Camera aria-hidden="true" />{page?.identity.cover ? pt('Change cover') : pt('Add cover')}</Button> : images.coverAction}
             imageAction={editing ? <Button size="sm" iconOnly data-step="crest" aria-label={pt('Change crest')} onClick={() => edit.openPanel('crest')}><Camera aria-hidden="true" /></Button> : images.imageAction}
-            actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
-            notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}<EditBar /></>}
+            actions={page?.status === 'DRAFT' ? undefined : <ClubActions club={club} can={can} onFollowChange={followChanged} onJoin={join} onMessage={message} />}
+            notice={<>{images.dialogs}<EditBar /></>}
             tabs={clubTabs.map(item => ({ ...item, label: typeof item.label === 'string' ? pt(item.label) : item.label }))} tab={tab} onTab={setTab} tabsLabel={pt('Club sections')}
             sideLeft={editing ? <PageColumn column="left" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : tab === 'involved' && isWide(params) ? undefined : <ClubInfo club={club} tab={tab} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLeftLabel={pt('Club information')}
             side={editing ? <PageColumn column="right" renderers={clubBoxes} shownInMain={boxesShownBy[tab]} /> : <ClubSide club={club} canEdit={can.canManage && (page ? edit.canEdit : true)} />} sideLabel={pt('Get involved')}>
-            {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} can={can} crestUrl={page?.identity.crest.url} />}
+            {tab === 'posts' && <ClubPostsTab key={postsRevision} club={club} crestUrl={page?.identity.crest.url} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
             {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} canManage={can.canManage} />}
@@ -158,16 +148,12 @@ function ClubProfileView({ id }: { id: number }) {
         </ProfileLayout></RearrangeFrame>
         <PagePanels />
 
-        {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))} onClose={() => setManaging(false)}
-            onDissolveClub={can.own && can.role === 'OWNER' ? () => { setManaging(false); setDissolveOpen(true); } : undefined}
-            onSquadCreated={() => setSquadsRevision(value => value + 1)}
+        {managing && <ClubManagementModal clubId={club.id} clubName={club.name} currentRole={can.role} initialTab={managementTabFrom(params.get('managementTab'))} onClose={() => setManaging(false)}            onSquadCreated={() => setSquadsRevision(value => value + 1)}
             onDataChanged={() => { refresh(); setSquadsRevision(value => value + 1); }}
             onMembershipLeft={async () => { setManaging(false); await leftClub(); setSquadsRevision(value => value + 1); }} />}
+        {joining && <ClubJoinDialog club={club} part={joinPartFrom(params.get('join'))} onPart={setJoin} onClose={closeJoin}
+            onContact={(context, player) => { joinOpenedHere.current = false; setJoin(null, false, player); setEnquiry(context); }} onChanged={refresh} />}
         {enquiry && <ClubEnquiryModal key={`${club.id}:${sessionId}:${enquiry.path}`} clubId={club.id} clubName={club.name} context={enquiry} onClose={() => setEnquiry(null)} />}
-        <ConfirmDialog open={dissolveOpen} variant="danger" title="Dissolve this club?"
-            message="Dissolving is permanent. Club memberships end, pending invitations and applications close, and recruitment stops. Accounts and club history are preserved. Members and followers will be notified. Finish or cancel tournaments the club hosts or organizes, and withdraw its unfinished entries before continuing."
-            confirmLabel={dissolving ? 'Dissolving…' : 'Dissolve club'} onConfirm={() => void dissolve()}
-            onCancel={() => { if (dissolving) return; setDissolveOpen(false); }} />
     </>;
 }
 

@@ -16,6 +16,6 @@ it('connects an old decision notice to the current applicant-owned receipt', asy
 });
 it('uses the authorized staff destination for withdrawal instead of another person’s private receipt', () => {
   render(<MemoryRouter><TryoutNotificationReceipt notification={{ ...notice, type: 'TRYOUT_APPLICATION_WITHDRAWN', scope: 'CLUB', clubId: 1, linkPath: '/clubs/1/workspace?tab=tryouts&applicationId=33' }} /></MemoryRouter>);
-  expect(screen.getByRole('link', { name: 'Review current club application' })).toHaveAttribute('href', '/clubs/1/workspace?tab=tryouts&applicationId=33');
+  expect(screen.getByRole('link', { name: 'Review current club application' })).toHaveAttribute('href', '/clubs/1/office?tab=tools&tool=tryouts&applicationId=33');
   expect(apiClient.get).not.toHaveBeenCalled();
 });

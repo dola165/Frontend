@@ -23,10 +23,10 @@ describe("LeftSidebar", () => {
       { id: 'agent.hub', context: { type: 'user', id: 9, label: 'Agent' } },
     ] }, 9);
     render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: 'Alex Morgan', navigationCapabilities: caps }} /></MemoryRouter>);
-    // Someone without a page of their own is offered one; My Schedule came back to Home's rail (owner, 10 October).
+    // Someone without a page of their own is offered one; My schedule left Home's rail, it is pinned instead (owner, 27 October).
     // The workspace row opens the first workspace; Joining football left the rail (owner, 21 October).
     expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([
-      '/profile/9', '/referees/me', '/?create=any&from=home', '/referees/me', '/agent', '/calendar?scope=personal',
+      '/profile/9', '/referees/me', '/?create=any&from=home', '/referees/me', '/agent',
     ]);
     expect(screen.getByRole('button', { name: 'Switch workspace' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('link', { name: /My squads/ })).not.toBeInTheDocument();
@@ -36,7 +36,7 @@ describe("LeftSidebar", () => {
     render(<MemoryRouter><LeftSidebar user={{id:9,navigationCapabilities:{version:1,workspaces:[{id:'club.family',context:{type:'club',id:21,label:'Academy'}}]}}}/></MemoryRouter>);
     expect(screen.getAllByRole('link',{name:/Parent Hub/}).map(link=>link.getAttribute('href'))).toEqual(['/parent','/parent']);
     expect(screen.queryByRole('button',{name:'Switch workspace'})).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link').some(link=>link.getAttribute('href')==='/clubs/21/workspace')).toBe(false);
+    expect(screen.getAllByRole('link').some(link=>/^\/clubs\/21/.test(link.getAttribute('href') ?? ''))).toBe(false);
   });
   it('removes squads when current access is revoked', () => {
     const venue = { id: 'venue.workspace', context: { type: 'organization', id: 133, label: 'Sports Park' } };
@@ -49,14 +49,14 @@ describe("LeftSidebar", () => {
 
   it('keeps general navigation on old responses without deriving workspaces from labels', () => {
     render(<MemoryRouter><LeftSidebar user={{ id: 9 }} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: /My squads/ })).toHaveAttribute('href', '/squads');
+    expect(screen.getByRole('link', { name: /My squads/ })).toHaveAttribute('href', '/my-squads');
     expect(screen.queryByRole('link', { name: 'Referee workspace' })).not.toBeInTheDocument();
     // Unknown links are never shown as "no links": Explore waits for the server's answer.
     expect(screen.queryByRole('button', { name: /Following/ })).not.toBeInTheDocument();
   });
   it.each([
-    { language: 'en', profile: 'Alex Morgan. View your profile', following: 'Following. People you keep up with', clubs: 'Followed clubs. Clubs you keep up with', schedule: 'My schedule. Your personal calendar' },
-    { language: 'ka', profile: 'Alex Morgan. პროფილის ნახვა', following: 'გამოწერილი. ადამიანები, ვისაც ადევნებთ თვალს', clubs: 'გამოწერილი კლუბები. კლუბები, რომლებსაც ადევნებთ თვალს', schedule: 'ჩემი განრიგი. თქვენი პირადი კალენდარი' },
+    { language: 'en', profile: 'Alex Morgan. View your profile', following: 'Following. People you keep up with', clubs: 'Followed clubs. Clubs you keep up with', schedule: 'My schedule' },
+    { language: 'ka', profile: 'Alex Morgan. პროფილის ნახვა', following: 'გამოწერილი. ადამიანები, ვისაც ადევნებთ თვალს', clubs: 'გამოწერილი კლუბები. კლუბები, რომლებსაც ადევნებთ თვალს', schedule: 'ჩემი განრიგი' },
   ])("offers Following in $language to someone nobody has linked yet, while other shortcuts remain navigation links", async ({ language, profile, following, clubs, schedule }) => {
     const i18n = createInstance();
     await i18n.init({ lng: language, resources: { en: { translation: {} }, ka: { translation: {} } } });
@@ -68,9 +68,9 @@ describe("LeftSidebar", () => {
     expect(screen.getByRole("dialog", { name: "Following" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog", { name: "Following" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: clubs })).toHaveAttribute("href", "/clubs/following");
+    expect(screen.getByRole("link", { name: clubs })).toHaveAttribute("href", "/world/clubs?view=following");
     expect(screen.queryByRole("link", { name: /Map.*Find football near you/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: schedule })).toHaveAttribute("href", "/calendar?scope=personal");
+    expect(screen.queryByRole("link", { name: new RegExp(schedule) })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Match Exchange/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /My club|Club workspace|Find clubs|Find people/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Events/ })).not.toBeInTheDocument();
@@ -97,13 +97,13 @@ it.each([
     expect(screen.queryByRole('link',{name:/^Map/})).not.toBeInTheDocument();
 });
 
-it('opens the workspace from one row and switches only through the short list', async () => {
+it('opens the person’s club page as My club from one row and switches through the list of the others', async () => {
     const ws = (id: string, type: string, cid: number, label: string) => ({ id, context: { type, id: cid, label } });
     render(<MemoryRouter><LeftSidebar user={{ id: 9, navigationCapabilities: { version: 1, workspaces: [ws('club.workspace', 'club', 1, 'Academy'), ws('squad.workspace', 'squad', 18, 'U12'), ws('squad.workspace', 'squad', 19, 'U13'), ws('squad.workspace', 'squad', 20, 'U14'), ws('squad.workspace', 'squad', 21, 'U15'), ws('squad.workspace', 'squad', 22, 'U16')] } }} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: /Academy.*Workspace/ })).toHaveAttribute('href', '/clubs/1/workspace');
+    expect(screen.getByRole('link', { name: /My club.*Academy/ })).toHaveAttribute('href', '/clubs/1');
     await userEvent.click(screen.getByRole('button', { name: 'Switch workspace' }));
     const list = screen.getByRole('navigation', { name: 'Switch workspace' });
-    expect(Array.from(list.querySelectorAll('a')).map(link => link.getAttribute('href'))).toEqual(['/squads/18', '/squads/19', '/squads/20', '/squads/21', '/workspaces']);
+    expect(Array.from(list.querySelectorAll('a')).map(link => link.getAttribute('href'))).toEqual(['/squads/18', '/squads/19', '/squads/20', '/squads/21', '/squads/22']);
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('navigation', { name: 'Switch workspace' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Switch workspace' })).toHaveFocus();

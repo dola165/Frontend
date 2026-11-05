@@ -12,12 +12,18 @@ import { Fact, SideBlock } from '../../../design/profile/ProfileLayout';
 import { Crest } from '../../world/Crest';
 import { RepresentationPanel } from '../../agents/RepresentationPanel';
 import { ClubApproachesPanel } from '../../agents/ClubApproachesPanel';
+import { isAdult } from '../../../utils/age';
+import type { EditRequest } from './PersonProfilePage';
+import { PhoneInPlace } from './PhoneInPlace';
 import type { PersonView } from './usePersonProfile';
 
 interface FollowedClub { id: number; name: string; logoUrl?: string | null; cityName?: string | null; countryName?: string | null }
 
-/** Side facts for a person: about, playing details for players, and for yourself your clubs and account links. */
-export function PersonSide({ view }: { view: PersonView }) {
+/**
+ * Side facts for a person: about, playing details for players, and for yourself your phone for colleagues, your clubs
+ * and account links. `edit` (`?edit=phone`) opens the phone in place.
+ */
+export function PersonSide({ view, edit = null }: { view: PersonView; edit?: EditRequest | null }) {
     const { profile, own, roles, hidden, possibleMinor } = view;
     const copy = useJourneyCopy();
     const { user } = useAuth();
@@ -48,6 +54,9 @@ export function PersonSide({ view }: { view: PersonView }) {
                 <p className="gk-faint">{copy('Recorded by the clubs.', 'კლუბების ჩანაწერი.')}</p>
             </>}
         </SideBlock>}
+        {/* Adults only: an account without a birth date is asked for it first; a child sees no phone box. */}
+        {own && (isAdult(user?.dob) || !user?.dob) && <PhoneInPlace key={`phone:${edit?.counts.phone ?? 0}`} phone={profile.phone ?? null} open={edit?.part === 'phone'}
+            needsBirthDate={!user?.dob} onSaved={phone => view.setProfile(current => current ? { ...current, phone } : current)} />}
         {own && <FollowedClubs />}
         {own && user?.navigationCapabilities !== undefined && !hasOwnPage(user.navigationCapabilities) && <SideBlock title={pt('Your club')}><CreateLink kind="CLUB" from="profile" size="sm">{pt('Add your club')}</CreateLink></SideBlock>}
         {(roles.includes('AGENT') || (roles.includes('PLAYER') && !possibleMinor)) && <RepresentationPanel profileId={profile.id} own={own} roles={roles} />}
@@ -55,12 +64,12 @@ export function PersonSide({ view }: { view: PersonView }) {
         {own && <SideBlock title={copy('Your account', 'თქვენი ანგარიში')}>
             <List label={copy('Account links', 'ანგარიშის ბმულები')}>
                 <ListRow to="/account?tab=profile" lead={<Settings size={18} aria-hidden="true" />} title={copy('Account settings', 'ანგარიშის პარამეტრები')} meta={copy('Name, photos, privacy and sign-in', 'სახელი, ფოტოები, კონფიდენციალურობა და შესვლა')} />
-                <ListRow to="/notifications?scope=personal" lead={<BellRing size={18} aria-hidden="true" />} title={copy('Notifications', 'შეტყობინებები')} />
+                <ListRow to="/requests?view=updates&scope=personal" lead={<BellRing size={18} aria-hidden="true" />} title={copy('Notifications', 'შეტყობინებები')} />
                 <ListRow to="/reports" lead={<Flag size={18} aria-hidden="true" />} title={copy('Reports and safety', 'საჩივრები და უსაფრთხოება')} />
             </List>
         </SideBlock>}
-        {!own && !hidden && (profile.footballProfile?.appointments.length ?? 0) === 0 && <SideBlock title={copy('How this profile is checked', 'როგორ მოწმდება ეს პროფილი')}>
-            <p className="gk-row"><ShieldCheck size={16} aria-hidden="true" />{copy('Nothing on this profile has been confirmed by a club yet. Roles and skills are self-reported.', 'ამ პროფილზე კლუბს ჯერ არაფერი დაუდასტურებია. როლები და უნარები თავად არის მითითებული.')}</p>
+        {!own && !hidden && (view.football?.lines.length ?? 0) === 0 && (profile.footballProfile?.appointments.length ?? 0) === 0 && <SideBlock title={copy('How this profile is checked', 'როგორ მოწმდება ეს პროფილი')}>
+            <p className="gk-row"><ShieldCheck size={16} aria-hidden="true" />{copy('No club has confirmed anything here yet. What they do is in their own words.', 'ამ პროფილზე კლუბს ჯერ არაფერი დაუდასტურებია. საქმიანობა თავად არის მითითებული.')}</p>
         </SideBlock>}
     </>;
 }
@@ -78,7 +87,7 @@ function FollowedClubs() {
             .catch(() => { if (!controller.signal.aborted) setResult({ revision, clubs: [], failed: true }); });
         return () => controller.abort();
     }, [revision]);
-    return <SideBlock title={copy('Clubs you follow', 'გამოწერილი კლუბები')} action={clubs?.length ? <Link className="gk-section__action" to="/clubs/following">{copy('See all', 'ყველა')}</Link> : undefined}>
+    return <SideBlock title={copy('Clubs you follow', 'გამოწერილი კლუბები')} action={clubs?.length ? <Link className="gk-section__action" to="/world/clubs?view=following">{copy('See all', 'ყველა')}</Link> : undefined}>
         {current?.failed ? <><p role="alert">{copy('Followed clubs couldn’t load.', 'გამოწერილი კლუბები ვერ ჩაიტვირთა.')}</p><Button size="sm" onClick={() => setRevision(value => value + 1)}>{copy('Try again', 'ხელახლა ცდა')}</Button></>
             : clubs === null ? <p role="status">{copy('Loading…', 'იტვირთება…')}</p> : clubs.length ? <List label={copy('Followed clubs', 'გამოწერილი კლუბები')}>{clubs.slice(0, 5).map(club => <ListRow key={club.id} to={`/clubs/${club.id}`}
             lead={<Crest src={club.logoUrl} name={club.name} size={36} />} title={club.name} meta={[club.cityName, club.countryName].filter(Boolean).join(', ')} />)}</List>

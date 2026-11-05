@@ -5,6 +5,7 @@ import { get, put, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
+import { ageOf, profilePhone, setProfilePhone } from '../profile-phones.mjs';
 
 const forNewcomer = answer => ({ headers, ...rest }) => { const account = V.account(V.viewerId(headers)); return account ? answer(account, { headers, ...rest }) : undefined; };
 const emptyPage = query => { const page = Math.max(0, Number(query.get('page') ?? 0) || 0), size = Math.max(1, Number(query.get('size') ?? 20) || 20); return { content: [], pageNumber: page, pageSize: size, totalElements: 0 }; };
@@ -14,7 +15,12 @@ get('/users/me/account', forNewcomer(account => V.accountDto(account)));
 put('/users/me', forNewcomer((account, { body }) => {
   if (body?.fullName) { const parts = String(body.fullName).trim().split(/\s+/); Object.assign(account, { fullName: parts.join(' '), firstName: parts[0], lastName: parts.slice(1).join(' ') }); }
   if (body?.dateOfBirth) account.dateOfBirth = String(body.dateOfBirth);
-  return V.accountDto(account);
+  if (body?.phone != null) {
+    if (String(body.phone).trim() && ageOf(account.dateOfBirth) < 18) return reply(403, { status: 403, message: 'Only adult accounts can add a phone.' });
+    const saved = setProfilePhone(account.id, body.phone);
+    if (saved.error) return reply(400, { status: 400, message: saved.error });
+  }
+  return { ...V.accountDto(account), phone: profilePhone(account.id) };
 }));
 get('/users/me/roles', forNewcomer(account => account.roles));
 put('/users/me/roles', forNewcomer((account, { body }) => {

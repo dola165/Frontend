@@ -80,7 +80,7 @@ export function ProfessionalCareer({ initial, userId, own, compact = false, show
             {notice && <p className="career-feedback" role="status">{notice}</p>}
             {error && <p className="career-error" role="alert">{error}</p>}
             {roles.length > 1 && <nav className="career-filters" aria-label="Filter career by role">{['ALL', ...roles].map(role => <button key={role} aria-pressed={filter === role} onClick={() => setFilter(role)}>{role === 'ALL' ? 'All roles' : roleLabel(role)}</button>)}</nav>}
-            {showEmpty && !entries.length && <section className="career-card career-empty"><CalendarDays size={28} /><h3>{own ? 'Tell your football story' : 'No career entries published yet'}</h3><p>{own ? 'Add previous positions, qualifications, achievements or volunteering. Save a draft or publish when you are ready.' : 'Published experience and qualifications will appear here.'}</p>{own && <Link to="/account/roles">Manage your football roles →</Link>}</section>}
+            {showEmpty && !entries.length && <section className="career-card career-empty"><CalendarDays size={28} /><h3>{own ? 'Tell your football story' : 'No career entries published yet'}</h3><p>{own ? 'Add previous positions, qualifications, achievements or volunteering. Save a draft or publish when you are ready.' : 'Published experience and qualifications will appear here.'}</p>{own && <Link to="/account/football">Manage your football roles →</Link>}</section>}
             {(Object.keys(kinds) as CareerKind[]).map(kind => {
                 const items = entries.filter(entry => entry.kind === kind);
                 if (!items.length) return null;
@@ -141,7 +141,7 @@ function CareerEntryForm({ entry, roles, onSaved, onCancel }: { entry?: CareerEn
             <p className="career-meta">Your profile privacy and role visibility still apply. These details are self-reported and do not grant club access or verify a qualification.</p>
             {error && <p role="alert" className="career-error">{error}</p>}
             <div className="career-form-actions"><button className="career-button career-primary" disabled={!roleOptions.length}>{saving ? 'Saving…' : 'Save entry'}</button><button type="button" className="career-button" onClick={onCancel}>Cancel</button></div>
-            {!roleOptions.length && <Link to="/account/roles">Add a professional football role first →</Link>}
+            {!roleOptions.length && <Link to="/account/football">Open your football profile →</Link>}
         </fieldset>
     </form>;
 }

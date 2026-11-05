@@ -35,7 +35,7 @@ function ReviewQueue() {
       <Button onClick={() => setAttempt(value => value + 1)}>{t('Refresh')}</Button>
     </div>
     {loading ? <p role="status">{t('Loading…')}</p> : error ? <EmptyNote title={error} action={<Button onClick={() => setAttempt(value => value + 1)}>{t('Try again')}</Button>} /> : <div className="gk-page-review__columns">
-      <div className="gk-page-review__list"><List label={t('Page review requests')}>{rows.map(row => <ListRow key={row.id} title={row.name} meta={t(row.kind === 'CLAIM' ? 'Page claim' : 'Verification')} current={selected?.id === row.id} onClick={() => setParams({ status, review: row.id })} />)}</List>{!rows.length && <p>{t('No review requests in this status.')}</p>}</div>
+      <div className="gk-page-review__list"><List label={t('Page review requests')}>{rows.map(row => <ListRow key={row.id} title={row.name} meta={t('Verification')} current={selected?.id === row.id} onClick={() => setParams({ status, review: row.id })} />)}</List>{!rows.length && <p>{t('No review requests in this status.')}</p>}</div>
       {selected ? <ReviewDecision key={selected.id} row={selected} onSaved={saved => { setParams({ status: saved.status, review: saved.id }); setAttempt(value => value + 1); }} /> : selectedId ? <EmptyNote title={t('This request may have changed status.')} action={<ButtonLink to={`/pages/requests/${encodeURIComponent(selectedId)}`}>{t('View request')}</ButtonLink>} /> : <p>{t('Choose a request to view its evidence.')}</p>}
     </div>}
   </main>;
@@ -56,10 +56,9 @@ function ReviewDecision({ row, onSaved }: { row: PageReview; onSaved: (receipt: 
     finally { setBusy(false); }
   };
   return <section className="gk-stack gk-stack--tight" aria-label={t('Request evidence')}>
-    <h2>{row.name}</h2><ButtonLink size="sm" to={`/profile/${row.claimantId}`}>{t('View claimant profile')}</ButtonLink><ReviewDetails receipt={row} />
+    <h2>{row.name}</h2><ButtonLink size="sm" to={`/profile/${row.requesterId}`}>{t('View requester profile')}</ButtonLink><ReviewDetails receipt={row} />
     {row.status === 'PENDING' && <>
-      {row.kind === 'CLAIM' && <p>{t('Approving claim evidence keeps existing access. Ownership changes only through an explicit transfer.')}</p>}
-      {!row.canApprove && <p>{t('Approval requires an eligible claimant. Verification approval is available for club requests from a current page manager. You cannot review your own request.')}</p>}
+      {!row.canApprove && <p>{t('Approval is available for club requests from a current page manager. You cannot review your own request.')}</p>}
       <label className="gk-field__label" htmlFor={id}>{t('Review reason')}</label>
       <textarea id={id} className="gk-input" value={reason} maxLength={1000} disabled={busy} onChange={event => setReason(event.target.value)} />
       <div className="gk-row"><Button disabled={busy || !reason.trim() || !row.canApprove || !row.canDecide} onClick={() => void send('APPROVED')}>{t('Approve')}</Button><Button disabled={busy || !reason.trim() || !row.canDecide} onClick={() => void send('REJECTED')}>{t('Reject')}</Button></div>
@@ -69,11 +68,11 @@ function ReviewDecision({ row, onSaved }: { row: PageReview; onSaved: (receipt: 
 }
 export function ReviewDetails({ receipt }: { receipt: ReviewReceipt }) {
   const t = usePagesCopy();
-  const valueWords: Record<string, string> = { ...UNLOCK_WORDS, CHAIR: 'I run it', COACH: 'I coach there', ADMIN: 'I do the admin', OTHER: 'Something else' };
+  const valueWords: Record<string, string> = UNLOCK_WORDS;
   return <div className="gk-stack gk-stack--tight">
     <strong>{t(receipt.status === 'PENDING' ? 'Pending' : receipt.status === 'APPROVED' ? 'Approved' : 'Rejected')}</strong>
     <small>{t('Receipt: {id}', { id: receipt.id })}</small>
-    <dl>{Object.entries(receipt.evidence).filter(([, value]) => Boolean(value)).map(([key, value]) => <div key={key}><dt>{t(({ phone: 'Phone', legalName: 'Legal name', registrationNumber: 'Registration number', role: 'Role', action: 'Requested action' } as Record<string, string>)[key] ?? key)}</dt><dd>{(key === 'role' || key === 'action') && value ? t(valueWords[value] ?? value) : value}</dd></div>)}</dl>
+    <dl>{Object.entries(receipt.evidence).filter(([, value]) => Boolean(value)).map(([key, value]) => <div key={key}><dt>{t(({ phone: 'Phone', legalName: 'Legal name', registrationNumber: 'Registration number', action: 'Requested action' } as Record<string, string>)[key] ?? key)}</dt><dd>{key === 'action' && value ? t(valueWords[value] ?? value) : value}</dd></div>)}</dl>
     {receipt.reason && <p>{receipt.reason}</p>}
   </div>;
 }

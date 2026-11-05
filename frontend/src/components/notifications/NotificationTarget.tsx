@@ -4,6 +4,7 @@ import type { NotificationItem } from '../../types/notifications';
 import type { ScheduleEventOccurrence } from '../../features/schedule/api';
 import { ScheduleResult } from '../../features/matchHistory/ScheduleResult';
 import { TryoutNotificationReceipt } from '../../features/tryouts/TryoutNotificationReceipt';
+import { useNoticeWords } from './useNoticeWords';
 
 type Target = { kind: 'event' | 'outcome'; id: string; onClose: () => void };
 
@@ -11,6 +12,7 @@ type Target = { kind: 'event' | 'outcome'; id: string; onClose: () => void };
 export const NotificationTarget = ({ kind, id, onClose }: Target) => {
     const [result, setResult] = useState<{ key: string; value?: NotificationItem | ScheduleEventOccurrence; error?: string } | null>(null);
     const [retry, setRetry] = useState(0);
+    const wordsOf = useNoticeWords();
     const key = `${kind}:${id}:${retry}`;
     const valid = /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id));
     useEffect(() => {
@@ -33,7 +35,7 @@ export const NotificationTarget = ({ kind, id, onClose }: Target) => {
     const outcome = kind === 'outcome' ? current?.value as NotificationItem | undefined : undefined;
     return <section aria-label="Notification destination" className="max-h-[70dvh] shrink-0 overflow-y-auto border-b theme-border bg-[var(--theme-surface)] p-4">
         <div className="flex items-start justify-between gap-4">
-            <h2 className="font-bold">{event?.title ?? outcome?.title ?? 'Notification details'}</h2>
+            <h2 className="font-bold">{event?.title ?? (outcome && wordsOf(outcome).title) ?? 'Notification details'}</h2>
             <button type="button" onClick={onClose} className="app-text-action">Close details</button>
         </div>
         {!current && <p role="status">Loading details…</p>}
@@ -46,8 +48,7 @@ export const NotificationTarget = ({ kind, id, onClose }: Target) => {
             {event.locationName && <p>{event.locationName}</p>}
             {event.description && <p className="whitespace-pre-wrap">{event.description}</p>}
         </>}
-        {outcome && <><p className="mt-2 whitespace-pre-wrap">{outcome.body}</p>{outcome.entityType === 'tryout_application'
-            ? <TryoutNotificationReceipt notification={outcome} />
-            : <p className="mt-2 text-sm">This is the update recorded when the notification was sent. A separate detail view is not available here.</p>}</>}
+        {outcome && <><p className="mt-2 whitespace-pre-wrap">{wordsOf(outcome).body}</p>{outcome.entityType === 'tryout_application'
+            && <TryoutNotificationReceipt notification={outcome} />}</>}
     </section>;
 };

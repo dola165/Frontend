@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useAccountCopy } from '../profiles/account/accountCopy';
 import { useAuth } from '../../context/AuthContext';
 import { isAndroidApp } from '../../android/bridge';
+import { googleSignInConfigured } from '../../components/auth/googleConfig';
 import { getAuthSessionId, isCurrentAuthSession } from '../../utils/authStorage';
 import { fetchProviderSettings, googleLinked, linkGoogleProvider, providerError, unlinkGoogleProvider, type ProviderSettings } from './api';
 
@@ -46,7 +47,7 @@ function ScopedGoogleProviderSettings({ accountId, onCredentialsChanged }: Props
     const operation = useRef<AbortController | null>(null);
     const activeFlow = useRef<typeof flow>(null);
     const mounted = useRef(true);
-    const googleConfigured = isAndroidApp || Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
+    const googleConfigured = isAndroidApp || googleSignInConfigured();
 
     useEffect(() => {
         mounted.current = true;

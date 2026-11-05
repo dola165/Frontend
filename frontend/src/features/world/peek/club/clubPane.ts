@@ -56,7 +56,7 @@ export async function loadClubExtras(id: number, sessionId: AuthSessionId, signe
     // Management is who leads and runs the club: its owner and administrators, and staff with a management, secretary
     // or finance responsibility. Not everyone the staff tab files under club operations (anyone else unsorted lands there).
     const leading = (person: PublicStaff) => ['OWNER', 'CLUB_ADMIN'].includes(person.role) ? 0 : 1;
-    const manages = (person: PublicStaff) => leading(person) === 0 || person.responsibilities.some(item => item.specialisations.some(code => /MANAGER|SECRETARY|FINANCE|DIRECTOR/.test(code)));
+    const manages = (person: PublicStaff) => leading(person) === 0 || person.responsibilities.some(item => item.specialisations.some(code => /MANAGER|SECRETARY|FINANCE|DIRECTOR/.test(code) || code === 'TRAVEL_COORDINATOR'));
     const management = staff.filter(person => !coaches.includes(person) && manages(person)).sort((a, b) => leading(a) - leading(b));
     return {
         squads, coaches, management, venues: places.filter(place => placeType(place) !== 'FACILITY'), jobs: jobs.filter(job => job.status !== 'CLOSED'),

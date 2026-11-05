@@ -27,7 +27,7 @@ describe('Durable family journeys', () => {
     });
     it('keeps the family visible without club access and explains how to rejoin', async () => { show();await screen.findByText('Nika');expect(screen.getByText('Born 2012 · No current club')).toBeVisible();expect(screen.getByText(/Find a group or share a linking code/)).toBeVisible();expect(screen.queryByRole('button', { name: 'Create enrollment code' })).not.toBeInTheDocument(); });
     it('requires deliberate review before revocation and refreshes current capabilities after saving', async () => { show();fireEvent.click(await screen.findByRole('button', { name: 'End my access' }));expect(apiClient.post).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button', { name: 'Confirm change' }));await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/family/children/70/guardians/12/revoke', {}, { _authSessionId: 'family' }));expect(auth.refreshNavigationCapabilities).toHaveBeenCalled(); });
-    it('keeps an invitation retry available after a rejected save', async () => { vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('Invitation expired'));show();fireEvent.click(await screen.findByRole('button', { name: 'Invite another guardian' }));fireEvent.change(screen.getByLabelText('Guardian’s account email'), { target: { value: 'guardian@example.test' } });fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));await screen.findByRole('alert');expect(screen.getByRole('button', { name: 'Send invitation' })).toBeEnabled();expect(screen.getByLabelText('Guardian’s account email')).toHaveValue('guardian@example.test'); });
+    it('keeps an invitation retry available after a rejected save', async () => { vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('Invitation expired'));show();fireEvent.click(await screen.findByRole('button', { name: 'Transfer my responsibility' }));fireEvent.change(screen.getByLabelText('Guardian’s account email'), { target: { value: 'guardian@example.test' } });fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));await screen.findByRole('alert');expect(screen.getByRole('button', { name: 'Send invitation' })).toBeEnabled();expect(screen.getByLabelText('Guardian’s account email')).toHaveValue('guardian@example.test'); });
     it('hides unavailable actions for expired and adulthood receipts', async () => { vi.mocked(apiClient.get).mockResolvedValue({ data: { children: [], consentRequests: [], invitations: [{ id: 18, kind: 'ADDITIONAL', status: 'EXPIRED', sent: false, childName: 'Family connection', otherName: 'Parent', canRespond: false, canCancel: false }], ended: [{ id: 2, reason: 'ADULTHOOD' }] } });show();await screen.findByText(/No current family connections/);expect(screen.queryByRole('button', { name: 'Accept invitation' })).not.toBeInTheDocument();fireEvent.click(screen.getByText('Ended family authority · 1'));expect(screen.getByText(/now controls their own account/)).toBeVisible(); });
     it('reviews playing departure and targets only the displayed child enrollment', async () => {
         vi.mocked(apiClient.get).mockResolvedValue({ data: { ...family(), children: [{ ...family().children[0], clubs: [{ id: 91, clubId: 7, name: 'FC Dinamo Tbilisi Academy', status: 'TRIALIST', consent: 'CONFIRMED' }] }] } });
@@ -39,10 +39,20 @@ describe('Durable family journeys', () => {
         await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/family/children/70/clubs/7/depart', { affiliationId: 91 }, { _authSessionId: 'family' }));
     });
 
+    it('adds the other parent with a link for any chat, no account or email needed first', async () => {
+        vi.mocked(apiClient.get).mockResolvedValue({data:family()});
+        vi.mocked(apiClient.post).mockResolvedValue({data:{id:9,kind:'ANOTHER_PARENT',code:'c'.repeat(43),path:`/family-link/${'c'.repeat(43)}`,expiresAt:'2026-11-16T00:00:00Z',personId:70,personName:'Nika'}});
+        render(<MemoryRouter><FamilyRelationships onChanged={vi.fn()}/></MemoryRouter>);
+        fireEvent.click(await screen.findByRole('button',{name:'Add Nika’s other parent'}));
+        expect(await screen.findByDisplayValue(`${window.location.origin}/family-link/${'c'.repeat(43)}`)).toBeInTheDocument();
+        expect(apiClient.post).toHaveBeenCalledWith('/family/children/70/link');
+        expect(screen.queryByLabelText('Guardian’s account email')).not.toBeInTheDocument();
+    });
+
     it('keeps selected-child settings and invitation drafts separate while retaining deliberate access confirmation', async () => {
         const data=family();data.children.push({...data.children[0],childId:71,name:'Saba'});vi.mocked(apiClient.get).mockResolvedValue({data});
         const view=render(<MemoryRouter><FamilyRelationships selectedChildId={70} onChanged={vi.fn()}/></MemoryRouter>);
-        fireEvent.click(await screen.findByRole('button',{name:'Invite another guardian'}));
+        fireEvent.click(await screen.findByRole('button',{name:'Transfer my responsibility'}));
         fireEvent.change(screen.getByLabelText('Guardian’s account email'),{target:{value:'guardian@example.test'}});
         view.rerender(<MemoryRouter><FamilyRelationships selectedChildId={71} onChanged={vi.fn()}/></MemoryRouter>);
         expect(screen.queryByRole('textbox',{name:'Guardian’s account email'})).not.toBeInTheDocument();

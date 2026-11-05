@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Match, MatchResultState } from '../../matchExchange/api';
+import type { Match } from '../../matchExchange/api';
+import type { ScoreRecord } from '../../scores/api';
 import { laneOf, trackOf } from '../scoreboard/lanes';
 
 const HOUR = 3_600_000;
@@ -20,13 +21,19 @@ describe('my arrangements in their lanes', () => {
         expect(lane(listing({ club_id: 5, requested_club_id: 1, starts_at_iso: at(20) }))?.wait?.tone).toBe('danger');
         expect(lane(listing({}), listing({ proposals: [offer(7, 'PENDING'), offer(5, 'PENDING')] }))).toEqual({ lane: 'needs', wait: { word: '{count} offers to choose', vars: { count: 2 }, tone: 'warning', ask: 'choose' } });
         const played = { listing_status: 'ARRANGED', opponent_club_id: 4, starts_at_iso: at(-50), ends_at_iso: at(-48) };
-        expect(lane(listing(played))?.wait?.word).toBe('Add result');
-        // Whose turn a proposed score is, only its result says.
-        expect(lane(listing({ ...played, result_status: 'PROPOSED' }))?.wait?.word).toBe('Score to confirm');
-        const result = (roles: string[]) => ({ authority: { confirmableRoles: roles } }) as unknown as MatchResultState;
-        expect(laneOf(listing({ ...played, result_status: 'PROPOSED' }), { clubIds: MINE, result: result(['AWAY']), now: NOW })?.wait?.word).toBe('Confirm score');
-        expect(laneOf(listing({ ...played, result_status: 'PROPOSED' }), { clubIds: MINE, result: result([]), now: NOW })).toEqual({ lane: 'waiting', wait: { word: 'Waiting for them to confirm', tone: 'neutral' } });
+        expect(lane(listing(played))?.wait?.word).toBe('Report score');
+        // Whose turn a reported score is, only its record says.
+        expect(lane(listing({ ...played, result_status: 'REPORTED' }))?.wait?.word).toBe('Score to confirm');
+        const result = (respond: string[], settle: string[] = [], settler: string | null = null) => ({ permissions: { respond, settle }, settler }) as unknown as ScoreRecord;
+        expect(laneOf(listing({ ...played, result_status: 'REPORTED' }), { clubIds: MINE, result: result(['AWAY']), now: NOW })?.wait?.word).toBe('Confirm score');
+        expect(laneOf(listing({ ...played, result_status: 'REPORTED' }), { clubIds: MINE, result: result([]), now: NOW })).toEqual({ lane: 'waiting', wait: { word: 'Waiting for them to confirm', tone: 'neutral' } });
         expect(lane(listing({ ...played, result_status: 'DISPUTED' }))?.wait).toEqual({ word: 'Result disputed', tone: 'danger' });
+        // A dispute: the settler is asked to settle, the clubs wait on them, and a friendly with no settler is done.
+        const disputed = listing({ ...played, result_status: 'DISPUTED' });
+        expect(laneOf(disputed, { clubIds: MINE, result: result([], ['REFEREE'], 'REFEREE'), now: NOW })?.wait).toEqual({ word: 'Settle score', tone: 'danger' });
+        expect(laneOf(disputed, { clubIds: MINE, result: result([], [], 'REFEREE'), now: NOW })).toEqual({ lane: 'waiting', wait: { word: 'Result disputed', tone: 'neutral' } });
+        expect(laneOf(disputed, { clubIds: MINE, result: result([]), now: NOW })).toEqual({ lane: 'played' });
+        expect(lane(listing({ ...played, result_status: 'FINAL' }))).toEqual({ lane: 'played' });
     });
 
     it('waits on them for my invitation, my listing without offers, and my offer on theirs; hides a declined offer', () => {

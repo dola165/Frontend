@@ -42,7 +42,11 @@ export function FilePicker({ chat, mode, onClose, onDone }: {
     const kept = (items ?? []).filter(item => item.attachment.kept);
     const toggle = (id: number) => setTicked(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
     const all = () => setTicked(new Set(open.map(item => item.attachment.id)));
-    const where = chat.task ? copy(`onto ${chat.task.key}`, `${chat.task.key}-ზე`) : copy('onto the Kept files shelf', 'შენახული ფაილების თაროზე');
+    // A chat for chosen people's files stay with its people on the shelf, never on its task (task files are the whole team's).
+    const chosen = chat.audience === 'CHOSEN';
+    const where = chosen
+        ? copy('onto the Kept files shelf, for this chat’s people only, never onto its task', 'შენახული ფაილების თაროზე, მხოლოდ ამ ჩატის ხალხისთვის, არასდროს საქმეზე')
+        : chat.task ? copy(`onto ${chat.task.key}`, `${chat.task.key}-ზე`) : copy('onto the Kept files shelf', 'შენახული ფაილების თაროზე');
     const go = async () => {
         setBusy(true); setError('');
         try { onDone(await (mode === 'delete' ? deleteChat(chat.id, [...ticked]) : keepFiles(chat.id, [...ticked]))); }

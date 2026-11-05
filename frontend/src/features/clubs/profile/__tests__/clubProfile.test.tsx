@@ -5,9 +5,12 @@ import '../../../../i18n';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../../../api/axiosConfig';
+import { refreshAccess } from '../../../../hooks/useCan';
 import type { ClubPresentation, TrainingProgramme } from '../../presentation';
 import { ClubActions } from '../ClubActions';
 import { ClubAboutTab } from '../ClubAboutTab';
+import { ClubContactTab } from '../ClubInfoTabs';
+import { ClubInfo } from '../ClubInfo';
 import { feeRange } from '../fees';
 import { ClubSide } from '../ClubSide';
 import { ClubTeamsTab } from '../ClubTeamsTab';
@@ -30,11 +33,12 @@ const presentation: ClubPresentation = {
 const club = { id: 10, name: 'Alpha FC', description: 'Youth football', type: 'ACADEMY', isOfficial: true, statusLabel: '', followerCount: 3, memberCount: 2, isFollowedByMe: false,
     isStaffMember: false, isMember: false, trustedByClubs: [], honours: [], opportunities: [], presentation, websiteUrl: 'javascript:alert(1)', email: 'hello@alpha.ge' } as ClubProfile;
 const visitor: ClubPermissions = { role: null, own: false, connected: false, isLeader: false, canManage: false, canOpenWorkspace: false, invitationOnly: false, canEditFacilities: false,
-    canManageStaff: false, canPost: false, canMessage: true, canFollow: true, canChallenge: false, canJoin: true, myClubId: null };
+    canManageStaff: false, canMessage: true, canFollow: true, canChallenge: false, canJoin: true, myClubId: null };
 const page = (node: React.ReactNode) => render(<MemoryRouter>{node}</MemoryRouter>);
 
 beforeEach(() => {
     vi.resetAllMocks();
+    refreshAccess();
     vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
         if (url.startsWith('/posts/club/')) return { data: { posts: [{ id: 5, content: 'Season opener on Saturday', createdAt: new Date().toISOString(), authorName: 'Alpha FC', likeCount: 0, commentCount: 0, isLikedByMe: false }], nextCursor: null } };
         if (url.startsWith('/store/products') || url.startsWith('/campaigns')) return { data: { content: [], totalElements: 0 } };
@@ -75,6 +79,34 @@ describe('club profile', () => {
         expect(screen.getByText('Youth football')).toBeInTheDocument();
     });
 
+    it('shows the web addresses in the club’s story as links that open in a new tab, and nothing else', () => {
+        page(<ClubAboutTab club={{ ...club, description: 'Fixtures on rustavi-lions.ge/fixtures. Write to info@rustavi-lions.ge.' }} can={visitor} />);
+        const link = screen.getByRole('link', { name: 'rustavi-lions.ge/fixtures' });
+        expect(link).toHaveAttribute('href', 'https://rustavi-lions.ge/fixtures');
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+        expect(screen.queryByRole('link', { name: /info@/ })).not.toBeInTheDocument();
+    });
+
+    it('lists the club’s website, Instagram and Facebook under Online, http(s) only', () => {
+        page(<ClubContactTab club={{ ...club, websiteUrl: 'https://rustavi-lions.ge', instagramUrl: 'https://www.instagram.com/rustavi.lions', facebookUrl: 'https://www.facebook.com/rustavilions', facebookMessengerUrl: 'javascript:alert(1)' }} />);
+        expect(screen.getByRole('link', { name: 'Website' })).toHaveAttribute('href', 'https://rustavi-lions.ge/');
+        expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/rustavi.lions');
+        expect(screen.getByRole('link', { name: 'Facebook' })).toHaveAttribute('href', 'https://www.facebook.com/rustavilions');
+        expect(screen.queryByRole('link', { name: 'Messenger' })).not.toBeInTheDocument();
+    });
+
+    it('shows visitors the same contact rows as the editor: a call with +995, email, website, Instagram and Facebook', () => {
+        page(<ClubInfo club={{ ...club, whatsappNumber: '599 12 34 56', email: 'hello@rustavi-lions.ge', websiteUrl: 'https://rustavi-lions.ge',
+            instagramUrl: 'https://www.instagram.com/rustavi.lions', facebookUrl: 'https://www.facebook.com/rustavilions' }} />);
+        const rows = within(screen.getByRole('list', { name: 'Contact details' }));
+        expect(rows.getByRole('link', { name: /\+995 599 12 34 56/ })).toHaveAttribute('href', 'tel:+995599123456');
+        expect(rows.getByRole('link', { name: /hello@rustavi-lions\.ge/ })).toHaveAttribute('href', 'mailto:hello@rustavi-lions.ge');
+        expect(rows.getByRole('link', { name: /rustavi-lions\.ge.*Website/ })).toHaveAttribute('href', 'https://rustavi-lions.ge/');
+        expect(rows.getByRole('link', { name: /@rustavi\.lions/ })).toHaveAttribute('href', 'https://www.instagram.com/rustavi.lions');
+        expect(rows.getByRole('link', { name: /facebook\.com\/rustavilions/ })).toHaveAttribute('href', 'https://www.facebook.com/rustavilions');
+    });
+
     it('lists the squads and the current published fees, and clears old or draft offers', async () => {
         vi.mocked(apiClient.get).mockImplementation(async (url: string) => url.startsWith('/clubs/10/squads') ? { data: [{ id: 3, name: 'U12 Boys', category: 'U12', gender: 'MALE' }] } : { data: [] });
         page(<ClubTeamsTab club={club} onContact={vi.fn()} isAuthenticated />);
@@ -86,19 +118,23 @@ describe('club profile', () => {
         expect(feeRange(presentation.programmes)).toEqual({ range: '150 GEL / month', note: 'First session free' });
     });
 
-    it('lets the club’s own staff arrange a match or post an open challenge from the page', () => {
-        page(<ClubActions club={club} can={{ ...visitor, own: true, canManage: true, canOpenWorkspace: true, canJoin: false, canMessage: false, canChallenge: false }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
-        expect(screen.getByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct');
-        expect(screen.getByRole('link', { name: 'Open challenge' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-open');
-        expect(screen.getByRole('link', { name: 'Open workspace' })).toHaveClass('gk-btn--primary');
+    it('lets the club’s own staff arrange a match from the page: one door, the sheet asks how', async () => {
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => url === '/access/clubs/10' ? { data: { allowed: ['arrange_match'], refused: [] } } : { data: [] });
+        page(<ClubActions club={club} can={{ ...visitor, own: true, canManage: true, canOpenWorkspace: true, canJoin: false, canMessage: false, canChallenge: false }} onFollowChange={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
+        // Arranging opens over the club page once the rule-checker allows it.
+        expect(await screen.findByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/?do=arrange_match');
+        expect(screen.queryByRole('link', { name: 'Open challenge' })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Club office' })).toHaveClass('gk-btn--primary');
     });
 
-    it('gives another club’s staff a way to propose a match, and everyone else one primary way in', () => {
-        const view = page(<ClubActions club={club} can={{ ...visitor, canChallenge: true, myClubId: 1 }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
-        expect(screen.getByRole('link', { name: 'Propose a match' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct.c10');
+    it('gives another club’s staff Arrange a match with this club filled in, and everyone else one primary way in', async () => {
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => url === '/access/me' ? { data: { allowed: ['arrange_match'], refused: [] } } : { data: [] });
+        const view = page(<ClubActions club={club} can={{ ...visitor, canChallenge: true, myClubId: 1 }} onFollowChange={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
+        expect(await screen.findByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/?do=arrange_match&do-opponent=10');
+        expect(screen.queryByRole('link', { name: 'Propose a match' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Join' })).not.toBeInTheDocument();
         view.unmount();
-        page(<ClubActions club={club} can={visitor} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
+        page(<ClubActions club={club} can={visitor} onFollowChange={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
         expect(screen.getByRole('button', { name: 'Join' })).toHaveClass('gk-btn--primary');
         expect(screen.getByRole('button', { name: 'Follow' })).not.toHaveClass('gk-btn--primary');
         expect(screen.queryByRole('link', { name: 'Propose a match' })).not.toBeInTheDocument();

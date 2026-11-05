@@ -32,8 +32,8 @@ export interface PageEdit {
   /** Rearrange mode (`?rearrange=1`): boxes get handles, Move up / Move down and Hide. */
   rearranging: boolean;
   setRearranging: (on: boolean) => void;
-  /** Opened the first time, just created or just claimed: the hint is shown once. */
-  arrival: 'new' | 'claimed' | null;
+  /** Opened the first time, just created: the hint is shown once. */
+  arrival: 'new' | null;
   status: SaveStatus;
   pendingCount: number;
   saveIdentity: (patch: IdentityPatch, options?: SaveOptions) => Promise<boolean>;

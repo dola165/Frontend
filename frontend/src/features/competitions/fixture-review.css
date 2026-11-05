@@ -1,0 +1,13 @@
+.competition-fixture-review { min-width: 0; margin-block: 16px; overflow-wrap: anywhere; }
+.competition-fixture-review h3 { font-size: 16px; margin-block: 12px; }
+.competition-fixture-review article { border-block-start: 1px solid var(--color-border); padding-block: 14px; }
+.competition-fixture-review form, .competition-fixture-review label { display: grid; gap: 8px; }
+.competition-fixture-review form { margin-block: 12px; gap: 12px; }
+.competition-fixture-review textarea, .competition-fixture-review select, .competition-fixture-review input {
+  min-width: 0; width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--color-border); border-radius: 8px;
+  color: var(--color-text); background: var(--color-surface);
+}
+.competition-fixture-review button, .competition-fixture-review summary { min-height: 44px; padding: 10px 12px; cursor: pointer; }
+.competition-fixture-review button { border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text); background: var(--color-surface); }
+.competition-fixture-review button:disabled { opacity: .55; cursor: default; }
+.competition-fixture-review__scores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

@@ -24,7 +24,7 @@ export function EventRow({ item }: { item: EventItem }) {
     const when = eventWhen(item);
     const { Icon, color } = symbolOf(item);
     return (
-        <ResultRow lead={<DateLead top={when.time} bottom={when.day} />} title={item.name} to={eventDestination(item) ?? '/world/matches?tab=events'}
+        <ResultRow linkLead={false} lead={<DateLead top={when.time} bottom={when.day} />} title={item.name} to={eventDestination(item) ?? '/world/matches?tab=events'}
             lines={[<>
                 <span className="gk-result__symbol" style={{ '--symbol': color } as CSSProperties} aria-hidden="true"><Icon /></span>
                 <span className="gk-result__text">{[item.context, item.location, item.recurring ? t('Every week') : null].filter(Boolean).join(' · ')}</span>

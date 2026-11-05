@@ -93,17 +93,41 @@ describe('arranging a match with a club you know', () => {
         expect(JSON.parse(sessionStorage.getItem('gk:arrange:1:arrange-test:direct.c3.s103') ?? '{}')).toMatchObject({ date: '2099-10-17', time: '11:00', opponent: { id: 3 } });
     });
 
-    it('posts an open match without asking for an opponent', async () => {
+    it('posts an open challenge over a window of days and hours, without asking for an opponent', async () => {
         vi.mocked(createArrangement).mockResolvedValue({ event_id: 78 } as never);
         open({ mode: 'open', squadId: 105 });
         expect(screen.queryByLabelText('Opponent')).not.toBeInTheDocument();
         // Our club and its ground have loaded (the city a match travelling to the opponent starts in comes from them).
         await screen.findByLabelText(/Dinamo Academy Training Centre/);
         fireEvent.click(await screen.findByLabelText(/We travel to the opponent/));
-        kickoff();
-        fireEvent.click(screen.getByRole('button', { name: 'Post open match' }));
+        // The first day fills the last one too; the hours must hold the whole match (95 minutes for U16).
+        fireEvent.change(screen.getByLabelText('From'), { target: { value: '2099-10-17' } });
+        expect(screen.getByLabelText('To')).toHaveValue('2099-10-17');
+        fireEvent.change(screen.getByLabelText('To'), { target: { value: '2099-10-18' } });
+        fireEvent.change(screen.getByLabelText('Start from'), { target: { value: '10:00' } });
+        fireEvent.change(screen.getByLabelText('Finish by'), { target: { value: '11:00' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Post open challenge' }));
+        expect(await screen.findByText('Leave room for the whole match between the two times.')).toBeInTheDocument();
+        expect(createArrangement).not.toHaveBeenCalled();
+        fireEvent.change(screen.getByLabelText('Finish by'), { target: { value: '14:00' } });
+        expect(screen.getByText(/Latest kick-off/)).toHaveTextContent('12:25');
+        fireEvent.click(screen.getByRole('button', { name: 'Post open challenge' }));
         await waitFor(() => expect(sent).toHaveBeenCalledWith({ event_id: 78 }));
-        expect(createArrangement).toHaveBeenCalledWith(expect.objectContaining({ targetClubId: null, hostingChoice: 'AWAY', match: expect.objectContaining({ squadId: 105, venuePreference: 'AWAY', title: 'U16 Boys looking for a Saturday friendly' }) }));
+        expect(createArrangement).toHaveBeenCalledWith(expect.objectContaining({ targetClubId: null, outsideOpponent: null, windowFrom: '10:00', windowTo: '14:00', matchMinutes: 95, hostingChoice: 'AWAY',
+            match: expect.objectContaining({ squadId: 105, venuePreference: 'AWAY', startsAt: '2099-10-17T10:00', endsAt: '2099-10-18T14:00', title: 'U16 Boys looking for a friendly' }) }));
+    });
+
+    it('adds a match against a club that is not in GrassKickZ, named by hand', async () => {
+        vi.mocked(createArrangement).mockResolvedValue({ event_id: 79 } as never);
+        open({ mode: 'direct', squadId: 103 });
+        await screen.findByLabelText(/Dinamo Academy Training Centre/);
+        fireEvent.click(screen.getByRole('button', { name: 'Not in GrassKickZ? Type its name' }));
+        fireEvent.change(screen.getByLabelText('Opponent'), { target: { value: 'Gori Juniors' } });
+        kickoff();
+        expect(screen.getByText(/Gori Juniors isn’t in GrassKickZ/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Add the match' }));
+        await waitFor(() => expect(sent).toHaveBeenCalledWith({ event_id: 79 }));
+        expect(createArrangement).toHaveBeenCalledWith(expect.objectContaining({ targetClubId: null, targetSquadId: null, outsideOpponent: 'Gori Juniors', windowFrom: null }));
     });
 
     it('shows Georgian validation and focuses the original date and fee controls without sending', async () => {
@@ -111,18 +135,19 @@ describe('arranging a match with a club you know', () => {
         try {
             open({ mode: 'open', squadId: 103 });
             await screen.findByLabelText(/Dinamo Academy Training Centre/);
-            fireEvent.click(screen.getByRole('button', { name: 'ღია მატჩის გამოქვეყნება' }));
-            expect(await screen.findByText('აირჩიეთ მატჩის დღე.')).toBeInTheDocument();
-            expect(document.activeElement).toBe(screen.getByLabelText('მატჩის დღე'));
-            fireEvent.change(screen.getByLabelText('მატჩის დღე'), { target: { value: '2099-10-17' } });
-            fireEvent.change(screen.getByLabelText('დაწყების დრო'), { target: { value: '11:00' } });
+            fireEvent.click(screen.getByRole('button', { name: 'ღია გამოწვევის გამოქვეყნება' }));
+            expect(await screen.findByText('აირჩიეთ პირველი დღე, როცა შეგიძლიათ თამაში.')).toBeInTheDocument();
+            expect(document.activeElement).toBe(screen.getByLabelText('დან'));
+            fireEvent.change(screen.getByLabelText('დან'), { target: { value: '2099-10-17' } });
+            fireEvent.change(screen.getByLabelText('დაწყება არა უადრეს'), { target: { value: '11:00' } });
+            fireEvent.change(screen.getByLabelText('დასრულება არა უგვიანეს'), { target: { value: '15:00' } });
             fireEvent.change(screen.getByLabelText('მსაჯი'), { target: { value: 'OPEN' } });
             fireEvent.click(screen.getByRole('radio', { name: 'ანაზღაურებით' }));
             fireEvent.change(screen.getByLabelText('შეთავაზებული ანაზღაურება'), { target: { value: '-1' } });
-            fireEvent.click(screen.getByRole('button', { name: 'ღია მატჩის გამოქვეყნება' }));
+            fireEvent.click(screen.getByRole('button', { name: 'ღია გამოწვევის გამოქვეყნება' }));
             expect(screen.getByText('მიუთითეთ ანაზღაურება 0-დან 1 000 000-მდე.')).toBeInTheDocument();
             expect(document.activeElement).toBe(screen.getByLabelText('შეთავაზებული ანაზღაურება'));
-            expect(screen.getByRole('radiogroup', { name: 'უახლოესი შაბათ-კვირა' })).not.toHaveTextContent(/Sat|Sun|Oct/);
+            expect(screen.getByRole('radiogroup', { name: 'უახლოესი შაბათ-კვირები' })).not.toHaveTextContent(/Sat|Sun|Oct/);
             expect(createArrangement).not.toHaveBeenCalled();
         } finally { await act(async () => { await i18n.changeLanguage('en'); }); }
     });

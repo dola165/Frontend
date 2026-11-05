@@ -21,7 +21,7 @@ it('shows referee career and completed fixtures directly, with editing only for 
     vi.mocked(apiClient.get).mockImplementation(async path => ({ data: path.includes('coaching-career') ? [] : referee }));
     const view = render(<MemoryRouter><ProfileCareer profile={{ id: 7, role: 'REFEREE' }} isMyProfile={false} /></MemoryRouter>);
     expect(await screen.findByText('Community cup')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'U12 final' })).toHaveAttribute('href', '/match-exchange/8');
+    expect(screen.getByRole('link', { name: 'U12 final' })).toHaveAttribute('href', '/matches/8?from=referee');
     expect(screen.queryByRole('button', { name: 'Edit referee details' })).not.toBeInTheDocument();
     view.rerender(<MemoryRouter><ProfileCareer profile={{ id: 7, role: 'REFEREE' }} isMyProfile /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: 'Add career, qualification or volunteering' }));

@@ -20,8 +20,11 @@ export function useMessenger() {
     const squadParam = Number(searchParams.get('squadId'));
     const squadId = Number.isSafeInteger(squadParam) && squadParam > 0 ? squadParam : null;
     const activeConvRef = useRef<number | null>(null);
-    const { conversations, setConversations, conversationsRef, sidebarLoading, listFailed, loadConversations,
+    const { conversations: listedConversations, setConversations, conversationsRef, sidebarLoading, listFailed, loadConversations,
         loadMore, hasMore, loadingMore } = useConversations(activeConvRef);
+    const [unavailableIds, setUnavailableIds] = useState<Set<number>>(() => new Set());
+    // A late list response cannot reinstate a room whose current authority was denied.
+    const conversations = useMemo(() => listedConversations.filter(room => !unavailableIds.has(room.id)), [listedConversations, unavailableIds]);
     const [activeConvId, setActiveConvId] = useState<number | null>(null);
     const [messages, setMessages] = useState<Record<number, ChatMessageResponse[]>>({});
     const { input, setInput, confirmDraft } = useMessageDraft(activeConvId);
@@ -43,7 +46,6 @@ export function useMessenger() {
         const open = (conversation: ConversationDto) => {
             if (!current || !isCurrentAuthSession(sessionId)) return;
             setConversations(previous => [conversation, ...previous.filter(item => item.id !== conversation.id)]);
-            setActiveConvId(conversation.id);
             const next = new URLSearchParams(searchParams);
             next.delete('chatWith');
             next.set('conversationId', String(conversation.id));
@@ -77,15 +79,16 @@ export function useMessenger() {
         }).sort((a, b) => new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime()));
     }, [setConversations]);
     const handleUnavailable = useCallback((id: number) => {
+        setUnavailableIds(previous => previous.has(id) ? previous : new Set(previous).add(id));
         setMessages(previous => ({ ...previous, [id]: [] }));
         setConversations(previous => previous.filter(conversation => conversation.id !== id));
         if (activeConvRef.current === id) {
             setActiveConvId(null);
             setShowInfo(false);
-            setManagementError(copy('This conversation is no longer available.', 'ეს მიმოწერა აღარ არის ხელმისაწვდომი.'));
+            setManagementError('This conversation is no longer available.');
         }
-    }, [setConversations, copy]);
-    const { connected, setActiveConversation, sendMessage: saveMessage, loading: loadingMessages, error: deliveryError, sending, loadOlder, hasOlder, loadingOlder, historyError } = useChatWebSocket(handleIncoming, handleUnavailable);
+    }, [setConversations]);
+    const { connected, setActiveConversation, sendMessage: saveMessage, loading: loadingMessages, error: deliveryError, sending, loadOlder, hasOlder, loadingOlder, historyError } = useChatWebSocket(handleIncoming, handleUnavailable, true);
     // The team chat keeps itself current (features/teamChat); the plain history is for the others.
     const teamActive = conversations.some(conversation => conversation.id === activeConvId && conversation.contextType === 'TEAM');
     useEffect(() => {
@@ -97,10 +100,14 @@ export function useMessenger() {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- a new address clears the previous address error
         setManagementError(null);
         if (squadId || !Number.isSafeInteger(id) || id <= 0) { setActiveConvId(null); setShowInfo(false); return; }
-        if (conversationsRef.current.some(conversation => conversation.id === id)) { setActiveConvId(id); return; }
+        // A cached inbox row is not current permission, including returning via browser Back.
+        setActiveConvId(null);
+        setShowInfo(false);
         let current = true;
         chatApi.getConversation(id).then(response => {
             if (!current || !isCurrentAuthSession(sessionId)) return;
+            if (response.data.id !== id) throw new Error('Conversation identity did not match.');
+            setUnavailableIds(previous => { const allowed = new Set(previous); allowed.delete(id); return allowed; });
             // The single conversation carries no last message: keep the inbox's when it loaded first.
             setConversations(previous => {
                 const listed = previous.find(item => item.id === id);
@@ -108,13 +115,18 @@ export function useMessenger() {
                     lastMessageSenderName: listed.lastMessageSenderName, lastMessageAt: listed.lastMessageAt } : response.data;
                 return [opened, ...previous.filter(item => item.id !== id)];
             });
+            setMessages(previous => ({ ...previous, [id]: [] }));
             setActiveConvId(id);
-        }).catch(() => { if (current && isCurrentAuthSession(sessionId)) setManagementError('This conversation couldn’t load. Try again, or open another chat.'); });
+        }).catch(cause => {
+            if (!current || !isCurrentAuthSession(sessionId)) return;
+            const status = (cause as { response?: { status?: number } }).response?.status;
+            if (status === 401 || status === 403 || status === 404) handleUnavailable(id);
+            setManagementError('This conversation couldn’t load. Try again, or open another chat.');
+        });
         return () => { current = false; };
-    }, [searchParams, squadId, conversationsRef, setConversations, profileAttempt, sessionId]);
+    }, [searchParams, squadId, conversationsRef, setConversations, profileAttempt, sessionId, handleUnavailable]);
 
     const selectConversation = useCallback((id: number) => {
-        setActiveConvId(id);
         setShowInfo(false);
         setSearchParams({conversationId:String(id)});
     }, [setSearchParams]);

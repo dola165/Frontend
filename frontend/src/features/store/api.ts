@@ -9,9 +9,9 @@ import type { AuthSessionId } from '../../utils/authStorage';
 export type StoreProductCategory = 'SHIRT' | 'FOOTWEAR' | 'TRAINING' | 'EQUIPMENT' | 'ACCESSORIES' | 'TICKETS' | 'MEMBERSHIP' | 'EVENT' | 'OTHER';
 export const STORE_CATEGORIES: StoreProductCategory[] = ['SHIRT', 'FOOTWEAR', 'TRAINING', 'EQUIPMENT', 'ACCESSORIES', 'TICKETS', 'MEMBERSHIP', 'EVENT', 'OTHER'];
 
-/** What groups GrassKickZ's own equipment on the storefront. Backend field to add (BACKEND_NEEDS.md, "Store"). */
+/** Optional collection assigned to actual platform inventory. */
 export type StoreCollection = 'BALLS' | 'CONES' | 'BIBS' | 'SHIN_GUARDS' | 'GLOVES' | 'GOALS' | 'TRAINING_WEAR' | 'ACCESSORIES';
-/** Who sells a product: GrassKickZ itself (no club behind it) or a club. Backend field to add. */
+/** Actual seller, independent of the owner’s account and public profile roles. */
 export type StoreSellerKind = 'GRASSKICKZ' | 'CLUB';
 export type StoreSort = 'RELEVANCE' | 'NEWEST' | 'PRICE_LOW' | 'PRICE_HIGH';
 
@@ -25,6 +25,8 @@ export interface StoreProduct {
     clubLogoUrl?: string | null;
     clubWhatsappNumber?: string | null;
     clubEmail?: string | null;
+    sellerWebsite?: string | null;
+    sellerArrangement?: string | null;
     sellerKind?: StoreSellerKind | null;
     collection?: StoreCollection | null;
     name?: string | null;
@@ -41,6 +43,7 @@ export interface StoreProduct {
 export interface StoreVariant { id?: number; label: string; stock: number; }
 
 export interface StoreProductPayload {
+    collection?: StoreCollection | null;
     currency?: string;
     variants?: StoreVariant[];
     version?: number;
@@ -87,7 +90,7 @@ export interface StoreFront {
     /** How many clubs sell something, and how many products GrassKickZ sells itself. */
     sellers: number; own: number;
 }
-// The real API projects currently public club inventory; unsupported platform collections stay empty.
+// Storefront counts and collections come from currently eligible inventory.
 export const fetchStoreFront = async (near: string | undefined, signal?: AbortSignal) =>
     (await apiClient.get<StoreFront>('/store/front', { params: { near }, signal })).data;
 
@@ -95,7 +98,7 @@ export interface StoreLocation { country: string; city: string | null; }
 export const fetchStoreLocations = async (clubId?: number, signal?: AbortSignal): Promise<StoreLocation[]> =>
     (await apiClient.get<StoreLocation[]>('/store/locations', { params: { clubId }, signal })).data;
 
-export interface CartQuote { clubId: number; clubName: string; sellerKind?: StoreSellerKind | null; currency: string; lines: Array<{ variantId: number; quantity: number; productId: number; name: string; variant: string; unitAmount: number; lineAmount: number }>; subtotal: number; checkoutEnabled: boolean; message: string; }
+export interface CartQuote { clubId: number; clubName: string; sellerKind?: StoreSellerKind | null; currency: string; lines: Array<{ variantId: number; quantity: number; productId: number; name: string; variant: string; unitAmount: number; lineAmount: number; productVersion?: number; material?: import('./orders/api').Material; materialDigest?: string }>; subtotal: number; checkoutEnabled: boolean; message: string; }
 export const fetchCartQuote = async (items: Array<{ variantId: number; quantity: number }>, signal?: AbortSignal) => {
     const params = new URLSearchParams();
     items.forEach(item => params.append('item', `${item.variantId}:${item.quantity}`));
@@ -108,11 +111,12 @@ export interface StoreClub { id: number; name: string; logoUrl?: string | null; 
 export const fetchStoreClub = async (clubId: number, signal?: AbortSignal) => (await apiClient.get<StoreClub>(`/clubs/${clubId}`, { signal })).data;
 
 // ── A club's own products (the workspace and "Add a product" on its store) ──
-export const fetchAllClubStoreProducts = async (clubId: number) => (await apiClient.get<StoreProduct[]>(`/clubs/${clubId}/store/products/all`)).data;
+const inventoryPath = (clubId: number) => clubId === 0 ? '/store/platform/products' : `/clubs/${clubId}/store/products`;
+export const fetchAllClubStoreProducts = async (clubId: number) => (await apiClient.get<StoreProduct[]>(clubId === 0 ? '/store/platform/products' : `/clubs/${clubId}/store/products/all`)).data;
 export const createStoreProduct = async (clubId: number, payload: StoreProductPayload, key?: string, sessionId?: AuthSessionId) =>
-    (await apiClient.post<StoreProduct>(`/clubs/${clubId}/store/products`, payload, key ? { headers: { 'Idempotency-Key': key }, ...(sessionId !== undefined ? { _authSessionId: sessionId } : {}) } : undefined)).data;
+    (await apiClient.post<StoreProduct>(inventoryPath(clubId), payload, key ? { headers: { 'Idempotency-Key': key }, ...(sessionId !== undefined ? { _authSessionId: sessionId } : {}) } : undefined)).data;
 export const updateStoreProduct = async (clubId: number, productId: number, payload: StoreProductPayload, key?: string, sessionId?: AuthSessionId) =>
-    (await apiClient.patch<StoreProduct>(`/clubs/${clubId}/store/products/${productId}`, payload, { ...(key ? { headers: { 'Idempotency-Key': key } } : {}), ...(sessionId !== undefined ? { _authSessionId: sessionId } : {}) })).data;
+    (await apiClient.patch<StoreProduct>(`${inventoryPath(clubId)}/${productId}`, payload.collection === null ? { ...payload, collection: '' } : payload, { ...(key ? { headers: { 'Idempotency-Key': key } } : {}), ...(sessionId !== undefined ? { _authSessionId: sessionId } : {}) })).data;
 export const deleteStoreProduct = async (clubId: number, productId: number, version: number | undefined, key?: string, sessionId?: AuthSessionId) => {
-    await apiClient.delete(`/clubs/${clubId}/store/products/${productId}`, { params: { version }, ...(key ? { headers: { 'Idempotency-Key': key } } : {}), ...(sessionId !== undefined ? { _authSessionId: sessionId } : {}) });
+    await apiClient.delete(`${inventoryPath(clubId)}/${productId}`, { params: { version }, ...(key ? { headers: { 'Idempotency-Key': key } } : {}), ...(sessionId !== undefined ? { _authSessionId: sessionId } : {}) });
 };

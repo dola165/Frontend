@@ -32,7 +32,7 @@ export const AccountPage = () => {
     const securityExtensions = import.meta.env.VITE_ACCOUNT_SECURITY_EXTENSIONS === 'true';
 
     const activeTab = normalizeAccountTab(searchParams.get('tab'));
-    const profileHref = user?.id ? `/profile/${user.id}` : '/feed';
+    const profileHref = user?.id ? `/profile/${user.id}` : '/home';
     const bannerPreview = useMemo(
         () =>
             resolveMediaUrl(form?.bannerUrl) ||
@@ -70,7 +70,7 @@ export const AccountPage = () => {
     return (
         <div className="account-page workspace-page-shell min-h-full pb-10">
             <div className="flex w-full flex-col gap-5">
-                <AccountHeader account={account} profileHref={profileHref} avatarPreview={avatarPreview} initials={initials}
+                <AccountHeader account={account} profileHref={profileHref} avatarPreview={avatarPreview} initials={initials} compact={activeTab !== 'profile'}
                     tryoutApps={center.tryoutApps} showTryoutApps={center.showTryoutApps}
                     onSecurity={() => setSearchParams({ tab: 'security' })}
                     onToggleTryouts={() => { void center.loadTryoutApplications(); center.setShowTryoutApps((v) => !v); }} />

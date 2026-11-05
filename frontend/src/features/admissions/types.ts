@@ -5,7 +5,7 @@ export type Availability = 'PLACES_AVAILABLE' | 'APPLICATIONS_OPEN' | 'INTRODUCT
 export type CaseStage = 'REQUEST_RECEIVED' | 'ARRANGING_PARTICIPATION' | 'INTRODUCTION_ASSESSMENT' | 'WAITLIST' | 'PLACE_OFFERED' | 'COMPLETING_ENROLLMENT' | 'ENROLLED' | 'CLOSED';
 export type AffiliationEffect = 'NONE' | 'PRIMARY_CHANGE';
 export type RequirementKind = 'EMERGENCY_CONTACT' | 'SCHOOL_ELIGIBILITY' | 'CURRENT_CLUB_PERMISSION' | 'PAYMENT_CONFIRMATION' | 'EXTERNAL_REGISTRATION' | 'PRIMARY_AFFILIATION_CONFIRMATION' | 'GUARDIAN_REVIEW';
-export type CaseAction = 'MESSAGE' | 'ASSIGN' | 'INVITE_SESSION' | 'CONFIRM_SESSION' | 'DECLINE_SESSION' | 'RECORD_ATTENDANCE' | 'CHANGE_SESSION' | 'CANCEL_SESSION' | 'OFFER' | 'ACCEPT_OFFER' | 'DECLINE_OFFER' | 'WITHDRAW_OFFER' | 'EXTEND_OFFER' | 'COMPLETE_REQUIREMENT' | 'WAITLIST' | 'DECLINE' | 'WITHDRAW' | 'CANCEL_ENROLLMENT' | 'CONFIRM_PRIMARY_CHANGE' | 'ASSESS' | 'RECOMMEND' | 'APPROVE_ADMISSION' | 'RECORD_INTRODUCTION_PERMISSION' | 'REVOKE_INTRODUCTION_PERMISSION';
+export type CaseAction = 'MESSAGE' | 'ASSIGN' | 'INVITE_SESSION' | 'CONFIRM_SESSION' | 'DECLINE_SESSION' | 'RECORD_ATTENDANCE' | 'CHANGE_SESSION' | 'CANCEL_SESSION' | 'OFFER' | 'ACCEPT_OFFER' | 'ACCEPT_OFFER_ON_PAPER' | 'DECLINE_OFFER' | 'WITHDRAW_OFFER' | 'EXTEND_OFFER' | 'COMPLETE_REQUIREMENT' | 'WAITLIST' | 'DECLINE' | 'WITHDRAW' | 'CANCEL_ENROLLMENT' | 'CONFIRM_PRIMARY_CHANGE' | 'ASSESS' | 'RECOMMEND' | 'APPROVE_ADMISSION' | 'RECORD_INTRODUCTION_PERMISSION' | 'REVOKE_INTRODUCTION_PERMISSION';
 export interface Choice { id: number; name: string }
 export interface Participant extends Choice { dateOfBirth: string | null; minor: boolean; guardian: boolean; provenance: string | null; gender?: 'MALE' | 'FEMALE' | null; restriction?: 'REVIEW' | null }
 export interface Charge { label: string; amount: number; currency: string; frequency: string }
@@ -27,7 +27,24 @@ export interface GroupInput {
   introductionPermission?: IntroductionPermissionPolicy | null;
   extraApprovalRequired?: boolean; decisionUserId?: number | null;
   city?: string; country?: string; level?: string; positions?: string[];
+  /** Step 5 (older servers omit it: free, 3 a session). */
+  firstVisits?: FirstVisits | null;
 }
+/** First visits families book themselves: at most `places` a session (0: off), free or `fee` in `currency`. Unset: free, 3. */
+export interface FirstVisits { places: number; fee: number | null; currency: string | null }
+/**
+ * One training a first visit can be booked at. `reference` is what a booking names; `sessionId` only where the squad's
+ * timetable is public (null where only its times are, and then `place` is the group's own ground).
+ */
+export interface FirstVisitSession { reference: string; sessionId: number | null; startsAt: string; endsAt: string; place: string; placesLeft: number }
+/** The group's next trainings with a first-visit place left (four weeks, from two hours ahead), soonest first. */
+export interface FirstVisitSessions { groupId: number; groupVersion: number; places: number; fee: number | null; currency: string | null; timezone: string; sessions: FirstVisitSession[] }
+/**
+ * A booking carries what the family saw: the group's terms (`groupVersion`) and the training's time and place. When
+ * either changed since, the server answers TERMS_CHANGED or SESSION_CHANGED and nothing is booked. `phone`: asked only
+ * when the parent's profile has none (the coach's emergency contact).
+ */
+export interface FirstVisitBooking { requestId: string; playerId: number; session: string; groupVersion: number; startsAt: string; endsAt: string; place: string; phone?: string }
 export interface Opportunity extends Omit<GroupInput, 'requestId' | 'expectedVersion'> {
   id: number; version: number; organizationId: number; organizationName: string; clubId: number | null;
   availability: Availability; remainingPlaces: number; destination: string; canManage?: boolean;
@@ -89,6 +106,8 @@ export type CaseCommand = CommandBase & (
   | { action: 'REVOKE_INTRODUCTION_PERMISSION'; participationId: number; participationVersion: number; reason: string }
   | { action: 'OFFER'; groupId: number; groupVersion: number; responseDeadline?: string; completionDeadline?: string; reason?: string; internalNote?: string }
   | { action: 'ACCEPT_OFFER'; offerId: number; offerVersion: number; acceptTerms: true; emergencyContact?: string }
+  /** Staff record a parent's yes signed on the club's paper form; `reason` is the name as signed. */
+  | { action: 'ACCEPT_OFFER_ON_PAPER'; offerId: number; offerVersion: number; reason: string; emergencyContact?: string }
   | { action: 'DECLINE_OFFER' | 'WITHDRAW_OFFER'; offerId: number; offerVersion: number; reason: string }
   | { action: 'EXTEND_OFFER'; offerId: number; offerVersion: number; responseDeadline: string; reason: string }
   | { action: 'COMPLETE_REQUIREMENT'; requirementId: number; evidence: string }

@@ -12,6 +12,7 @@ import { useClubOpportunityPreview } from './useClubOpportunityPreview';
 import { clubTabFrom, involvedKindFrom } from './clubTabs';
 import { EditLink } from './ClubInfo';
 import type { ClubProfile } from './types';
+import { projectsPath } from '../../projects/projectWords';
 
 /** The right column beside every club tab: the club's store, jobs and fundraising (the open one marked), then its sponsors. */
 export function ClubSide({ club, canEdit = false }: { club: ClubProfile; canEdit?: boolean }) {
@@ -23,11 +24,13 @@ export function ClubSide({ club, canEdit = false }: { club: ClubProfile; canEdit
     const sponsors = club.presentation?.sponsors.filter(s => s.published && !s.promotionBlocked) ?? [];
     const affiliations = club.presentation?.affiliations.filter(a => a.status === 'ACTIVE') ?? [];
     const sponsorList = useShortList(sponsors);
+    const start = (item: (typeof opportunities)[number]) => canEdit && item.key === 'campaigns' && !item.source.loading && !item.source.failed && !item.count;
     return <>
         {opportunities.length > 0 && <SideBlock title={t("Get involved")} hint={t("Shop, work or give")} action={canEdit ? <EditLink to={`/clubs/${club.id}?edit=1&panel=involved`} /> : undefined}>
-            <List label={t("Ways to get involved")}>{opportunities.map(item => <ListRow key={item.key} to={item.to} current={open === (item.key === 'campaigns' ? 'fundraising' : item.key)}
+            {/* With no fundraiser yet, the club's own people start one: a Raise money project (step 4). */}
+            <List label={t("Ways to get involved")}>{opportunities.map(item => <ListRow key={item.key} to={start(item) ? projectsPath(club.id, 'projects', { new: 'RAISE_MONEY' }) : item.to} current={open === (item.key === 'campaigns' ? 'fundraising' : item.key)}
                 lead={<span className="gk-club-icon" data-kind={item.key}><item.icon aria-hidden="true" /></span>} title={t(item.title)}
-                meta={item.source.loading ? t('Loading…') : item.source.failed ? t('Currently unavailable') : item.count ? `${item.count} ${item.count === 1 ? t(item.unit.replace(/s$/, '')) : t(item.unit)}` : t(item.empty)} />)}</List>
+                meta={start(item) ? t('Start a fundraiser') : item.source.loading ? t('Loading…') : item.source.failed ? t('Currently unavailable') : item.count ? `${item.count} ${item.count === 1 ? t(item.unit.replace(/s$/, '')) : t(item.unit)}` : t(item.empty)} />)}</List>
         </SideBlock>}
         {/* The academy link itself sits under the club name; only managing it stays here. */}
         {affiliations.some(a => a.canManageProfile) && <SideBlock title={t("Academy profile")}>

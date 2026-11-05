@@ -12,16 +12,20 @@ describe('journey notification destinations', () => {
     it('opens the exact own offer and scoped officials discussion', () => {
         const offer = { ...notification('/referees/me#offer-91', 'referee_offer', 91), type: 'REFEREE_OFFER_UPDATED' };
         expect(buildNotificationDestination(offer)).toBe('/referees/me#offer-91');
-        expect(buildNotificationDestination({ ...offer, linkPath: '/referees/me#offer-92' })).toBe('/notifications?itemId=7');
+        expect(buildNotificationDestination({ ...offer, linkPath: '/referees/me#offer-92' })).toBe('/requests?view=updates&itemId=7');
         expect(buildNotificationDestination({ ...notification('/match-exchange/12#coordination', 'match_coordination_message', 91), type: 'MATCH_COORDINATION_MESSAGE' })).toBe('/match-exchange/12#coordination');
     });
     it.each([
         '/agent?tab=relationships&approach=31', '/profile/12?approach=31',
-        '/clubs/12/workspace?tab=club-approaches&approach=31',
         '/profile/12?representation=31', '/profile/12?representationRecord=31&representationGeneration=2',
     ])('retains exact relationship notification destinations: %s', path => {
         expect(safeNotificationLink(path)).not.toBeNull();
         expect(buildNotificationDestination({ ...notification(path, 'relationship_event', 91), type: 'CLUB_APPROACH_UPDATED' })).toBe(path);
+    });
+    it('opens a club approach in Club office’s Agent approaches', () => {
+        const path = '/clubs/12/workspace?tab=club-approaches&approach=31';
+        expect(safeNotificationLink(path)).not.toBeNull();
+        expect(buildNotificationDestination({ ...notification(path, 'relationship_event', 91), type: 'CLUB_APPROACH_UPDATED' })).toBe('/clubs/12/office?tab=tools&tool=club-approaches&approach=31');
     });
     it.each([
         '/match-exchange/12#offer-91', '/referees/me#offer-01', '/referees/me#offer-9007199254740992',
@@ -46,7 +50,7 @@ describe('journey notification destinations', () => {
     });
     it('retains the appointment anchor while validating the match identity', () => {
         expect(buildNotificationDestination(notification('/match-exchange/12#appointment-91'))).toBe('/match-exchange/12#appointment-91');
-        expect(buildNotificationDestination(notification('/match-exchange/13#appointment-91'))).toBe('/notifications?itemId=7');
+        expect(buildNotificationDestination(notification('/match-exchange/13#appointment-91'))).toBe('/requests?view=updates&itemId=7');
     });
     it.each(['0', '-1', '1.5', '01', '9007199254740992', '91#extra', '91/extra'])('rejects an invalid appointment identity: %s', id => {
         expect(safeNotificationLink(`/match-exchange/12#appointment-${id}`)).toBeNull();

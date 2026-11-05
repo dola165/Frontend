@@ -42,7 +42,7 @@ vi.mock('react-filerobot-image-editor', async () => {
 vi.mock('./api', () => ({ saveCopy: vi.fn(), editsOf: vi.fn() }));
 vi.mock('./flatten', () => ({ flattenUnder: vi.fn() }));
 // The library's stage, holding its photo once the stand-in is on screen.
-vi.mock('konva', () => ({ default: { Image: class {}, stages: [{ container: () => document.querySelector('[data-stub-stage]') ?? document.createElement('div'), findOne: () => ({}) }] } }));
+vi.mock('konva', () => ({ default: { Image: class {}, stages: [{ container: () => document.querySelector('[data-stub-stage]') ?? document.createElement('div'), content: document.createElement('div'), findOne: () => ({}) }] } }));
 vi.mock('../../hooks/useMediaSource', () => ({ useMediaSource: () => 'blob:original' }));
 
 const saved: api.SavedCopy = { url: '/uploads/copy.jpg', thumbUrl: null, originalUrl: '/uploads/roster.jpg', place: 'CHAT', itemId: null, chatId: 5, replyToId: 12, attachment: null,

@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useSearchParams } from 'react-router-dom';
 import { GkRoot, PageFrame } from '../../design/primitives';
+import { WorldWelcome } from '../firstWeek/WorldWelcome';
 import { WorldStage } from './stage/WorldStage';
 import { WorldContextBar } from './WorldContextBar';
 import { WorldNav } from './WorldNav';
 import './world.css';
+import { WatchReturn } from './watches/WatchReturn';
 
 /** Every World tab's code, fetched once in the background so moving between tabs never waits on a download. */
 const preloadTabs = () => Promise.allSettled([
@@ -17,6 +19,7 @@ const preloadTabs = () => Promise.allSettled([
  * stage (the header row, the map, the page) that stays in place as the person moves between tabs.
  */
 export function WorldLayout() {
+    const [params] = useSearchParams();
     useEffect(() => {
         const idle = window.requestIdleCallback ?? ((run: () => void) => window.setTimeout(run, 400));
         idle(() => void preloadTabs());
@@ -24,11 +27,12 @@ export function WorldLayout() {
     return (
         <GkRoot className="gk-page gk-world">
             <PageFrame>
-                <div className="gk-world-bar">
+                <WorldWelcome /><WatchReturn />
+                {!params.has('watch') && <><div className="gk-world-bar">
                     <WorldNav />
                     <WorldContextBar />
                 </div>
-                <WorldStage><Outlet /></WorldStage>
+                <WorldStage><Outlet /></WorldStage></>}
             </PageFrame>
         </GkRoot>
     );

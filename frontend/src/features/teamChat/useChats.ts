@@ -60,7 +60,7 @@ export function useChats() {
         };
     }), []);
 
-    /** A chat is gone for good (purged while the page was open). */
+    /** A chat is gone for good (purged while the page was open), or gone for you (you left it). */
     const drop = useCallback((id: number) => setHome(current => current
         ? { ...current, chats: current.chats.filter(chat => chat.id !== id), deleted: current.deleted.filter(chat => chat.id !== id) }
         : current), []);

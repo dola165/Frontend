@@ -3,6 +3,7 @@ import { DiscussButton } from '../teamChat/DiscussButton';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import type { WorkItem } from './api';
 import { DoneTip } from './DoneTip';
+import { useTaskMenu } from './useTaskMenu';
 import { useDoneTip } from './useDoneTip';
 import { ago } from './teamWorkWords';
 import { KeyChip, StatusDot } from './WorkBits';
@@ -10,7 +11,7 @@ import { KeyChip, StatusDot } from './WorkBits';
 /**
  * One task on one line: its dot, key and short name (bold), who is on it, its plan and when it last changed, with
  * "Done means" on hover, focus or a long press. A step opens under its task. `quiet` is the thin grey row of work that
- * is live or cancelled: smaller, lighter, never bold.
+ * is live or cancelled: smaller, lighter, never bold. Right-click (or hold) it to open, discuss, move, copy or pin it.
  */
 export function TaskRow({ item, parent, planName, quiet = false, onOpen }: {
     item: WorkItem; parent?: WorkItem; planName?: string; quiet?: boolean; onOpen: (taskId: number, stepId: number | null) => void;
@@ -20,8 +21,10 @@ export function TaskRow({ item, parent, planName, quiet = false, onOpen }: {
     const who = item.people.map(person => person.name).filter(Boolean).join(', ');
     const where = [parent && copy(`step of ${parent.key}`, `${parent.key}-ის ნაბიჯი`), planName].filter(Boolean).join(' · ');
     const when = [item.updatedBy?.name, ago(copy, item.updatedAt)].filter(Boolean).join(' · ');
+    const open = () => onOpen(parent?.id ?? item.id, parent ? item.id : null);
+    const menu = useTaskMenu(item, open);
     return <li className="tw-row" data-status={item.status} data-quiet={quiet || undefined} {...tip.holder}>
-        <button type="button" className="tw-row__open" {...tip.trigger} onClick={() => { if (!tip.swallow()) onOpen(parent?.id ?? item.id, parent ? item.id : null); }}>
+        <button type="button" className="tw-row__open gk-cm-target" {...tip.trigger} {...menu.bind} onClick={() => { if (!tip.swallow()) open(); }}>
             <StatusDot status={item.status} /><KeyChip value={item.key} />
             <span className="tw-row__name" title={item.title}>{item.title}</span>
             {item.openQuestions > 0 && <span className="tw-task__ask gk-num" title={copy('Questions for Beqa', 'კითხვები ბექასთვის')}><CircleHelp aria-hidden="true" />{item.openQuestions}</span>}
@@ -31,5 +34,7 @@ export function TaskRow({ item, parent, planName, quiet = false, onOpen }: {
         </button>
         <DiscussButton task={item} compact />
         <DoneTip id={tip.id} doneMeans={item.doneMeans} />
+        {menu.notice && <span className="tw-row__notice" role="status">{menu.notice}</span>}
+        {menu.menu}
     </li>;
 }

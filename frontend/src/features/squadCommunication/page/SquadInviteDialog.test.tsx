@@ -5,8 +5,11 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { SquadPlayersTab } from './SquadPlayersTab';
 import * as api from '../api';
 
-vi.mock('../api', () => ({ joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn() }));
+vi.mock('../api', async original => ({ ...await original<object>(), joinLink: vi.fn(), createJoinLink: vi.fn(), disableJoinLink: vi.fn(), joinRequests: vi.fn(), decideJoinRequest: vi.fn(), approveAllJoinRequests: vi.fn(), parentLinks: vi.fn(), answerParentLink: vi.fn(),
+    sameChild: vi.fn() }));
 vi.mock('../../clubs/api', () => ({ removePlayerFromSquad: vi.fn() }));
+const rules = vi.hoisted(() => ({ value: null as null | Record<string, boolean> }));
+vi.mock('../../../hooks/useCan', () => ({ useCan: () => ({ pending: false, admin: null, decide: (action: string, fallback: boolean) => ({ allowed: rules.value ? Boolean(rules.value[action]) : fallback }) }) }));
 vi.mock('../../clubWorkspace/squads/PlayerCard', () => ({ PlayerCard: ({ player }: { player: { name: string } }) => <div>{player.name}</div> }));
 
 const space = { id: 11, name: 'U12', academy_name: 'Test FC', club_id: 1, can_manage: true, players: [{ id: 41, name: 'Alex' }] } as api.SquadOverview;
@@ -23,8 +26,10 @@ const show = (entry = '/squads/11?tab=players&invite=1') => {
 };
 beforeEach(() => {
     vi.clearAllMocks();
+    rules.value = null;
     vi.mocked(api.joinLink).mockResolvedValue(none);
     vi.mocked(api.joinRequests).mockResolvedValue([]);
+    vi.mocked(api.parentLinks).mockResolvedValue([]);
     vi.stubGlobal('confirm', vi.fn(() => true));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -89,4 +94,85 @@ it('shows a failed waiting list and a failed save as errors instead of an empty 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
     expect(await screen.findByText('This request changed. Reload the arrivals before deciding.')).toBeInTheDocument();
+});
+
+it('shows the link as a QR code with Copy, WhatsApp and Print', async () => {
+    vi.mocked(api.joinLink).mockResolvedValue(active);
+    const sheet = { document: { write: vi.fn(), close: vi.fn() }, focus: vi.fn(), print: vi.fn() };
+    vi.stubGlobal('open', vi.fn(() => sheet));
+    show();
+    expect(await screen.findByTitle('QR code: Join U12')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Print' }));
+    expect(sheet.document.write).toHaveBeenCalledWith(expect.stringContaining('<svg'));
+    expect(sheet.document.write).toHaveBeenCalledWith(expect.stringContaining(`${window.location.origin}${active.path}`));
+    expect(sheet.print).toHaveBeenCalled();
+});
+
+it('approves everyone the coach sees at once, with the versions seen and the shared group', async () => {
+    vi.mocked(api.joinRequests).mockResolvedValueOnce([request(), request({ id: 63, version: 2, childName: 'Luka Kapanadze' })]).mockResolvedValue([]);
+    vi.mocked(api.approveAllJoinRequests).mockResolvedValue({ approved: 2, groupName: 'U12 intake', decisions: [] });
+    const onChanged = show();
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve all 2' }));
+    await waitFor(() => expect(api.approveAllJoinRequests).toHaveBeenCalledWith(11, { requestId: expect.stringMatching(/^[0-9a-f-]{36}$/), requests: [{ inquiryId: 62, expectedVersion: 4 }, { inquiryId: 63, expectedVersion: 2 }], groupId: 81, groupVersion: 3 }));
+    expect(await screen.findByText('2 offered a place in U12 intake. Families accept the terms next.')).toBeInTheDocument();
+    expect(onChanged).toHaveBeenCalled();
+    expect(await screen.findByText('Nobody is waiting.')).toBeInTheDocument();
+});
+
+it('lists a parent asking to be linked; the coach links only a child with no parent yet', async () => {
+    vi.mocked(api.parentLinks).mockResolvedValueOnce([
+        { id: 5, childName: 'Luka Beridze', requesterName: 'Nino Kapanadze', createdAt: '2026-10-23T09:00:00Z', canLink: false },
+        { id: 6, childName: 'Ana Gelashvili', requesterName: 'Dato Gelashvili', createdAt: '2026-10-23T09:00:00Z', canLink: true },
+    ]).mockResolvedValue([]);
+    vi.mocked(api.answerParentLink).mockResolvedValue({ id: 6, outcome: 'LINKED' });
+    show();
+    expect(await screen.findByText('Luka’s parent confirms them.')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Link' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+    await waitFor(() => expect(api.answerParentLink).toHaveBeenCalledWith(11, 6, true));
+});
+
+it('someone who may answer requests but not manage the link sees who is waiting, without the link', async () => {
+    rules.value = { approve_join_requests: true };
+    vi.mocked(api.joinRequests).mockResolvedValue([request()]);
+    show();
+    expect(await screen.findByRole('dialog', { name: 'Waiting to join' })).toBeInTheDocument();
+    expect(await screen.findByText('Nino Beridze')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Create link|New link/ })).not.toBeInTheDocument();
+    expect(api.joinLink).not.toHaveBeenCalled();
+});
+
+it('layer 1 walk p12: a child who looks like a card the club made is answered Same child or New player before any Add', async () => {
+    const looks = request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } });
+    vi.mocked(api.joinRequests).mockResolvedValue([looks, request({ id: 63, playerId: 901, childName: 'Luka Beridze' }), request({ id: 64, playerId: 902, childName: 'Saba Lomidze' })]);
+    vi.mocked(api.sameChild).mockResolvedValue({ status: 'DONE', playerId: 108 });
+    show();
+    expect(await screen.findByText('Looks like Nika T., a card you made')).toBeInTheDocument();
+    // Approve all leaves the look-alike for its own answer; only the other two get Add.
+    expect(screen.getByRole('button', { name: 'Approve all 2' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Add' })).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Same child' }));
+    await waitFor(() => expect(api.sameChild).toHaveBeenCalledWith(11, 900, 108));
+    expect(await screen.findByText('Nino Beridze is now one card, the one you made.')).toBeInTheDocument();
+});
+
+it('layer 1 walk p12: New player sets the match aside here, brings back Add, and Approve all takes the child too', async () => {
+    vi.mocked(api.joinRequests).mockResolvedValue([request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } }), request({ id: 63, playerId: 901, childName: 'Luka Beridze' })]);
+    show();
+    expect(await screen.findByRole('button', { name: 'Approve' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'New player' }));
+    expect(screen.getAllByRole('button', { name: 'Add' })).toHaveLength(2);
+    expect(screen.queryByText('Looks like Nika T., a card you made')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve all 2' })).toBeInTheDocument();
+});
+
+it('fix round: while Same child saves, the row can’t be declined', async () => {
+    let finish: (value: { status: 'DONE'; playerId: number }) => void = () => undefined;
+    vi.mocked(api.sameChild).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    vi.mocked(api.joinRequests).mockResolvedValue([request({ sameChild: { playerId: 108, name: 'Nika T.', hasFamily: false } })]);
+    show();
+    fireEvent.click(await screen.findByRole('button', { name: 'Same child' }));
+    expect(screen.getByRole('button', { name: 'Decline Nino Beridze' })).toBeDisabled();
+    finish({ status: 'DONE', playerId: 108 });
+    await screen.findByText('Nino Beridze is now one card, the one you made.');
 });

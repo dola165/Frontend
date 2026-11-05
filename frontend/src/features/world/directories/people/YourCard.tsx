@@ -27,7 +27,7 @@ function OwnCard({ userId, referee }: { userId: number; referee: boolean }) {
             </div>
             <p className="gk-faint">{t('This is how People shows you to others.')}</p>
             <div className="gk-peek-actions">
-                <Link className="gk-people-act" to="/account/roles" data-close>{t('Edit roles')}</Link>
+                <Link className="gk-people-act" to="/account/football" data-close>{t('Your football')}</Link>
                 <Link className="gk-people-act" to={`/profile/${userId}`} data-close>{t('Full profile')}</Link>
                 {referee && <Link className="gk-people-act" to="/referees/me" data-close>{t('Mark when you’re free')}</Link>}
             </div>

@@ -1,6 +1,6 @@
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import type { AuthSessionId } from '../../utils/authStorage';
-import type { LifecycleDates, LifecycleDateCommand, AdmissionCase, AdmissionHome, AdmissionInquiry, InquiryInput, InquiryCommand, AdmissionInvitation, AdmissionWorkspace, CaseCommand, ClaimInvitationInput, DiscoveryQuery, GroupInput, GroupSchedule, GuardianReviewInput, OfflineInvitationInput, Opportunity, OpportunityPage, Participant, PlayerCardInput, Submission } from './types';
+import type { LifecycleDates, LifecycleDateCommand, AdmissionCase, AdmissionHome, AdmissionInquiry, InquiryInput, InquiryCommand, AdmissionInvitation, AdmissionWorkspace, CaseCommand, ClaimInvitationInput, DiscoveryQuery, FirstVisitBooking, FirstVisitSessions, GroupInput, GroupSchedule, GuardianReviewInput, OfflineInvitationInput, Opportunity, OpportunityPage, Participant, PlayerCardInput, Submission } from './types';
 export const ADMISSIONS_CONTRACT_VERSION = '1.3.0';
 export { JOINING_CONTRACT_REVISION, fetchPlayerIdentity, savePlayerIdentity, uploadPlayerPhoto, fetchClubJoiningOptions, submitClubEnquiry, createPlayerLinkCode, previewPlayerLinkCode, redeemPlayerLinkCode } from '../joining-contract/api';
 const config = (sessionId: AuthSessionId, signal?: AbortSignal): AuthSessionRequestConfig => ({ _authSessionId: sessionId, signal });
@@ -19,7 +19,10 @@ export const updateAdmissionPlayerCard = (playerId: number, body: PlayerCardInpu
 export const createAdmissionInvitation = (organizationId: number, body: OfflineInvitationInput, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.post<AdmissionInvitation>(`/organizations/${organizationId}/admissions/invitations`, body, config(sessionId, signal)).then(r => r.data);
 export const claimAdmissionInvitation = (id: number, body: ClaimInvitationInput, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.post<AdmissionCase | null>(`/admissions/invitations/${id}/respond`, body, config(sessionId, signal)).then(r => r.data);
 export const reportAdmissionGuardianReview = (playerId: number, body: GuardianReviewInput, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.post<void>(`/admissions/players/${playerId}/guardian-review`, body, config(sessionId, signal)).then(r => r.data);
-export const fetchAdmissionGroupSchedule = (id: number, playerId: number, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<GroupSchedule>(`/admissions/groups/${id}/schedule`, { ...config(sessionId, signal), params: { playerId } }).then(r => r.data);
+export const fetchFirstVisits = (groupId: number, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<FirstVisitSessions>(`/admissions/groups/${groupId}/first-visits`, config(sessionId, signal)).then(r => r.data);
+/** Confirmed at once; the same `requestId` on a retry returns the same case. */
+export const bookFirstVisit = (groupId: number, body: FirstVisitBooking, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.post<AdmissionCase>(`/admissions/groups/${groupId}/first-visits`, body, config(sessionId, signal)).then(r => r.data);
+export const fetchAdmissionGroupSchedule =(id: number, playerId: number, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<GroupSchedule>(`/admissions/groups/${id}/schedule`, { ...config(sessionId, signal), params: { playerId } }).then(r => r.data);
 
 export const submitAdmissionInquiry = (organizationId: number, body: InquiryInput, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.post<AdmissionInquiry>(`/organizations/${organizationId}/admissions/inquiries`, body, config(sessionId, signal)).then(r => r.data);
 export const fetchAdmissionInquiry = (id: number, sessionId: AuthSessionId, signal?: AbortSignal) => apiClient.get<AdmissionInquiry>(`/admissions/inquiries/${id}`, config(sessionId, signal)).then(r => r.data);

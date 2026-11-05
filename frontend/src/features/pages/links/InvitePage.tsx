@@ -1,3 +1,4 @@
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
@@ -39,7 +40,7 @@ function ClubInvitePage() {
     if (busy || !invite) return;
     setBusy(true); setError('');
     try { const result = await acceptInvite(code, { requestId, expectedVersion: invite.version }); void refreshNavigationCapabilities().catch(() => undefined); navigate(result.profilePath); }
-    catch (failure) { setError(extractApiErrorMessage(failure, t('Could not join. Try again.'))); setBusy(false); }
+    catch (failure) { if (!promptEmailConfirmation(failure)) setError(extractApiErrorMessage(failure, t('Could not join. Try again.'))); setBusy(false); }
   };
   const role = invite ? t(ROLE_WORD[invite.role]) : '';
   const body = failed ? <Panel><EmptyNote title={failed} action={<ButtonLink to="/home">{t('Home')}</ButtonLink>} /></Panel>

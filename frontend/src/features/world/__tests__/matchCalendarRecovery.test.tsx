@@ -17,8 +17,8 @@ const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), patc
 vi.mock('../../../api/axiosConfig', () => ({ apiClient: http }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', sessionId: fixture.session, user: { id: fixture.userId } }) }));
 // The drawer, registry, fixture loader, team aggregate, permission hook and cache are real.
-// Unrelated result/offer/journey/form bodies do not run commands or additional detail reads here.
-vi.mock('../peek/match/MatchAction', () => ({ MatchAction: () => null }));
+// The next-step line and form bodies do not run additional detail reads here.
+vi.mock('../peek/match/MatchNext', () => ({ MatchNext: () => null }));
 vi.mock('../peek/match/MatchForm', () => ({ MatchForm: () => null }));
 vi.mock('../peek/match/MatchHead', () => ({ MatchHead: ({ match }: { match: HistoryMatch }) => <p>{`Fixture ${match.sourceId} loaded for ${match.homeClubId}`}</p> }));
 vi.mock('../peek/match/MatchTable', () => ({ StageTable: () => null }));

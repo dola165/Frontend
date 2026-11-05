@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 const ka: Record<string, string> = {
   'Team': 'გუნდი', 'Loading team…': 'გუნდი იტვირთება…', 'Email': 'ელფოსტა', 'Responsibility': 'პასუხისმგებლობა',
-  'Staff · organize tournaments': 'თანამშრომელი · ტურნირების ორგანიზება', 'Administrator · manage this organization': 'ადმინისტრატორი · ამ ორგანიზაციის მართვა',
+  'Staff': 'თანამშრომელი', 'Administrator · manage this organization': 'ადმინისტრატორი · ამ ორგანიზაციის მართვა',
   'Invite team member': 'გუნდის წევრის მოწვევა', 'Member': 'წევრი', 'Access': 'წვდომა', 'Active': 'აქტიური',
   'Remove access': 'წვდომის გაუქმება', 'Confirm removal': 'გაუქმების დადასტურება', 'Keep access': 'წვდომის დატოვება',
   'Remove {name}’s organization access?': 'გაუუქმდეს {name}-ს ორგანიზაციაზე წვდომა?', 'this member': 'ამ წევრს',

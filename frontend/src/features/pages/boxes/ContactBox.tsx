@@ -1,45 +1,43 @@
 import { useId, useState, type KeyboardEvent } from 'react';
-import { Check, Globe, Instagram, Mail, Phone } from 'lucide-react';
-import { Button, List } from '../../../design/primitives';
+import { Check } from 'lucide-react';
+import { Button } from '../../../design/primitives';
 import { SideBlock } from '../../../design/profile/ProfileLayout';
 import { usePagesCopy } from '../copy';
 import { EditPencil } from '../edit/EditPencil';
 import { usePageEdit } from '../edit/context';
 import type { BoxProps } from '../edit/boxRegistry';
 import { useKeepOnLeave } from '../edit/useKeepOnLeave';
-import { phoneDisplay } from '../model/phone';
+import { ContactRows } from './ContactRows';
 import '../edit/edit.css';
 
 const digits = (value: string) => value.replace(/[^\d+]/g, '');
-const site = (value: string) => { try { const url = new URL(/^https?:\/\//.test(value) ? value : `https://${value}`); return ['http:', 'https:'].includes(url.protocol) ? url.href : null; } catch { return null; } };
 const handle = (value: string) => value.replace(/^@/, '').replace(/^https?:\/\/(?:www\.)?instagram\.com\//, '').replace(/\/.*$/, '');
 
-/** How to reach the page: the phone (which is also the WhatsApp button), the email, the website and Instagram. Edited in place. */
+/**
+ * How to reach the page: the phone (which is also the WhatsApp button), the email, the website, Instagram and Facebook.
+ * Edited in place; the server keeps a bare domain as https and Instagram as the account's name, and the club page
+ * reads the same links. Only http(s) addresses are shown.
+ */
 export function ContactBox({ page, editing, open, onEdit, onClose }: BoxProps) {
   const t = usePagesCopy();
   const { saveIdentity } = usePageEdit();
-  const { phone, email } = page.identity.contact, { website, instagram } = page.identity.social;
-  const persist = (next: Draft) => saveIdentity({ contact: { phone: next.phone.trim(), email: next.email.trim() }, social: { ...page.identity.social, website: next.website.trim(), instagram: handle(next.instagram.trim()) } }, { label: t('Contact saved') });
+  const { phone, email } = page.identity.contact, { website, instagram } = page.identity.social, facebook = page.identity.social.facebook ?? '';
+  const persist = (next: Draft) => saveIdentity({ contact: { phone: next.phone.trim(), email: next.email.trim() }, social: { ...page.identity.social, website: next.website.trim(), instagram: handle(next.instagram.trim()), facebook: next.facebook.trim() } }, { label: t('Contact saved') });
   const save = async (next: Draft) => { if (await persist(next)) onClose(); };
-  const web = site(website);
   return (
-    <SideBlock title={t('Contact')} hint={t('Phone and email')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
-      {open ? <ContactEditor initial={{ phone, email, website, instagram }} suggestions={page.suggestions} onSave={save} onKeep={next => void persist(next)} onCancel={onClose} />
-        : <List label={t('Contact details')}>
-          {phone && <li><a className="gk-list-row" href={`https://wa.me/${digits(phone).replace('+', '')}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Phone aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{phoneDisplay(phone)}</span><span className="gk-list-row__meta">{t('Phone and WhatsApp')}</span></span></a></li>}
-          {email && <li><a className="gk-list-row" href={`mailto:${email}`}><span className="gk-list-row__lead"><span className="gk-club-icon"><Mail aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title gk-club-email">{email}</span><span className="gk-list-row__meta">{t('Email')}</span></span></a></li>}
-          {web && <li><a className="gk-list-row" href={web} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Globe aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">{website.replace(/^https?:\/\/(www\.)?/, '')}</span><span className="gk-list-row__meta">{t('Website')}</span></span></a></li>}
-          {instagram && <li><a className="gk-list-row" href={`https://instagram.com/${encodeURIComponent(handle(instagram))}`} target="_blank" rel="noopener noreferrer"><span className="gk-list-row__lead"><span className="gk-club-icon"><Instagram aria-hidden="true" /></span></span><span className="gk-list-row__main"><span className="gk-list-row__title">@{handle(instagram)}</span><span className="gk-list-row__meta">Instagram</span></span></a></li>}
-        </List>}
+    <SideBlock title={t('Contact')} hint={t('Phone, email and links')} action={editing && !open ? <EditPencil onClick={onEdit} /> : undefined}>
+      {open ? <ContactEditor initial={{ phone, email, website, instagram, facebook }} suggestions={page.suggestions} onSave={save} onKeep={next => void persist(next)} onCancel={onClose} />
+        : <ContactRows phone={phone} email={email} website={website} instagram={instagram} facebook={facebook} />}
     </SideBlock>
   );
 }
 
-interface Draft { phone: string; email: string; website: string; instagram: string }
+interface Draft { phone: string; email: string; website: string; instagram: string; facebook: string }
 function ContactEditor({ initial, suggestions, onSave: done, onKeep, onCancel: cancel }: { initial: Draft; suggestions: { phone: string; email: string } | null; onSave: (next: Draft) => Promise<void>; onKeep: (next: Draft) => void; onCancel: () => void }) {
   const t = usePagesCopy();
   const [draft, setDraft] = useState(initial);
-  const [more, setMore] = useState(Boolean(initial.website || initial.instagram));
+  // Most clubs have a website, so it is always there; Instagram and Facebook open on request.
+  const [more, setMore] = useState(Boolean(initial.instagram || initial.facebook));
   // Opening another box saves what was typed here; only Cancel (or Escape) drops it.
   const settle = useKeepOnLeave(draft, next => (Object.keys(next) as (keyof Draft)[]).some(key => next[key].trim() !== initial[key].trim()), onKeep);
   const onSave = (next: Draft) => { settle(); return done(next); };
@@ -65,10 +63,11 @@ function ContactEditor({ initial, suggestions, onSave: done, onKeep, onCancel: c
         {offerEmail && <button type="button" className="gk-tap" style={{ marginTop: 6 }} onClick={() => setDraft({ ...draft, email: suggestions.email })}><Check aria-hidden="true" />{t('Use {email}', { email: suggestions.email })}</button>}
       </div>
       {contacts && <button type="button" className="gk-tap" onClick={() => void pick()}><Check aria-hidden="true" />{t('Pick from my contacts')}</button>}
+      <div><label className="gk-field__label" htmlFor={`${id}-web`}>{t('Website')}</label><input id={`${id}-web`} className="gk-input" type="url" inputMode="url" autoComplete="url" value={draft.website} placeholder="rustavi-lions.ge" maxLength={300} onChange={event => setDraft({ ...draft, website: event.target.value })} /></div>
       {more ? <>
-        <div><label className="gk-field__label" htmlFor={`${id}-web`}>{t('Website')}</label><input id={`${id}-web`} className="gk-input" type="url" inputMode="url" autoComplete="url" value={draft.website} placeholder="rustavi-lions.ge" maxLength={300} onChange={event => setDraft({ ...draft, website: event.target.value })} /></div>
         <div><label className="gk-field__label" htmlFor={`${id}-ig`}>Instagram</label><input id={`${id}-ig`} className="gk-input" autoComplete="off" value={draft.instagram} placeholder="@rustavi.lions" maxLength={300} onChange={event => setDraft({ ...draft, instagram: event.target.value })} /></div>
-      </> : <button type="button" className="gk-cmatch__no" onClick={() => setMore(true)}>{t('Website and Instagram')}</button>}
+        <div><label className="gk-field__label" htmlFor={`${id}-fb`}>Facebook</label><input id={`${id}-fb`} className="gk-input" autoComplete="off" value={draft.facebook} placeholder="facebook.com/rustavilions" maxLength={300} onChange={event => setDraft({ ...draft, facebook: event.target.value })} /></div>
+      </> : <button type="button" className="gk-cmatch__no" onClick={() => setMore(true)}>{t('Instagram and Facebook')}</button>}
       <div className="gk-boxedit__foot">
         <Button size="sm" variant="primary" onClick={() => void onSave(draft)}>{t('Done')}</Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>{t('Cancel')}</Button>

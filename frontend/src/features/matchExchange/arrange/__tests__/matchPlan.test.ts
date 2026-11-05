@@ -55,9 +55,15 @@ describe('the arrangement sent to the API', () => {
         const body = buildArrangement(draft({ targetSquadId: 0, ground: { kind: 'THEIRS', ground }, referee: 'THEM' }), ours[0], 'direct');
         expect(body).toMatchObject({ targetSquadId: null, hostingChoice: 'AWAY', officialResponsibility: 'OPPONENT', match: { venuePreference: 'AWAY' } });
     });
-    it('posts an open match without a target club and with an editable length', () => {
-        const body = buildArrangement(draft({ minutes: 60, format: '7_A_SIDE', ground: { kind: 'LATER', city: 'Rustavi' }, referee: 'NONE' }), ours[0], 'open');
-        expect(body).toMatchObject({ targetClubId: null, targetSquadId: null, hostingChoice: 'FLEXIBLE', officialMode: 'NONE', match: { endsAt: '2099-10-17T12:00', format: '7_A_SIDE', city: 'Rustavi', locationName: 'Ground to be arranged', venueId: null, refereeRequired: false, venuePreference: 'EITHER' } });
+    it('posts an open challenge over its window: the listing spans the days, with the daily times and the match length', () => {
+        const body = buildArrangement(draft({ minutes: 60, format: '7_A_SIDE', dateTo: '2099-10-18', timeTo: '14:00', ground: { kind: 'LATER', city: 'Rustavi' }, referee: 'NONE' }), ours[0], 'open');
+        expect(body).toMatchObject({ targetClubId: null, targetSquadId: null, outsideOpponent: null, windowFrom: '11:00', windowTo: '14:00', matchMinutes: 60, hostingChoice: 'FLEXIBLE', officialMode: 'NONE',
+            match: { startsAt: '2099-10-17T11:00', endsAt: '2099-10-18T14:00', format: '7_A_SIDE', city: 'Rustavi', locationName: 'Ground to be arranged', venueId: null, refereeRequired: false, venuePreference: 'EITHER' } });
+    });
+    it('names a club that is not in GrassKickZ by hand, with no club or squad to invite', () => {
+        const body = buildArrangement(draft({ opponent: null, outside: '  Gori Juniors ', targetSquadId: 112 }), ours[0], 'direct');
+        expect(body).toMatchObject({ targetClubId: null, targetSquadId: null, outsideOpponent: 'Gori Juniors', windowFrom: null, windowTo: null, matchMinutes: null });
+        expect(body.match.title).toBe(`${ours[0].name} v Gori Juniors`);
     });
 });
 
@@ -70,8 +76,15 @@ describe('what must be filled in', () => {
     it('rejects a kick-off in the past and an unnamed external referee', () => {
         expect(problemsWith(draft({ date: '2026-10-09', referee: 'EXTERNAL' }), 'direct', now)).toEqual({ date: 'Kick-off must be in the future.', referee: 'Name the referee you have arranged.' });
     });
-    it('does not need an opponent for an open match', () => {
-        expect(problemsWith(draft({ opponent: null }), 'open', now)).toEqual({});
+    it('does not need an opponent for an open challenge, but needs a window long enough for the match', () => {
+        expect(problemsWith(draft({ opponent: null, dateTo: '2099-10-18', timeTo: '14:00', minutes: 90 }), 'open', now)).toEqual({});
+        expect(problemsWith(draft({ opponent: null, minutes: 90 }), 'open', now)).toEqual({ time: 'Choose the time the match must be over by.' });
+        expect(problemsWith(draft({ opponent: null, timeTo: '12:00', minutes: 90 }), 'open', now)).toEqual({ time: 'Leave room for the whole match between the two times.' });
+        expect(problemsWith(draft({ opponent: null, dateTo: '2099-11-17', timeTo: '14:00' }), 'open', now)).toEqual({ date: 'Choose up to 14 days, the last one after the first.' });
+    });
+    it('takes a club named by hand as the opponent of an invitation', () => {
+        expect(problemsWith(draft({ opponent: null, outside: 'Gori Juniors' }), 'direct', now)).toEqual({});
+        expect(problemsWith(draft({ opponent: null, outside: '  ' }), 'direct', now)).toEqual({ opponent: 'Search for the club you want to play.' });
     });
 });
 

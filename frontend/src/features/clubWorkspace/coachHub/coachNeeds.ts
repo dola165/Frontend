@@ -5,16 +5,35 @@ import { dayLabel, dueWords, timeLabel } from '../fixtures';
 import { replies, type CoachSquad } from './useCoachData';
 import { translate } from '../../../locales/useCopy';
 import { coachHubEn } from '../../../locales/workspaceDesign';
+import { mySquadsEn } from '../../../locales/mySquadsDesign';
+import type { WantToJoinItem } from './useSquadCards';
 
 const tr = (key: keyof typeof coachHubEn, values?: Record<string, string | number>) => translate('coachHub', coachHubEn, key, values);
 
 export type NeedTone = 'danger' | 'warning' | 'info' | 'neutral';
 /** Something waiting for the coach: what it is, where it applies, its state in a word or two, and where it opens. */
-export type NeedKind = 'reply' | 'message' | 'update' | 'restriction' | 'consent' | 'development' | 'task';
+export type NeedKind = 'reply' | 'message' | 'update' | 'restriction' | 'consent' | 'development' | 'task' | 'join';
 export interface CoachNeed { key: string; kind: NeedKind; squad: number | null; tone: NeedTone; title: string; meta: string; status: string; to: string; rank: number; date: string }
 
 const DAY = 86_400_000;
 const recordLink = coachRecordHref;
+const say = (key: 'needsJoin' | 'needsJoinMeta' | 'decide', values?: Record<string, string | number>) => translate('mySquads', mySquadsEn, key, values);
+
+/**
+ * What waits on this person in their squads because of their jobs (step 3): someone to decide on joining, for those who
+ * decide it. Call-ups need no answer (step 6: a called-up player is expected), so nobody is chased about them. Only what
+ * the server gave this person is counted.
+ */
+export function squadNeeds({ joining, names, link }: {
+    joining: WantToJoinItem[] | null; names: Map<number, string>; link: (tab: string, context: Record<string, string>) => string;
+}): CoachNeed[] {
+    const items: CoachNeed[] = [];
+    const waiting = new Map<number, number>();
+    for (const item of joining ?? []) if (item.state === 'DECIDE' && item.squadId) waiting.set(item.squadId, (waiting.get(item.squadId) ?? 0) + 1);
+    for (const [squad, count] of waiting) items.push({ key: `join-${squad}`, kind: 'join', squad, tone: 'warning', title: say('needsJoin', { count, squad: names.get(squad) ?? '' }),
+        meta: say('needsJoinMeta'), status: say('decide'), to: link('players', { squad: String(squad) }), rank: 1, date: '' });
+    return items;
+}
 
 /**
  * Everything waiting for a coach across their squads, most urgent first: overdue work, then replies and

@@ -7,13 +7,14 @@ import { staffMatchesSquad, staffTitle, type PublicResponsibility, type PublicSt
 import { responsibilityAreas, staffAreas } from '../staffAreas';
 import { useOverviewSource } from '../useOverviewSource';
 import { usePagesCopy } from '../../pages/copy';
+import { useAction } from '../../actions/useAction';
 
 const areas = [{ id: 'coaching', name: 'Coaching' }, { id: 'analysis', name: 'Analysis & scouting' }, { id: 'performance', name: 'Sports science' }, { id: 'care', name: 'Medical & player care' }, { id: 'operations', name: 'Club operations' }, { id: 'officials', name: 'Match officials' }];
 
 /** Compact structure from TabPeople before e95e2445: departments describe contributions, never reporting lines. */
 function Person({ person, area }: { person: PublicStaff; area: string }) {
     const t = usePagesCopy();
-    const appointments = person.responsibilities.filter(r => responsibilityAreas(r.specialisations).includes(area));
+    const appointments = person.responsibilities.filter(r => responsibilityAreas(r.specialisations, r.title).includes(area));
     const scope = (r: PublicResponsibility) => r.clubWide ? t('Across the club') : r.squadNames?.length ? r.squadNames.join(' · ') : r.squadName ?? t('Across the club');
     return <article className="gk-staff-person">
         <Crest src={person.avatarUrl} name={person.fullName} size={32} round />
@@ -36,6 +37,9 @@ export function ClubPeopleTab({ clubId, clubName, canManageStaff }: { clubId: nu
     const t = usePagesCopy();
     const [params, setParams] = useClubProfileSearchParams();
     const people = useOverviewSource<PublicStaff[]>(`/clubs/${clubId}/staff-directory`);
+    // One action, many doors: the staff link opens over the club page too, once the rule-checker allows it.
+    const invite = useAction('invite_staff', { kind: 'club', id: clubId }, { fallback: canManageStaff });
+    const inviteStaff = !invite.loading && invite.href;
     const query = (params.get('q') ?? '').trim().toLocaleLowerCase(), squad = params.get('squad') ?? '', area = params.get('staff') ?? '';
     const all = people.data ?? [];
     const filter = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
@@ -55,6 +59,7 @@ export function ClubPeopleTab({ clubId, clubName, canManageStaff }: { clubId: nu
                 <select className="gk-input gk-club-select" aria-label={t('Squad')} value={squad} onChange={e => filter('squad', e.target.value)}><option value="">{t('All squads')}</option>{squad && !squads.some(([id]) => String(id) === squad) && <option value={squad}>{t('Selected squad')}</option>}{squads.map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select>
             </>}
             {(query || squad || area) && <button type="button" className="gk-section__action" onClick={clear}>{t('Clear')}</button>}
+            {inviteStaff && <Link className="gk-section__action" to={inviteStaff}>{t('Invite staff')}</Link>}
             {canManageStaff && <a className="gk-section__action" href={`/clubs/${clubId}?edit=1&panel=staff`}>{t('Manage staff')}</a>}
         </div>}
         {people.loading ? <Panel flush><div className="gk-panel--pad"><Skeleton height={80} /></div></Panel>

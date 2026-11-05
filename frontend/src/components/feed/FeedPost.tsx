@@ -1,11 +1,12 @@
+import { PostComments, type SubmitComment } from './PostComments';
 import { ReactionButton } from './ReactionButton';
 import { ReactionSummary } from './ReactionSummary';
 import { selectedReaction, type Reaction } from './reactions';
 import { formatDate } from '../../utils/formatting';
 import { MediaImage } from '../ui/MediaImage';
 import { memo, useState, useRef, useSyncExternalStore, type ReactNode } from 'react';
-import { MessageCircle, MoreHorizontal, PlayCircle, Send, Share2, Pencil, Trash2, Flag, EyeOff, ExternalLink, Copy, Globe2, LockKeyhole, Info, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Camera, MessageCircle, MoreHorizontal, PlayCircle, Share2, Pencil, Trash2, Flag, EyeOff, ExternalLink, Copy, Globe2, LockKeyhole, Info, MapPin } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { postCount, usePostCopy } from './postCopy';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
@@ -13,7 +14,8 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { EditPostDialog, PostDialog, ReportPostDialog, SharePostDialog, SharedPostPreview } from './PostDialogs';
 import { apiClient } from '../../api/axiosConfig';
 import { getAuthSessionId, getStoredUserId, subscribeAuthSession } from '../../utils/authStorage';
-import { isPostTopic, postTopics, type FeedWhy, type PostPlace, type PostReach, type PostTopic } from '../../features/feed/postTopics';
+import { isPostTopic, postTopics, type FeedWhy, type PostPlace, type PostReach, type PostTopic, type RecordPost } from '../../features/feed/postTopics';
+import { HiddenRecordNote, RecordMark, RecordPostCard, RecordPostChanges } from '../../features/feed/RecordPostCard';
 
 export interface CommentDto {
     id: number;
@@ -22,6 +24,13 @@ export interface CommentDto {
     authorAvatarUrl?: string | null;
     content: string;
     createdAt: string;
+    parentId?: number | null;
+    version?: number;
+    editedAt?: string | null;
+    deleted?: boolean;
+    canEdit?: boolean;
+    likeCount?: number;
+    isLikedByMe?: boolean;
 }
 
 export interface FeedPostDto {
@@ -55,6 +64,11 @@ export interface FeedPostDto {
     place?: PostPlace | null;
     reach?: PostReach | string | null;
     why?: FeedWhy | null;
+    /** The squad a club post is for (a coach's post names it). */
+    squadId?: number | null;
+    squadName?: string | null;
+    /** The record a post the club's records wrote follows. */
+    record?: RecordPost | null;
 }
 
 interface FeedPostProps {
@@ -64,7 +78,7 @@ interface FeedPostProps {
     onReactionChange?: (postId: number, reaction: Reaction | null) => void | Promise<void>;
     onLikeToggle: (postId: number) => void | Promise<void>;
     onToggleComments: (postId: number) => void;
-    onSubmitComment: (postId: number, content: string) => void | Promise<void>;
+    onSubmitComment: SubmitComment;
     onImageClick: () => void;
     likePending?: boolean;
     likeError?: string | null;
@@ -105,11 +119,16 @@ export const FeedPost = ({
     home = false
 }: FeedPostProps) => {
     const { t } = useTranslation();
+    const location = useLocation();
     const copy = usePostCopy();
-    const [commentInput, setCommentInput] = useState('');
-    const [savedPost, setSavedPost] = useState<FeedPostDto | null>(null);
-    const post = savedPost ? { ...suppliedPost, content: savedPost.content, isPublic: savedPost.isPublic, editedAt: savedPost.editedAt } : suppliedPost;
-    const [dialog, setDialog] = useState<'edit' | 'report' | 'share' | 'delete' | 'why' | null>(null);
+    const [savedPost, setSavedPost] = useState<{ source: FeedPostDto; value: FeedPostDto } | null>(null);
+    // A staff change to a post the club's records wrote comes back as the whole post: its record and photos stand until
+    // the feed brings a newer version of that record; reactions and comments keep following the feed.
+    const [changedPost, setChangedPost] = useState<FeedPostDto | null>(null);
+    const base = changedPost?.record && changedPost.record.version > (suppliedPost.record?.version ?? -1)
+        ? { ...suppliedPost, record: changedPost.record, mediaUrls: changedPost.mediaUrls, image: changedPost.image } : suppliedPost;
+    const post = savedPost?.source === suppliedPost ? { ...base, content: savedPost.value.content, isPublic: savedPost.value.isPublic, editedAt: savedPost.value.editedAt } : base;
+    const [dialog, setDialog] = useState<'edit' | 'report' | 'share' | 'delete' | 'why' | 'record' | null>(null);
     const [removed, setRemoved] = useState<'hidden' | 'deleted' | null>(null);
     const [actionPending, setActionPending] = useState(false), [actionError, setActionError] = useState('');
     const session = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
@@ -117,8 +136,6 @@ export const FeedPost = ({
     const canEdit = post.canEdit === true;
     const [shareFeedback, setShareFeedback] = useState('');
     const postActions = useRef<HTMLDetailsElement>(null);
-    const [commentPending, setCommentPending] = useState(false);
-    const [commentError, setCommentError] = useState('');
     const topicInfo = isPostTopic(post.topic) ? postTopics[post.topic] : null;
     const topicLabel = post.topic ? t(`feed.topic.${post.topic}`, { defaultValue: String(post.topic).toLowerCase().replaceAll('_', ' ') }) : '';
 
@@ -134,32 +151,17 @@ export const FeedPost = ({
             ? `/profile/${post.authorId}`
             : null;
 
-    const handleCommentSubmit = async () => {
-        const submittedContent = commentInput.trim();
-        if (!submittedContent || commentPending) return;
-        setCommentPending(true);
-        setCommentError('');
-        try {
-            await onSubmitComment(post.id, submittedContent);
-            setCommentInput((current) => current.trim() === submittedContent ? '' : current);
-        } catch (error) {
-            setCommentError(extractApiErrorMessage(error, copy('Comment could not be posted. Your draft is still here.', 'კომენტარი ვერ გამოქვეყნდა. მონახაზი შენახულია.')));
-        } finally {
-            setCommentPending(false);
-        }
-    };
-
     const closeActions = () => { if (postActions.current) { postActions.current.open = false; postActions.current.querySelector('summary')?.focus(); } };
     const openDialog = (value: typeof dialog) => { closeActions(); setActionError(''); setDialog(value); };
     const handleShare = () => openDialog('share');
     const copyLink = async () => { closeActions(); try { await navigator.clipboard.writeText(new URL(`/posts/${post.id}`, window.location.origin).toString()); setShareFeedback(copy('Post link copied.', 'ბმული დაკოპირდა.')); } catch { openDialog('share'); } };
     const remove = async (kind: 'hidden' | 'deleted') => {
         if (actionPending) return; closeActions(); setActionPending(true); setActionError('');
-        try { if (kind === 'hidden') await apiClient.post(`/posts/${post.id}/hide`); else await apiClient.delete(`/posts/${post.id}`); setRemoved(kind); setDialog(null); }
+        try { if (kind === 'hidden') await apiClient.put(`/posts/${post.id}/hide`, { hidden: true }); else await apiClient.delete(`/posts/${post.id}`); setRemoved(kind); setDialog(null); }
         catch (e) { setActionError(extractApiErrorMessage(e, copy('Could not complete this action. Please try again.', 'მოქმედება ვერ შესრულდა. სცადეთ ხელახლა.'))); }
         finally { setActionPending(false); }
     };
-    const undoHide = async () => { if (actionPending) return; setActionPending(true); try { await apiClient.post(`/posts/${post.id}/hide`); setRemoved(null); } catch (e) { setActionError(extractApiErrorMessage(e, copy('Could not restore this post.', 'პოსტი ვერ აღდგა.'))); } finally { setActionPending(false); } };
+    const undoHide = async () => { if (actionPending) return; setActionPending(true); try { await apiClient.put(`/posts/${post.id}/hide`, { hidden: false }); setRemoved(null); } catch (e) { setActionError(extractApiErrorMessage(e, copy('Could not restore this post.', 'პოსტი ვერ აღდგა.'))); } finally { setActionPending(false); } };
 
     const mediaList = post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : post.image ? [post.image] : [];
     const authorIdentity = (
@@ -170,7 +172,9 @@ export const FeedPost = ({
             <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                     <h4 className="post-author-name truncate text-base font-semibold text-[var(--feed-text-primary)] transition-colors group-hover/author:text-[var(--feed-accent)]">{displayAuthorName}</h4>
-                    {post.clubName && <span className="post-author-badge rounded-full bg-[var(--feed-accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--feed-accent)]">{home ? copy('Club', 'კლუბი') : copy('Official', 'ოფიციალური')}</span>}
+                    {post.squadName && <span className="post-squad-name">· {post.squadName}</span>}
+                    {post.record ? <RecordMark record={post.record} />
+                        : post.clubName && <span className="post-author-badge rounded-full bg-[var(--feed-accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--feed-accent)]">{home ? copy('Club', 'კლუბი') : copy('Official', 'ოფიციალური')}</span>}
                 </div>
                 <div className="post-author-meta mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--feed-text-secondary)]">
                     <span>{formatTime(post.createdAt)}</span>
@@ -262,18 +266,23 @@ export const FeedPost = ({
                     <summary aria-label={copy(`Actions for post by ${displayAuthorName}`, `პოსტის მოქმედებები: ${displayAuthorName}`)} className="list-none cursor-pointer rounded-full p-2 text-[var(--feed-text-secondary)] hover:bg-[var(--feed-hover-bg)] focus-visible:outline focus-visible:outline-2"><MoreHorizontal className="h-4 w-4" /></summary>
                     <div className="post-menu">
                         {canEdit && <><button type="button" onClick={() => openDialog('edit')}><Pencil />{copy('Edit post', 'პოსტის რედაქტირება')}</button><button type="button" className="post-danger" onClick={() => openDialog('delete')}><Trash2 />{copy('Delete post', 'პოსტის წაშლა')}</button></>}
-                        <Link to={`/posts/${post.id}`} onClick={closeActions}><ExternalLink />{copy('Open post', 'პოსტის გახსნა')}</Link>
+                        <Link to={`/posts/${post.id}`} state={{ postReturnTo: location.pathname + location.search }} onClick={closeActions}><ExternalLink />{copy('Open post', 'პოსტის გახსნა')}</Link>
                         <button type="button" onClick={handleShare}><Share2 />{copy('Share post', 'პოსტის გაზიარება')}</button>
                         <button type="button" onClick={() => void copyLink()}><Copy />{copy('Copy link', 'ბმულის კოპირება')}</button>
                         {why && <button type="button" onClick={() => openDialog('why')}><Info />{t('feed.why.action', { defaultValue: 'Why am I seeing this?' })}</button>}
-                        {viewerId > 0 && !canEdit && <button type="button" disabled={actionPending} onClick={() => void remove('hidden')}><EyeOff />{copy('Hide post', 'პოსტის დამალვა')}</button>}
+                        {post.record?.canChange && <button type="button" onClick={() => openDialog('record')}><Camera />{post.record.hidden ? copy('Show it again', 'ხელახლა ჩვენება') : copy('Add a photo or a line', 'ფოტოს ან სტრიქონის დამატება')}</button>}
+                        {viewerId > 0 && !canEdit && !post.record?.canChange && <button type="button" disabled={actionPending} onClick={() => void remove('hidden')}><EyeOff />{copy('Hide post', 'პოსტის დამალვა')}</button>}
                         {viewerId > 0 && !canEdit && post.authorId !== viewerId && <button type="button" onClick={() => openDialog('report')}><Flag />{copy('Report post', 'პოსტის შეტყობინება')}</button>}
                     </div>
                 </details>
             </div>
 
             <div className={`post-body ${compact ? 'px-5 pb-4' : 'px-6 pb-5'}`}>
-                <p className="home-post-content whitespace-pre-line text-base leading-7 text-[var(--feed-text-primary)]">{post.content}</p>
+                {post.record ? <>
+                    {post.record.line && <p className="record-post-line">{post.record.line}</p>}
+                    <RecordPostCard post={post} />
+                    {post.record.hidden && <HiddenRecordNote post={post} onSaved={setChangedPost} />}
+                </> : <p className="home-post-content whitespace-pre-line text-base leading-7 text-[var(--feed-text-primary)]">{post.content}</p>}
                 {post.isReshare && <div className="mt-3"><SharedPostPreview key={post.sharedPostId} id={post.sharedPostId} /></div>}
             </div>
 
@@ -295,68 +304,13 @@ export const FeedPost = ({
             {likeError && <div role="alert" className="px-4 pb-2 text-xs font-medium text-[color:var(--color-danger)]">{likeError}</div>}
 
             <MotionDisclosure open={Boolean(isCommentsOpen)}>
-                <div className="border-t border-[var(--feed-card-border)] bg-[var(--feed-surface)] px-4 py-3">
-                    <div className="mb-3 flex max-h-60 flex-col gap-3 overflow-y-auto">
-                        {commentsError ? (
-                            <div role="alert" className="flex items-center justify-between gap-3 text-xs text-[color:var(--color-danger)]">
-                                <span>{commentsError}</span>
-                                {onRetryComments && <button type="button" onClick={() => onRetryComments(post.id)} className="font-semibold app-text-action">{copy('Retry', 'ხელახლა ცდა')}</button>}
-                            </div>
-                        ) : !commentsData ? (
-                            <div className="text-xs text-[var(--feed-text-muted)]">{copy('Loading comments…', 'კომენტარები იტვირთება…')}</div>
-                        ) : commentsData.length === 0 ? (
-                            <div className="text-xs text-[var(--feed-text-muted)]">{copy('No comments yet', 'კომენტარები ჯერ არ არის')}</div>
-                        ) : (
-                            commentsData.map((comment) => { const author = comment.authorName ?? copy('Member', 'წევრი'); return (
-                                <div key={comment.id} className="flex gap-3">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] text-xs font-semibold text-[var(--feed-text-secondary)]">
-                                        {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={author} loading="lazy" className="h-full w-full object-cover" />
-                                        ) : (
-                                            author.substring(0, 2).toUpperCase()
-                                        )}
-                                    </div>
-                                    <div className="flex-1 rounded-xl bg-[var(--feed-layer-bg)] px-3 py-2.5">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="text-xs font-semibold text-[var(--feed-text-primary)]">{author}</span>
-                                            <span className="text-xs text-[var(--feed-text-muted)]">{formatTime(comment.createdAt)}</span>
-                                        </div>
-                                        <p className="mt-1.5 text-sm text-[var(--feed-text-secondary)]">{comment.content}</p>
-                                    </div>
-                                </div>
-                            ); })
-                        )}
-                    </div>
-
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            aria-label={copy(`Write a comment on ${displayAuthorName}'s post`, `კომენტარის დაწერა პოსტზე: ${displayAuthorName}`)}
-                            placeholder={copy('Write a comment…', 'დაწერეთ კომენტარი…')}
-                            value={commentInput}
-                            onChange={(event) => {
-                                setCommentInput(event.target.value);
-                                setCommentError('');
-                            }}
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                    event.preventDefault();
-                                    void handleCommentSubmit();
-                                }
-                            }}
-                            className="flex-1 rounded-full border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 py-2.5 text-sm text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] focus:border-[var(--feed-accent)]"
-                        />
-                        <button type="button" aria-label={copy('Post comment', 'კომენტარის გამოქვეყნება')} onClick={() => void handleCommentSubmit()} disabled={!commentInput.trim() || commentPending} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40">
-                            <Send className="h-4 w-4" />
-                        </button>
-                    </div>
-                    {commentError && <p role="alert" className="mt-2 text-xs font-medium text-[color:var(--color-danger)]">{commentError}</p>}
-                </div>
+                {isCommentsOpen && <PostComments key={session} postId={post.id} author={displayAuthorName} comments={commentsData} error={commentsError} retry={onRetryComments} submit={onSubmitComment} />}
             </MotionDisclosure>
             {actionError && <p role="alert" className="post-error px-5 pb-3">{actionError}</p>}
-            {dialog === 'edit' && <EditPostDialog key={`${session}:edit`} post={post} onClose={() => setDialog(null)} onSaved={setSavedPost} />}
+            {dialog === 'edit' && <EditPostDialog key={`${session}:edit`} post={post} onClose={() => setDialog(null)} onSaved={value => setSavedPost({ source: suppliedPost, value })} />}
             {dialog === 'report' && <ReportPostDialog key={`${session}:report`} post={post} onClose={() => setDialog(null)} />}
             {dialog === 'share' && <SharePostDialog key={`${session}:share`} post={post} onClose={() => setDialog(null)} onShared={() => setShareFeedback(copy('Post shared to your profile.', 'პოსტი გაზიარდა თქვენს პროფილზე.'))} />}
+            {dialog === 'record' && post.record && <RecordPostChanges key={`${session}:record`} post={post} onClose={() => setDialog(null)} onSaved={setChangedPost} />}
             {dialog === 'why' && why && <PostDialog title={t('feed.why.title', { defaultValue: 'Why you see this post' })} onClose={() => setDialog(null)}>
                 <p className="post-why">{whyText}</p>
                 <dl className="post-facts">

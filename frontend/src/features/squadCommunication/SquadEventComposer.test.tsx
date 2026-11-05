@@ -24,17 +24,17 @@ beforeEach(()=>{
 const next=()=>fireEvent.click(screen.getByRole('button',{name:'Continue'}));
 const mount=()=>render(<MemoryRouter><SquadEventComposer squad={squad} date={new Date('2099-09-21T12:00:00')} onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
 
-it('creates a repeating non-training event with a reviewed fixed audience and optional replies',async()=>{
+it('creates a repeating non-training event with a reviewed fixed audience and expected attendance',async()=>{
     mount();fireEvent.click(screen.getByRole('button',{name:'Club event'}));
     fireEvent.change(screen.getByLabelText('Event name'),{target:{value:'Squad meeting'}});
     fireEvent.click(screen.getByRole('button',{name:/Repeat weekly/}));next();next();
     fireEvent.click(await screen.findByText('Edit invited players'));
     await screen.findByText('Alex');
     fireEvent.click(screen.getByLabelText('Nika'));
-    fireEvent.click(screen.getByLabelText(/Ask families to confirm/));
+    expect(screen.queryByLabelText(/Ask families to confirm/)).not.toBeInTheDocument();
     await waitFor(()=>expect(screen.getByRole('button',{name:'Create & send invitations'})).toBeEnabled());
     fireEvent.click(screen.getByRole('button',{name:'Create & send invitations'}));
-    await waitFor(()=>expect(api.createSquadEvent).toHaveBeenCalledWith(11,expect.objectContaining({eventType:'ACTIVITY',playerIds:[41],requestResponses:true,repeat:expect.objectContaining({intervalWeeks:1,endDate:expect.stringMatching(/^2099-/)})})));
+    await waitFor(()=>expect(api.createSquadEvent).toHaveBeenCalledWith(11,expect.objectContaining({eventType:'ACTIVITY',playerIds:[41],requestResponses:false,repeat:expect.objectContaining({intervalWeeks:1,endDate:expect.stringMatching(/^2099-/)})})));
     expect(createClubEvent).not.toHaveBeenCalled();
 });
 it('retains publication through the same editor without creating duplicate invitations',async()=>{

@@ -677,10 +677,10 @@ describe("organizer workflow", () => {
         onClose={vi.fn()}
       />,
     );
-    fireEvent.change(screen.getByLabelText("Home score"), {
+    fireEvent.change(screen.getAllByLabelText(/^Goals for/)[0], {
       target: { value: "1" },
     });
-    fireEvent.change(screen.getByLabelText("Away score"), {
+    fireEvent.change(screen.getAllByLabelText(/^Goals for/)[1], {
       target: { value: "1" },
     });
     expect(

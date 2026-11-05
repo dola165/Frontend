@@ -35,7 +35,7 @@ export const AuthSplitShell = ({ heroMicro, heroTitle, heroTagline, chips, cardH
                 <ArrowLeft className="w-5 h-5" /> {t('auth.common.backToBase')}
             </Link>
 
-            <main className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-10 px-6 py-16 sm:px-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,420px)]">
+            <main className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-10 px-6 py-16 sm:px-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,464px)]">
                 {/* brand hero — hidden on mobile */}
                 <section className="hidden flex-col justify-center gap-8 lg:flex">
                     <GrasskickzLogo wordmark />
@@ -58,8 +58,8 @@ export const AuthSplitShell = ({ heroMicro, heroTitle, heroTagline, chips, cardH
                     )}
                 </section>
 
-                {/* form column — first on mobile */}
-                <section className="w-full">
+                {/* form column — first on mobile; 464px leaves 400px inside the card, Google's widest button */}
+                <section className="mx-auto w-full max-w-[464px]">
                     <div className="theme-surface theme-border rounded-xl border p-6 shadow-2xl sm:p-8">
                         {cardHeader}
                         {children}

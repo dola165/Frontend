@@ -19,10 +19,11 @@ export const exchangeFilters = [
 ] satisfies DirectorySource<Match>['filters'];
 
 /** One page of open matches, or of my arrangements (`mine`); `country` keeps open matches to the person's own country. */
-export async function loadListings(mine: boolean, query: Parameters<DirectorySource<Match>['load']>[0], page: number, signal: AbortSignal, country?: string | null) {
+export async function loadListings(mine: boolean, query: Parameters<DirectorySource<Match>['load']>[0], page: number, signal: AbortSignal, country?: string | null, area?: import('../../directory/types').DirectoryArea) {
     const params = new URLSearchParams();
-    for (const key of ['format', 'ageGroup', 'level', 'venuePreference', 'from', 'to']) if (first(query, key)) params.set(key, first(query, key));
-    const around = nearbyPoint(query, 'around');
+    for (const key of ['birthYear', 'format', 'ageGroup', 'level', 'venuePreference', 'from', 'to']) if (first(query, key)) params.set(key, first(query, key));
+    const around = nearbyPoint(query, 'around') || (area?.city ? area.centre : null);
+    if (!around && area?.city) params.set('city', area.city);
     if (around) { params.set('lat', String(around.lat)); params.set('lng', String(around.lng)); params.set('radiusKm', '50'); }
     if (query.q) params.set('q', query.q);
     if (mine) params.set('mine', 'true');

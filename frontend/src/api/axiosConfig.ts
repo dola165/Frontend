@@ -121,7 +121,11 @@ const requestFreshAccessToken = async (sessionId: AuthSessionId, signal: AbortSi
 
 let refreshFlight: { sessionId: AuthSessionId; promise: Promise<string>; controller: AbortController } | null = null;
 
-export const refreshAccessToken = (rejectedAccessToken?: string | null, expectedSessionId?: AuthSessionId): Promise<string> => {
+/**
+ * `mayReload`: false while a save is waiting on this refresh (adding a child, sending a message). Reloading into a newer
+ * build then would cancel the save and look like the page simply refreshed; the next navigation reloads instead.
+ */
+export const refreshAccessToken = (rejectedAccessToken?: string | null, expectedSessionId?: AuthSessionId, mayReload = true): Promise<string> => {
     if (isAndroidApp) return nativeSession().then(session => {
         if (!session.active) throw new Error('Your session ended. Sign in again.');
         return 'native-session';
@@ -148,7 +152,7 @@ export const refreshAccessToken = (rejectedAccessToken?: string | null, expected
             return currentToken;
         }
         // A newer build is known: this tab never spends the shared refresh cookie; it reloads into that build instead.
-        if (staleBuild() && reloadForBuild()) throw new axios.CanceledError('A newer version of GrassKickZ is loading.');
+        if (mayReload && staleBuild() && reloadForBuild()) throw new axios.CanceledError('A newer version of GrassKickZ is loading.');
         return requestFreshAccessToken(sessionId, controller.signal, expectedSubject, currentToken);
     };
     const task = withSessionCredentialLock(controller.signal, refresh).catch(error => {
@@ -164,9 +168,9 @@ export const refreshAccessToken = (rejectedAccessToken?: string | null, expected
     return promise;
 };
 
-export async function renewRejectedSession(sessionId: AuthSessionId, rejectedAccessToken: string | null) {
+export async function renewRejectedSession(sessionId: AuthSessionId, rejectedAccessToken: string | null, mayReload = true) {
     try {
-        const token = await refreshAccessToken(rejectedAccessToken, sessionId);
+        const token = await refreshAccessToken(rejectedAccessToken, sessionId, mayReload);
         assertCurrentAuthSession(sessionId);
         return token;
     } catch (error) {
@@ -241,7 +245,8 @@ apiClient.interceptors.response.use(
             const sessionId = originalRequest._authSessionId ?? getAuthSessionId();
             originalRequest._retry = true;
 
-            const newAccessToken = await renewRejectedSession(sessionId, originalRequest._sentAccessToken ?? null);
+            const reading = ['get', 'head', 'options'].includes((originalRequest.method ?? 'get').toLowerCase());
+            const newAccessToken = await renewRejectedSession(sessionId, originalRequest._sentAccessToken ?? null, reading);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return apiClient(originalRequest);
         }

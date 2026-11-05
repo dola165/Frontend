@@ -1,5 +1,4 @@
 import type { TabItem } from '../../../design/Tabs';
-import { arrangePath } from '../../world/compose/arrangeSeed';
 import type { BoxKey } from '../../pages/model/kinds';
 
 export type ClubTab = 'posts' | 'media' | 'about' | 'teams' | 'people' | 'facilities' | 'involved' | 'contact';
@@ -44,9 +43,3 @@ export const involvedPath = (clubId: number, kind: InvolvedKind) => `/clubs/${cl
 
 /** Filters that belong to one tab; switching tabs clears them so the next tab starts clean. */
 export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'staffView', 'enquire', 'kind', 'type', 'period', 'week', 'view', 'opportunity', 'show', 'roleId', 'roleTitle', 'query', 'sort', 'page', 'state', 'category', 'collection', 'seller', 'country', 'city', 'variant', 'minPrice', 'maxPrice', 'currency', 'add'];
-
-/** Where another club's staff arrange a match against this club. The form lives in World. */
-export const proposeMatchPath = (clubId: number) => arrangePath({ mode: 'direct', opponentId: clubId });
-/** Where this club's own staff start a match: invite a club, or post an open challenge for any club to take. */
-export const arrangeOwnMatchPath = () => arrangePath({ mode: 'direct' });
-export const openChallengePath = () => arrangePath({ mode: 'open' });

@@ -7,18 +7,23 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { fieldLabel, reviewValue } from './editorPresentation';
 import { get, post, root, label, transitionLabel, type OperationRecord, type Definition, type History, type Bootstrap } from './api';
 import { RecordDocuments } from './RecordDocuments';
+import { MoneyFacts } from './money/MoneyFacts';
 import { statusTone, transitionStyle } from './records/recordStatus';
 import { Dialog } from '../../design/Dialog';
+import { RegistrationDecision } from './registration/RegistrationDecision';
+import { RegistrationRecordActions } from './registration/RegistrationRecordActions';
 import './records/records.css';
 import { appLanguage, formatDate } from '../../utils/formatting';
 import { assertCurrentAuthSession, getAuthSessionId } from '../../utils/authStorage';
+import { FacilityProjectAction } from '../projects/FacilityProjectAction';
+import { useClubEditorClose } from './useClubEditorClose';
 
 /** One record: its facts, the actions its current status allows, supporting documents and history. */
-type DetailProps = { club: number; boot: Bootstrap; record: OperationRecord; definition: Definition; backLabel: string; onEdit: () => void; onChanged: (record?: Pick<OperationRecord, 'id' | 'title'>) => Promise<void>; onClose: () => void };
+type DetailProps = { club: number; boot: Bootstrap; record: OperationRecord; definition: Definition; backLabel: string; onEdit: () => void; onChanged: (record?: Pick<OperationRecord, 'id' | 'title'>) => Promise<void>; onReload?: () => Promise<OperationRecord>; onClose: () => void };
 export function RecordDetail(props: DetailProps) {
   return <RecordDetailSession key={`${props.club}:${props.boot.actorId}:${props.record.id}:${getAuthSessionId()}`} {...props} />;
 }
-function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit, onChanged, onClose }: DetailProps) {
+function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit, onChanged, onReload, onClose }: DetailProps) {
   const [history, setHistory] = useState<History[]>([]), [note, setNote] = useState('');
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [confirming, setConfirming] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ revision: number; status: string | null } | null>(null);
@@ -26,20 +31,33 @@ function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit
   const busyRef = useRef(false), savedRevision = useRef<number | null>(null), active = useRef(true);
   useLayoutEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const confirmed = saved !== null && saved.revision === record.revision;
+  const projectLeave = useClubEditorClose(record.kind === 'FACILITY_TASK' && !confirmed && note.trim().length > 0, record.kind === 'FACILITY_TASK' && busy, onClose);
   const ka = appLanguage() === 'ka';
   const receipt = { id: record.id, title: record.title };
-  const style = transitionStyle(record.transitions);
+  const transitions = record.kind === 'INSTALMENT' ? record.transitions.filter(state => state === 'CANCELLED') : record.transitions;
+  const style = transitionStyle(transitions);
   useEffect(() => {
+    if (record.summaryOnly) return;
     const controller = new AbortController();
     void get<History[]>(`${root(club)}/records/${record.id}/history`, controller.signal).then(rows => { if (!controller.signal.aborted) setHistory(rows); }).catch(() => { if (!controller.signal.aborted) setError('Could not load the record history.'); });
     return () => controller.abort();
-  }, [club, record.id, record.revision]);
+  }, [club, record.id, record.revision, record.summaryOnly]);
   const refreshSaved = async () => {
     if (busyRef.current || !active.current) return;
     busyRef.current = true; setBusy(true); setError('');
     try { await onChanged(receipt); }
     catch { if (active.current) setError(ka ? 'ცვლილება შენახულია. მიმდინარე ხედი ვერ განახლდა.' : 'Change saved. The current view could not refresh.'); }
     finally { busyRef.current = false; if (active.current) setBusy(false); }
+  };
+  const refreshRegistrationHistory = async () => {
+    assertCurrentAuthSession(authSessionId);
+    if (!onReload) throw new Error('Reopen this record to load its current revision.');
+    const current = await onReload();
+    const rows = await get<History[]>(`${root(club)}/records/${current.id}/history`);
+    assertCurrentAuthSession(authSessionId);
+    if (!active.current) throw new Error('The record was closed.');
+    setHistory(rows);
+    return current.revision;
   };
   const transition = async (status: string) => {
     if (!active.current || busyRef.current || savedRevision.current === record.revision) return;
@@ -55,14 +73,14 @@ function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit
     if (persisted && active.current) await refreshSaved();
   };
   const facts: Array<[string, ReactNode, boolean?]> = [
-    ...(record.subject_user_id ? [['Person', boot.people.find(p => p.id === record.subject_user_id)?.name ?? 'Former club member'] as [string, string]] : []),
+    ...(record.subject_user_id ? [['Person', boot.people.find(p => p.id === record.subject_user_id)?.name ?? (record.kind === 'EQUIPMENT_ISSUE' ? `${record.borrowerCurrent === false ? 'Former club member' : record.borrowerCurrent === true ? 'Current club member' : 'Borrower'} · Person #${record.subject_user_id}` : record.kind === 'INSTALMENT' ? `Person #${record.subject_user_id} · not in loaded choices` : 'Former club member')] as [string, string]] : []),
     ['Scope', boot.squads.find(s => s.id === record.squad_id)?.name ?? 'Club-wide'],
     ...(record.assigned_user_id ? [['Responsible person', [...boot.staff, ...boot.guardians].find(p => p.id === record.assigned_user_id)?.name ?? 'Former appointee'] as [string, string]] : []),
     ...(record.event_id ? [['Event', boot.events.find(e => e.id === record.event_id)?.title ?? 'Past or unavailable event'] as [string, string]] : []),
     ...(record.session_id ? [['Training session', boot.sessions.find(e => e.id === record.session_id)?.title ?? 'Past or unavailable session'] as [string, string]] : []),
-    ...(record.related_record_id ? [['Linked record', boot.links.find(l => l.id === record.related_record_id)?.title ?? 'Archived record'] as [string, string]] : []),
+    ...(record.related_record_id ? [['Linked record', boot.links.find(l => l.id === record.related_record_id)?.title ?? `Linked record #${record.related_record_id}`] as [string, string]] : []),
     ...(record.due_on ? [['Next action or review', formatDate(record.due_on.slice(0, 10))] as [string, string]] : []),
-    ...definition.fields.filter(f => record.data[f.key]).map(f => [fieldLabel(f), f.type === 'urls'
+    ...definition.fields.filter(f => record.data[f.key]).map(f => [record.kind === 'INSTALMENT' && f.key === 'amount' ? 'Agreed amount' : fieldLabel(f), f.type === 'urls'
       ? <div className="rec-photos">{record.data[f.key].split(/\r?\n/).filter(Boolean).map(url => <MediaImage key={url} src={resolveMediaUrl(url)} alt="Facility photo" />)}</div>
       : reviewValue(f, record.data[f.key], boot), ['textarea', 'urls'].includes(f.type)] as [string, ReactNode, boolean]),
   ];
@@ -76,25 +94,29 @@ function RecordDetailSession({ club, boot, record, definition, backLabel, onEdit
     <div className="gk-grid gk-grid--split">
       <div className="gk-stack">
         {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
+        {record.kind === 'INSTALMENT' && <MoneyFacts club={club} id={record.id} revision={record.revision} onChanged={() => onChanged(receipt)} />}
         <Panel flush title="Details"><dl className="rec-facts">{facts.map(([name, value, wide]) => <div key={name} className={wide ? 'rec-wide' : undefined}><dt>{name}</dt><dd>{value}</dd></div>)}</dl></Panel>
-        <Panel flush><RecordDocuments club={club} record={record.id} canUpload={record.canEdit && !busy && !confirmed} /></Panel>
+        {record.kind === 'FACILITY_TASK' && !record.summaryOnly && !record.subject_user_id && <FacilityProjectAction key={`${club}:${record.id}`} club={club} task={record.id} />}
+        {['REGISTRATION', 'CREDENTIAL'].includes(record.kind) && record.subject_user_id && <RegistrationRecordActions key={`${record.id}:${record.revision}`} boot={boot} record={record} onSaved={onChanged} />}
+        {!record.summaryOnly && <Panel flush><RecordDocuments club={club} record={record.id} canUpload={record.canEdit && !busy && !confirmed} /></Panel>}
       </div>
       <div className="gk-stack">
-        {record.transitions.length > 0 && <Panel padded title="Next step">
+        {(transitions.length > 0 || ['REGISTRATION', 'CREDENTIAL'].includes(record.kind)) && (['REGISTRATION', 'CREDENTIAL'].includes(record.kind) ? <RegistrationDecision key={record.id} club={club} record={record} onChanged={() => onChanged(receipt)} onRefreshHistory={refreshRegistrationHistory} /> : <Panel padded title="Next step">
           <div className="gk-stack gk-stack--tight">
             <Field label={<>Decision or action note <span className="rec-optional">(optional)</span></>} htmlFor="rec-transition-note"><textarea id="rec-transition-note" className="gk-input" disabled={busy || confirmed} value={note} maxLength={2000} onChange={e => setNote(e.target.value)} /></Field>
-            <div className="rec-transitions">{record.transitions.map(state => <Button key={state} variant={style(state).variant} disabled={busy || confirmed}
+            <div className="rec-transitions">{transitions.map(state => <Button key={state} variant={style(state).variant} disabled={busy || confirmed}
               onClick={() => { if (style(state).confirm) setConfirming(state); else void transition(state); }}>{transitionLabel(record.kind, state)}</Button>)}</div>
           </div>
-        </Panel>}
-        <Panel flush><details className="rec-disclosure"><summary>Record history <span className="gk-faint gk-num">{history.length}</span></summary>
+        </Panel>)}
+        {!record.summaryOnly && <Panel flush><details className="rec-disclosure"><summary>Record history <span className="gk-faint gk-num">{history.length}</span></summary>
           <div className="rec-disclosure__body">{history.length ? history.map(h => <div className="rec-history" key={h.id}>
             <strong>{label(h.action)}{h.to_status ? ` · ${label(h.to_status)}` : ''}</strong>
             <time dateTime={h.created_at}>{h.actor} · {new Date(h.created_at).toLocaleString()}</time>{h.note && <p>{h.note}</p>}
           </div>) : <p className="gk-muted">No changes recorded yet.</p>}</div>
-        </details></Panel>
+        </details></Panel>}
       </div>
     </div>
+    {projectLeave.confirmation}
     <Dialog open={confirming !== null} role="alertdialog" size="sm" onClose={() => setConfirming(null)}
       title={confirming ? `${transitionLabel(record.kind, confirming)}?` : ''} description={`“${record.title}” changes to “${confirming ? label(confirming) : ''}”${note.trim() ? ', with your note' : ''}. The change is kept in the record history.`}
       footer={<><Button variant="ghost" onClick={() => setConfirming(null)}>Keep as it is</Button>

@@ -7,6 +7,9 @@
 .parent-add-child-guidance svg { flex-shrink: 0; margin-top: 3px; color: var(--color-accent); }
 .parent-add-child-fields { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin: 20px 0; }
 .parent-add-child-fields label { display: grid; align-content: start; gap: 8px; font-weight: 600; }
+/* The date and, when the welcome gave a year, "Another year" under it. */
+.parent-add-child-date { display: grid; align-content: start; gap: 2px; }
+.parent-add-child-year { justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--color-accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .parent-add-child-fields input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-inset); color: var(--color-text); font: inherit; }
 .parent-add-child small, .parent-add-child-privacy { color: var(--color-muted); font-size: 13px; font-weight: 400; line-height: 1.6; }
 .parent-add-child-responsibility { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; cursor: pointer; line-height: 1.6; }

@@ -16,8 +16,6 @@ import { TournamentCompetition } from '../features/tournaments/components/Tourna
 import { TournamentMatchday } from '../features/tournaments/components/TournamentMatchday';
 import { TournamentMatchDialog } from '../features/tournaments/components/TournamentMatchDialog';
 import { TournamentSettings } from '../features/tournaments/components/TournamentSettings';
-import { TournamentSeriesPanel } from '../features/tournamentSeries/TournamentSeriesPanel';
-import { ExtensionSurface } from '../features/capabilities/ExtensionBoundary';
 import { isBracketParticipant } from '../features/tournaments/participantLabels';
 import { getTournamentStartBlockers } from '../features/tournaments/startBlockers';
 import { tournamentStatusLabel } from '../components/tournaments/tournamentFormatters';
@@ -125,7 +123,7 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
     ];
     return <WorkspaceShell label={copy('Tournament workspace', 'ტურნირის სამუშაო სივრცე')} storageKey="tournament" sectionTitle={sections.find(item => item.id === tab)?.label ?? ''}
         context={{ name: tournament.name, role: tournamentStatusLabel(tournament.status, t), back: { label: copy('Tournament page', 'ტურნირის გვერდი'), to: `/tournaments/${id}` } }}
-        primary={sections} groups={[]} active={tab} onSelect={next => setTab(next as Tab)}>
+        primary={sections} active={tab} onSelect={next => setTab(next as Tab)}>
     <PageFrame className="tws-page">
         <TournamentWorkspaceHeader tournament={tournament} timezone={profile?.rules?.timezone} canEdit={permissions.canEditSettings} legacy={profile ? profile.legacy : null} busy={busy} refreshing={refreshing}
             finishBlocked={Boolean(tieState?.blocked)} startBlockers={startBlockers} onRefresh={() => void refresh().catch(() => {})} onEdit={() => setEditing(true)}
@@ -144,7 +142,7 @@ function Workspace({ id, userId }: { id: number; userId?: number }) {
         {tab === 'overview' && <TournamentOverview tournament={tournament} canManage={permissions.canManage} onSection={setTab} onMatch={fixture => setMatchId(fixture.id)}/>}
         <section hidden={tab !== 'people'}><TournamentPeople tournament={tournament} canEdit={permissions.canEditSettings} onUpdate={update}/></section>
         {/* Keep incomplete editors mounted during workspace tab navigation. */}
-        <section hidden={tab !== 'participants'}><TournamentParticipants tournament={tournament} canManage={permissions.canManage} onUpdate={update} onRefresh={refresh} onBracket={() => setTab('bracket')}/><ExtensionSurface capability="tournamentSeries"><TournamentSeriesPanel tournamentId={id} tournamentName={tournament.name} canCreate={permissions.canEditSettings}/></ExtensionSurface></section>
+        <section hidden={tab !== 'participants'}><TournamentParticipants tournament={tournament} canManage={permissions.canManage} onUpdate={update} onRefresh={refresh} onBracket={() => setTab('bracket')}/></section>
         <section hidden={tab !== 'bracket'}>{tab === 'bracket' && <CompetitionOperationsPanel tournament={tournament} interactive changed={refresh} />}<TournamentCompetition tournament={tournament} timezone={profile?.rules?.timezone} matchesOnly={profile ? !profile.legacy : false} canManage={permissions.canManage && Boolean(profile?.legacy)} canScore={permissions.canScore} onUpdate={update} onMatch={f => setMatchId(f.id)} onTieStateChange={setTieState} onTieResolved={refresh}/></section>
         <section hidden={tab !== 'schedule'}><TournamentMatchday tournament={tournament} active={tab === 'schedule'} onMatch={f => setMatchId(f.id)} onBracket={() => setTab('bracket')}/></section>
         </div>

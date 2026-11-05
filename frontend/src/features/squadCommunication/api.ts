@@ -9,13 +9,15 @@ export interface SquadEventPlan {
     playerIds: number[]; requestResponses: boolean;
     repeat: { endDate: string; intervalWeeks: number; daysOfWeek: DayOfWeek[] } | null;
 }
-export interface SquadEventPreview {
+export interface CalendarConflict { sessionId: number; source: string; sourceId: number; title: string; startsAt: string; endsAt: string }
+export interface CalendarReview { canCommit?: boolean; conflicts?: CalendarConflict[] }
+export interface SquadEventPreview extends CalendarReview {
     occurrences: { startsAt: string; endsAt: string }[]; participantCount: number;
     notificationRecipients: number; conflictingOccurrences: number; requestResponses: boolean;
 }
 export type SeriesScope = 'THIS' | 'FOLLOWING' | 'ALL_FUTURE';
 export interface ExpectedSession { id: number; revision: number }
-export interface SeriesPreview { expected: ExpectedSession[]; eventCount: number; notificationDeliveries: number; affectedResponses: number; dates: string[] }
+export interface SeriesPreview extends CalendarReview { expected: ExpectedSession[]; eventCount: number; notificationDeliveries: number; affectedResponses: number; dates: string[] }
 export interface SeriesChange { change: SessionChange; scope: SeriesScope; expected?: ExpectedSession[] }
 export interface SeriesCancellation { cancellation: { requestId: string; revision: number; reason: string }; scope: SeriesScope; expected?: ExpectedSession[] }
 export const previewSeriesChange = async (squad: number, session: number, data: SeriesChange) => (await apiClient.post<SeriesPreview>(`/squad-communication/${squad}/events/${session}/changes/preview`,data)).data;
@@ -31,12 +33,12 @@ export const createSquadEvent = async (id: number, plan: SquadEventPlan, authSes
 export interface SquadSpace { id:number; club_id:number; academy_name:string; name:string; category:string; can_manage:boolean; unread_count:number }
 /** A squad member. `number`, `position`, `photo_url`: all the roster shows about another child (refinement 4; backend needed: older servers send only id and name). */
 export interface Person { id:number; name:string; number?:number|null; position?:string|null; photo_url?:string|null }
-export interface IntroductoryVisitor { participationId:number;caseId:number;playerId:number;caseVersion:number;participationVersion:number;name:string;status:string;permissionStatus:string;emergencyContact:string|null;canRecord:boolean }
+export interface IntroductoryVisitor { participationId:number;caseId:number;playerId:number;caseVersion:number;participationVersion:number;name:string;status:string;permissionStatus:string;emergencyContact:string|null;canRecord:boolean;/** The family booked it themselves (step 5; older servers leave it out). */ firstVisit?:boolean }
 export interface VisitorAttendanceCommand {requestId:string;caseId:number;caseVersion:number;participationVersion:number;sessionRevision:number;attendance:'ATTENDED'|'NO_SHOW'}
 export interface IntroductoryVisitorRegister {sessionRevision:number;visitors:IntroductoryVisitor[]}
 export const introductoryVisitors=async(squad:number,session:number,signal?:AbortSignal)=>(await apiClient.get<IntroductoryVisitorRegister>(`/squad-communication/${squad}/sessions/${session}/introductory-visitors`,{signal})).data;
 export const recordVisitorAttendance=async(squad:number,session:number,participation:number,command:VisitorAttendanceCommand,authSessionId:AuthSessionId)=>(await apiClient.put<IntroductoryVisitor>(`/squad-communication/${squad}/sessions/${session}/introductory-visitors/${participation}/attendance`,command,{_authSessionId:authSessionId} as AuthSessionRequestConfig)).data;
-export interface SquadOverview extends SquadSpace { viewer_id:number; member_count:number; notify_chat:boolean; head_coach_id:number|null;can_assign_coach:boolean;available_coaches:{user_id:number;full_name:string}[];coaches:{user_id:number;full_name:string}[]; players:Person[]; threads:{user_id:number;full_name:string;unread_count:number;guardians_can_view?:boolean}[];viewer_thread_guardians_can_view?:boolean;child_threads?:{user_id:number;full_name:string|null}[];attention?:{upcoming_sessions:number;replies_needed:number;acknowledgements_needed:number} }
+export interface SquadOverview extends SquadSpace { viewer_id:number; member_count:number; notify_chat:boolean; head_coach_id:number|null;can_assign_coach:boolean;available_coaches:{user_id:number;full_name:string}[];coaches:{user_id:number;full_name:string;role?:'COACH'|'STAFF';title?:string|null}[]; players:Person[]; threads:{user_id:number;full_name:string;unread_count:number;guardians_can_view?:boolean}[];viewer_thread_guardians_can_view?:boolean;child_threads?:{user_id:number;full_name:string|null}[];attention?:{upcoming_sessions:number;replies_needed:number;acknowledgements_needed:number} }
 /** `expires_at`: when an announcement stops being pinned on Home and the squad page (backend needed: older servers omit it). */
 export interface SquadMessage { id:number;author_id:number;author_name:string;thread_user_id:number|null;kind:'CHAT'|'ANNOUNCEMENT';title:string|null;body:string;important:boolean;created_at:string;acknowledgement_requested:boolean;acknowledged_at:string|null; acknowledged_by?:Receipt[]; reactions?:UpdateReaction[]; comment_count?:number; expires_at?:string|null }
 export type ReactionKind='LIKE'|'DISLIKE'|'LAUGH'|'CELEBRATE'|'CONFUSED'|'HEART'|'ROCKET'|'EYES';
@@ -44,7 +46,7 @@ export interface UpdateReaction {user_id:number;full_name:string;reaction:Reacti
 export interface UpdateComment {id:number;author_id:number;author_name:string;body:string;created_at:string}
 export interface SquadSession { introductory_visitors?:IntroductoryVisitor[];event_type?:ScheduleEventType;description?:string|null;response_requested?:boolean;series_id?:string|null;id:number;title:string;starts_at:string;ends_at:string;location:string|null;status:'SCHEDULED'|'CANCELLED';cancellation_reason:string|null;revision:number;response_revision?:number;response_kind?:'INTENT';attendance:(Person&{response:string;reason?:string|null;active?:boolean;response_status?:string;response_valid?:boolean;previous_response?:string|null;recorded_by?:'PLAYER'|'GUARDIAN'|'COACH'|null;responded_at?:string|null})[];venue_reservation?:VenueReservationSummaryValue|null }
 export interface SessionChange {eventType?:ScheduleEventType;description?:string;requestResponses?:boolean;requestId:string;revision:number;title:string;startsAt:string;endsAt:string;location:string;playerIds:number[]|null}
-export interface SessionConsequence {revision:number;material:boolean;responsePolicy:'PRESERVE'|'RECONFIRM'|'INVALIDATE';affectedParticipants:number;affectedResponses:number;addedParticipants:number;removedParticipants:number;notificationRecipients:number}
+export interface SessionConsequence extends CalendarReview {revision:number;material:boolean;responsePolicy:'PRESERVE'|'RECONFIRM'|'INVALIDATE';affectedParticipants:number;affectedResponses:number;addedParticipants:number;removedParticipants:number;notificationRecipients:number}
 export interface Receipt {user_id:number;full_name:string;acknowledged_at:string|null}
 const root='/squad-communication';
 export const spaces=async(signal?:AbortSignal)=>(await apiClient.get<SquadSpace[]>(root,{signal})).data;
@@ -60,6 +62,17 @@ export const setReaction=async(id:number,messageId:number,reaction:ReactionKind,
 export const updateComments=async(id:number,messageId:number,signal?:AbortSignal,before?:number)=>(await apiClient.get<UpdateComment[]>(`${root}/${id}/messages/${messageId}/comments`,{signal,params:{before}})).data;
 export const addUpdateComment=async(id:number,messageId:number,requestId:string,body:string)=>apiClient.post(`${root}/${id}/messages/${messageId}/comments`,{requestId,body});
 export const removeUpdateComment=async(id:number,messageId:number,commentId:number)=>apiClient.delete(`${root}/${id}/messages/${messageId}/comments/${commentId}`);
+/** Notify: who each choice reaches (the sender left out), and the one line to them at once. */
+export type NoticeAudience='EVERYONE'|'PARENTS'|'PLAYERS'|'STAFF';
+export interface NoticeReach {everyone:number;parents:number;players:number;staff:number}
+export const noticeReach=async(id:number,signal?:AbortSignal)=>(await apiClient.get<NoticeReach>(`${root}/${id}/notify`,{signal})).data;
+export const notifySquad=async(id:number,data:{requestId:string;audience:NoticeAudience;line:string})=>(await apiClient.post<{id:number;told:number}>(`${root}/${id}/notify`,data)).data;
+/** Someone a Notify line was sent to (shown to the squad's coaches and staff only). */
+export interface NoticeSeen {userId:number;name:string;seen:boolean;seenAt:string|null}
+/** A kept Notify line (M12): `sentTo` is filled for the squad's coaches and staff, empty for everyone else. */
+export interface NoticeLine {id:number;authorId:number;authorName:string;audience:NoticeAudience;line:string;createdAt:string;seenByMe:boolean;sentTo:NoticeSeen[]}
+export const noticeLines=async(id:number,signal?:AbortSignal)=>(await apiClient.get<NoticeLine[]>(`${root}/${id}/notices`,{signal})).data;
+export const markNoticesSeen=async(id:number,ids:number[])=>(await apiClient.post<{marked:number}>(`${root}/${id}/notices/seen`,{ids})).data;
 export const setChatNotifications=async(id:number,notifyChat:boolean)=>apiClient.put(`${root}/${id}/preferences`,{notifyChat});
 export const assignCoach=async(id:number,userId:number|null,authSessionId?:AuthSessionId)=>{
     const url=`${root}/${id}/coach`, command={userId};
@@ -86,12 +99,42 @@ export const attendance=async(id:number,sessionId:number,playerId:number,respons
 export type SquadJoinLinkStatus='NONE'|'ACTIVE'|'EXPIRED'|'DISABLED';
 export interface SquadJoinLink { squadId:number; squadName:string; status:SquadJoinLinkStatus; code:string|null; path:string|null; createdAt:string|null; createdBy:number|null; createdByName:string|null; expiresAt:string|null; disabledAt:string|null }
 export interface SquadJoinGroup { id:number; version:number; name:string; method:'DIRECT'|'INTRODUCTION'|'SELECTIVE' }
-export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null } }
-export interface SquadJoinDecision { requestId:string; expectedVersion:number; action:'APPROVE'|'DECLINE'; groupId?:number|null; groupVersion?:number|null }
+/**
+ * `answeredBy`/`answeredAt`: who answered first and when, on a request answered lately (`answered`). Sources LINK and
+ * ENQUIRY are requests (`id` the inquiry's); GROUP (asked a joining group) and VISIT (booked a first visit, `visit`) are
+ * cases (`id` the case's), decided with `decideJoinCase` (step 5; older servers send neither).
+ */
+export interface SquadJoinVisit { startsAt:string; endsAt:string; place:string|null; status:string }
+export interface SquadJoinRequest { id:number; version:number; source:'LINK'|'ENQUIRY'|'GROUP'|'VISIT'; playerId:number; childName:string; birthYear:number|null; guardianName:string|null; message:string|null; createdAt:string; caseId:number|null; destination:string; groups:SquadJoinGroup[]; setup:{ canConfigure:boolean; destination:string|null }; answeredBy?:string|null; answeredAt?:string|null; visit?:SquadJoinVisit|null; sameChild?:SquadSameChild|null }
+/** A card the club already has that looks like the requested child ("Luka B."). `hasFamily`: its parent is asked instead. */
+export interface SquadSameChild { playerId:number; name:string; hasFamily:boolean }
+/** A request that looks like a card the club made and no family holds yet: the coach answers Same child or New player before any yes. */
+export const needsSameChildAnswer=(match?:SquadSameChild|null)=>Boolean(match&&!match.hasFamily);
+/** The requests Approve all may take: every one but a look-alike still waiting for Same child or New player (`apart`: set aside as New player). */
+export const readyToApprove=(requests:SquadJoinRequest[],apart:ReadonlySet<number>=new Set())=>requests.filter(request=>!needsSameChildAnswer(request.sameChild)||apart.has(request.id));
+/** "Same child": the request's child is that card; the two become one (DONE), or the request's family is asked first (PROPOSED). */
+export const sameChild=async(id:number,requestPlayerId:number,playerId:number)=>(await apiClient.post<{ status:'DONE'|'PROPOSED'; playerId:number }>(`${root}/${id}/join-requests/same-child`,{ requestPlayerId, playerId })).data;
+/** `REVIEW`: invite to a trial, the request going on into the joining group's admission (step 3). */
+export interface SquadJoinDecision { requestId:string; expectedVersion:number; action:'APPROVE'|'REVIEW'|'DECLINE'; groupId?:number|null; groupVersion?:number|null }
 export interface SquadJoinOutcome { inquiryId:number; outcome:'PLACE_OFFERED'|'REVIEW_REQUIRED'|'DECLINED'; destination:string|null }
 export const joinLink=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinLink>(`${root}/${id}/join-link`,{signal})).data;
 /** Creates the link, or replaces its code so the old one stops working at once. Same requestId: same link. */
 export const createJoinLink=async(id:number,body:{requestId:string;expiresInDays?:number|null})=>(await apiClient.post<SquadJoinLink>(`${root}/${id}/join-link`,body)).data;
 export const disableJoinLink=async(id:number)=>(await apiClient.delete<SquadJoinLink>(`${root}/${id}/join-link`)).data;
-export const joinRequests=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal})).data;
+/** The requests waiting; with `answered`, those answered in the last two weeks follow. */
+export const joinRequests=async(id:number,signal?:AbortSignal,answered=false)=>(await apiClient.get<SquadJoinRequest[]>(`${root}/${id}/join-requests`,{signal,params:answered?{answered:true}:undefined})).data;
 export const decideJoinRequest=async(id:number,inquiryId:number,body:SquadJoinDecision)=>(await apiClient.post<SquadJoinOutcome>(`${root}/${id}/join-requests/${inquiryId}`,body)).data;
+/** Accept (offer the place in its group) or Not now on a GROUP or VISIT row; REVIEW is refused there. */
+export const decideJoinCase=async(id:number,caseId:number,body:SquadJoinDecision)=>(await apiClient.post<SquadJoinOutcome>(`${root}/${id}/join-requests/cases/${caseId}`,body)).data;
+/**
+ * "Approve all" from the coach's one squad notice: exactly the requests the coach saw (with the versions seen), each
+ * through the same decision as one at a time. All or nothing; `groupId` only when several groups are open.
+ * Problem codes: JOINING_TERMS_NEEDED, CHOOSE_GROUP.
+ */
+export interface SquadApproveAll { requestId:string; requests:{ inquiryId:number; expectedVersion:number }[]; groupId?:number|null; groupVersion?:number|null }
+export interface SquadApproveAllResult { approved:number; groupName:string; decisions:SquadJoinOutcome[] }
+export const approveAllJoinRequests=async(id:number,body:SquadApproveAll)=>(await apiClient.post<SquadApproveAllResult>(`${root}/${id}/join-requests/approve-all`,body)).data;
+/** Another parent asking to be linked to a child in or waiting for the squad. `canLink`: the child has no parent yet. */
+export interface SquadParentLink { id:number; childName:string; requesterName:string; createdAt:string; canLink:boolean }
+export const parentLinks=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadParentLink[]>(`${root}/${id}/parent-links`,{signal})).data;
+export const answerParentLink=async(id:number,link:number,accept:boolean)=>(await apiClient.post<{ id:number; outcome:'LINKED'|'DECLINED' }>(`${root}/${id}/parent-links/${link}`,{ accept })).data;

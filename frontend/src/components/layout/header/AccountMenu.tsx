@@ -1,13 +1,15 @@
+import { isKnownMinor } from '../../../utils/age';
 import { useId } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, LayoutGrid, Lightbulb, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
+import { LayoutGrid, Lightbulb, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import type { AuthUser } from '../../../context/AuthContext';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { CreateLink } from '../../../features/pages/create/CreateLink';
 import { resetTips } from '../../../features/firstTips/firstTips';
+import { ActionButton } from '../../../features/actions/ActionButton';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import type { ThemePreference } from '../../../theme';
 import { PinGlyph } from './pins/PinsPanel';
@@ -36,7 +38,7 @@ export function AccountSettingsLink({ menu = false }: { menu?: boolean }) {
 }
 
 /**
- * Profile, schedule, settings, workspaces, appearance, language and signing out: the desktop account menu (as menu
+ * Profile, settings, workspaces, appearance, language and signing out: the desktop account menu (as menu
  * items) and the phone's "You" sheet (as plain links and toggles) list the same things.
  */
 export function AccountItems({ user, workspaces, themePreference, setThemePreference, onLogout, close, menu, profile = true, createPage = true, accountSettings = true }: AccountProps & {
@@ -59,7 +61,6 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
                 <Avatar src={resolveMediaUrl(user.avatarUrl)} name={name} size={36} />
                 <span className="gk-menu__profile-text"><strong>{name}</strong><span>{copy('View your profile', 'პროფილის ნახვა')}</span></span>
             </Link>}
-            <Link role={item} to={`/profile/${user.id}?tab=schedule`} className="gk-menu__item"><CalendarDays aria-hidden="true" />{copy('My schedule', 'ჩემი განრიგი')}</Link>
             {/* The menu has one line for every workspace: the page lists them all, so it stays short however many there are. */}
             {menu && workspaces.length > 0 && (
                 <Link role={item} to={WORKSPACES_PATH} className="gk-menu__item" aria-current={pathname === WORKSPACES_PATH ? 'page' : undefined}>
@@ -74,7 +75,8 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
             {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                 <Link role={item} to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>
             )}
-            {createPage && <CreateLink role={item} variant="menu" from="account" onClick={() => close()}>{copy('Create a page', 'გვერდის შექმნა')}</CreateLink>}
+            <ActionButton action="add_child" look="menu" role={item} onClick={() => close()} />
+            {createPage && !isKnownMinor(user.dob) && <CreateLink role={item} variant="menu" from="account" onClick={() => close()}>{copy('Create a page', 'გვერდის შექმნა')}</CreateLink>}
             {/* The phone's "You" sheet is a whole page, so it keeps a row for each workspace it does not show elsewhere. */}
             {!menu && workspaces.length > 0 && (
                 <>
@@ -92,7 +94,7 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
             <div className="gk-menu__sep" role="separator" />
             <p className="gk-menu__label" id={`${id}-theme`}>{copy('Appearance', 'იერსახე')}</p>
             <div className="gk-segment" role="group" aria-labelledby={`${id}-theme`}>
-                <button type="button" {...choice(dark)} className="gk-menu__item" onClick={select(() => setThemePreference('map-light'))}><Moon aria-hidden="true" />{copy('Dark', 'მუქი')}</button>
+                <button type="button" {...choice(dark)} className="gk-menu__item" onClick={select(() => setThemePreference('dark'))}><Moon aria-hidden="true" />{copy('Dark', 'მუქი')}</button>
                 <button type="button" {...choice(!dark)} className="gk-menu__item" onClick={select(() => setThemePreference('light'))}><Sun aria-hidden="true" />{copy('Light', 'ღია')}</button>
             </div>
             <p className="gk-menu__label" id={`${id}-language`}>{copy('Language', 'ენა')}</p>

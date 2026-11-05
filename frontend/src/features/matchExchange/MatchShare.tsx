@@ -6,7 +6,7 @@ import { useJourneyCopy } from './journeyCopy';
 export function MatchShare({ eventId, privateMatch }: { eventId: number; privateMatch: boolean }) {
   const { copy } = useJourneyCopy();
   const [state, setState] = useState<'idle' | 'copied' | 'manual'>('idle');
-  const url = `${window.location.origin}/match-exchange/${eventId}`;
+  const url = `${window.location.origin}/matches/${eventId}`;
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(url);

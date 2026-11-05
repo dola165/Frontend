@@ -103,7 +103,7 @@
     .schedule-compose-modes small {
         font-size: 10px;
     }
-    .schedule-compose-types > button {
+    .schedule-compose-types > :is(button, a) {
         min-height: 42px;
         padding: 9px 10px;
     }

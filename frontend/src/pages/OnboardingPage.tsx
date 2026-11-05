@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AccountExitOption } from '../features/profiles/account/AccountExitOption';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -7,8 +8,9 @@ import { credentialUpdate } from '../api/credentialUpdates';
 import { assertCurrentAuthSession, setRefreshedAccessToken } from '../utils/authStorage';
 import { isAndroidApp } from '../android/bridge';
 import { useAuth } from '../context/AuthContext';
-import { extractApiErrorMessage } from '../utils/apiError';
-import { ageFromDob, isUnder13, todayIso } from '../utils/age';
+import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
+import { ageFromDob, todayIso } from '../utils/age';
+import { rememberAgeRefusal } from '../components/auth/ageRefusal';
 import { NEUTRAL_ONBOARDING_ROLE } from '../utils/registration';
 import {
     authFieldErrorClass,
@@ -21,6 +23,7 @@ import {
     completedAuthDestination,
     getAuthFlow,
     requiredAccountStep,
+    type AccountState,
 } from '../utils/authRedirect';
 
 /** An account missing its name or date of birth (a Google sign-in, an invited account) completes them here. Nothing else is asked. */
@@ -32,7 +35,7 @@ export const OnboardingPage = () => {
 const OnboardingForm = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { user, sessionId, bootstrapSession } = useAuth();
+    const { user, sessionId, bootstrapSession, logout } = useAuth();
     const request = useRef<AbortController | null>(null);
     useEffect(() => () => request.current?.abort(), [sessionId]);
     const [fullName, setFullName] = useState(() => user?.fullName && user.fullName !== 'New User' ? user.fullName : user?.name ?? '');
@@ -59,22 +62,25 @@ const OnboardingForm = () => {
         const nextDobError = !dateOfBirth
             ? t('auth.register.errDobRequired')
             : !Number.isFinite(ageFromDob(dateOfBirth)) || dateOfBirth > todayIso()
-                ? t('auth.register.dobInvalid')
-                : isUnder13(dateOfBirth) ? t('auth.register.errUnder13') : '';
+                ? t('auth.register.dobInvalid') : '';
         setNameError(nextNameError);
         setDobError(nextDobError);
         if (nextNameError || nextDobError) return;
+        // Under 13 is the server's to answer: it removes the account it just made (a Google sign-in).
+        // 13 to 15: the account waits for a parent, whom the teen adds with the "Add my parent" link right after.
 
         setIsLoading(true);
         setError('');
         const controller = new AbortController(); request.current = controller;
+        let accountState: AccountState | undefined;
         try {
             // The backend still wants a role here; an account keeps the one it has, a new one stays neutral.
-            await credentialUpdate(config => apiClient.put<{ accessToken?: string }>('/users/me/onboarding', {
+            await credentialUpdate(config => apiClient.put<{ accessToken?: string; accountState?: AccountState }>('/users/me/onboarding', {
                 fullName: trimmedName,
                 role: user.role ?? NEUTRAL_ONBOARDING_ROLE,
                 dateOfBirth,
             }, config), response => {
+                accountState = response.data.accountState;
                 const token = response.data.accessToken;
                 if (!token?.trim()) throw new Error(t('onboarding.sessionRefreshFailed'));
                 if (isAndroidApp ? token !== 'native-session' : JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub !== String(user.id)) {
@@ -86,6 +92,7 @@ const OnboardingForm = () => {
             const refreshedUser = await bootstrapSession();
             assertCurrentAuthSession(sessionId);
             if (!refreshedUser) throw new Error(t('onboarding.sessionRefreshFailed'));
+            if (accountState === 'AWAITING_PARENT') { navigate(requiredAccountStep({ accountState }) ?? '/', { replace: true }); return; }
             if (requiredAccountStep(refreshedUser)) {
                 setError(t('onboarding.incompleteError'));
                 return;
@@ -93,7 +100,11 @@ const OnboardingForm = () => {
             const flow = getAuthFlow();
             navigate(completedAuthDestination(refreshedUser, flow.nextPath, flow.newAccount), { replace: true });
         } catch (requestError) {
-            if (!controller.signal.aborted) setError(extractApiErrorMessage(requestError, t('onboarding.saveFailed')));
+            if (controller.signal.aborted) return;
+            const code = extractApiErrorCode(requestError);
+            // Under 13: the server removed the account. Signed out, to the "join through a parent" answer.
+            if (code === 'AGE_BELOW_MINIMUM') { rememberAgeRefusal(); await logout().catch(() => undefined); navigate('/signup', { replace: true, state: { underThirteen: true } }); return; }
+            setError(code === 'AGE_RETRY_BLOCKED' ? t('auth.register.tryLater') : extractApiErrorMessage(requestError, t('onboarding.saveFailed')));
         } finally {
             if (request.current === controller) request.current = null;
             if (!controller.signal.aborted) setIsLoading(false);
@@ -147,11 +158,12 @@ const OnboardingForm = () => {
                             onChange={(event) => { setDateOfBirth(event.target.value); setDobError(''); }}
                             className={dobError ? authInputErrorClass : authInputClass}
                             aria-invalid={Boolean(dobError)}
-                            aria-describedby={`onboarding-dob-hint${dobError ? ' onboarding-dob-error' : ''}`}
+                            aria-describedby={[user?.dob ? 'onboarding-dob-hint' : '', dobError ? 'onboarding-dob-error' : ''].filter(Boolean).join(' ') || undefined}
                         />
-                        <p id="onboarding-dob-hint" className="text-[10px] leading-4 text-[var(--color-secondary)]">{user?.dob ? t('onboarding.dobLocked') : t('auth.register.dobHint')}</p>
+                        {user?.dob && <p id="onboarding-dob-hint" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('onboarding.dobLocked')}</p>}
                         {dobError && <p id="onboarding-dob-error" className={authFieldErrorClass}>{dobError}</p>}
                     </div>
+
 
                     <p className="text-xs leading-5 text-[var(--color-secondary)]">{t('onboarding.optionalLater')}</p>
 
@@ -159,6 +171,7 @@ const OnboardingForm = () => {
                         {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('onboarding.continue')}
                     </button>
                 </form>
+                <AccountExitOption />
             </div>
         </div>
     );

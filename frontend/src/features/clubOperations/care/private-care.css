@@ -1,0 +1,20 @@
+.private-care { display: grid; gap: 1rem; padding: 1rem; min-width: 0; overflow-wrap: anywhere; }
+.private-care h2, .private-care h3, .private-care p { margin: 0; }
+.private-care h2 { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.private-care__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.private-care__form, .private-care__form fieldset { display: grid; gap: 1rem; min-width: 0; }
+.private-care__form fieldset { border: 0; padding: 0; margin: 0; }
+.private-care__form .gk-input { width: 100%; max-width: 100%; }
+.private-care__records { list-style: none; margin: 0; padding: 0; }
+.private-care__records button { display: grid; gap: .25rem; text-align: left; width: 100%; min-height: 48px; padding: .75rem; color: inherit; background: transparent; border: 0; border-bottom: 1px solid var(--gk-line); cursor: pointer; }
+.private-care__records button span { font-size: .875rem; }
+.private-care summary { padding: .75rem 0; min-height: 44px; cursor: pointer; }
+.private-care details p { padding-bottom: .75rem; }
+.private-care button:focus-visible, .private-care summary:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+@media (max-width: 480px) { .private-care { padding: .75rem; } .private-care__actions { display: grid; } }
+
+.private-care .gk-btn, .private-care input, .private-care select { min-height: 44px; }
+
+.private-care h2 { font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 600; }
+.private-care > .gk-btn { justify-self: start; }
+.private-care header > p { color: var(--gk-text-2); margin-top: .25rem; }

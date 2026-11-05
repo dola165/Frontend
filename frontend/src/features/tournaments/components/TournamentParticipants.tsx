@@ -94,11 +94,13 @@ export function TournamentParticipants({
     setError("");
     setNotice("");
     try {
-      onUpdate(await addGuestEntry(tournament.id, name.trim()));
+      const saved = await addGuestEntry(tournament.id, name.trim());
+      const added = saved.entries.find(entry => !tournament.entries.some(previous => previous.id === entry.id));
+      onUpdate(saved);
       setNotice(
         copy(
-          `${name.trim()} is ready for the draw.`,
-          `${name.trim()} მზადაა წილისყრისთვის.`,
+          added?.status === "ACTIVE" ? `${name.trim()} is ready for the draw.` : `${name.trim()} added. Review eligibility before confirming the entry.`,
+          added?.status === "ACTIVE" ? `${name.trim()} მზადაა წილისყრისთვის.` : `${name.trim()} დამატებულია. მონაწილეობის დადასტურებამდე შეამოწმეთ შესაბამისობა.`,
         ),
       );
       setName("");
@@ -390,8 +392,8 @@ export function TournamentParticipants({
                     style={{ color: "var(--tw-muted)", fontSize: 13, marginBottom: 20 }}
                   >
                     {copy(
-                      "A club, company team or group of friends can join without signing up. Add their name and they are ready for the competition.",
-                      "კლუბი, კომპანიის გუნდი ან მეგობრები რეგისტრაციის გარეშე მონაწილეობენ. დაამატეთ სახელი და გუნდი მზად იქნება წილისყრისთვის.",
+                      "A club, company team or group of friends can enter without signing up. Add their name, then review any eligibility requirements before confirming participation.",
+                      "კლუბს, კომპანიის გუნდს ან მეგობრებს რეგისტრაცია არ სჭირდებათ. დაამატეთ სახელი და მონაწილეობის დადასტურებამდე შეამოწმეთ შესაბამისობის მოთხოვნები.",
                     )}
                   </p>
                   <label>

@@ -7,6 +7,7 @@ import type { Pins } from './usePins';
 import { TaskView, type PlaceOnPlan } from './TaskView';
 import { KeyChip, StatusDot } from './WorkBits';
 import { DiscussButton } from '../teamChat/DiscussButton';
+import '../../components/work/work.css';
 
 export interface TaskActions {
     open: number | null; team: Person[]; me: number | null;
@@ -15,21 +16,19 @@ export interface TaskActions {
     candidates: WorkItem[];
     /** On a plan page: move the task up or down, or take it off the plan. */
     placeOf?: (item: WorkItem) => PlaceOnPlan;
-    /** The plan page the task is on, for Copy for AI. */
-    planName?: string;
 }
 
 /** A task opened: its page, and the step chosen from it below. */
-export function TaskBody({ node, plan, actions, framed = false, onClose }: { node: WorkNode; plan?: Plan; actions: TaskActions; framed?: boolean; onClose: () => void }) {
+export function TaskBody({ node, actions, framed = false, onClose }: { node: WorkNode; actions: TaskActions; framed?: boolean; onClose: () => void }) {
     const copy = useJourneyCopy();
     const { item, steps } = node;
-    const { open, team, me, onOpen, onAddStep, onSaved, onDeleted, placeOf, planName, candidates } = actions;
+    const { open, team, me, onOpen, onAddStep, onSaved, onDeleted, placeOf, candidates } = actions;
     const step = steps.find(candidate => candidate.id === open);
     return <>
-        <TaskView id={item.id} team={team} me={me} plan={plan?.name ?? planName} place={placeOf?.(item)} candidates={candidates} framed={framed} onOpen={id => onOpen(open === id ? null : id)} onAddStep={() => onAddStep(item)} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />
+        <TaskView id={item.id} team={team} me={me} place={placeOf?.(item)} candidates={candidates} framed={framed} onOpen={id => onOpen(open === id ? null : id)} onAddStep={() => onAddStep(item)} onClose={onClose} onSaved={onSaved} onDeleted={onDeleted} />
         {step && <div className="tw-task__step">
             <p className="tw-task__step-title"><StatusDot status={step.status} /><KeyChip value={step.key} /><span className="gk-faint">{copy('Step', 'ნაბიჯი')}:</span> {step.title} <DiscussButton task={step} compact /></p>
-            <TaskView key={step.id} id={step.id} team={team} me={me} plan={plan?.name ?? planName} candidates={candidates} framed onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} onDeleted={() => { onOpen(null); onSaved(); }} />
+            <TaskView key={step.id} id={step.id} team={team} me={me} candidates={candidates} framed onOpen={onOpen} onClose={() => onOpen(null)} onSaved={onSaved} onDeleted={() => { onOpen(null); onSaved(); }} />
         </div>}
     </>;
 }
@@ -49,9 +48,9 @@ export function TaskDialog({ node, plan, actions, pins, onOpenPlan }: { node: Wo
         description={<span className="tw-task-dialog__bar">
             <PinButton pins={pins} target={{ itemId: item.id }} name={item.title} withLabel />
             <DiscussButton task={item} />
-            {plan && onOpenPlan && <button type="button" className="tw-link-button" onClick={() => onOpenPlan(plan.id)}><Folder aria-hidden="true" />{plan.name}</button>}
+            {plan && onOpenPlan && <button type="button" className="work-link-button" onClick={() => onOpenPlan(plan.id)}><Folder aria-hidden="true" />{plan.name}</button>}
             {pins.error && <span className="gk-notice gk-notice--danger" role="alert">{pins.error}</span>}
         </span>}>
-        <TaskBody node={node} plan={plan} actions={actions} framed onClose={close} />
+        <TaskBody node={node} actions={actions} framed onClose={close} />
     </Dialog>;
 }

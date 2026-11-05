@@ -15,7 +15,7 @@ const personal: Record<string, [english: string, georgian: string, PinIcon]> = {
     '/parent': ['Parent Hub', 'მშობლის სივრცე', 'family'],
     '/referees/me': ['Referee workspace', 'მსაჯის სამუშაო სივრცე', 'flag'],
     '/agent': ['Agent Hub', 'აგენტის სივრცე', 'briefcase'],
-    '/club-operations': ['My club appointments', 'ჩემი კლუბური დანიშვნები', 'clipboard'],
+    '/requests': ['Inbox', 'შემოსულები', 'clipboard'],
 };
 
 function kindOf(item: ConnectedWorkspace, copy: Copy) {
@@ -24,33 +24,33 @@ function kindOf(item: ConnectedWorkspace, copy: Copy) {
         case 'Tournaments': return copy('Tournament', 'ტურნირი');
         case 'Organizations': return copy('Organization', 'ორგანიზაცია');
         case 'Venues': return copy('Venue', 'მოედანი');
-        case 'Clubs': return copy('Club workspace', 'კლუბის სამუშაო სივრცე');
+        case 'Clubs': return copy('Club office', 'კლუბის ოფისი');
         default: return copy('Your work', 'თქვენი საქმე');
     }
 }
 
 /**
  * Every workspace the person can open: squads, tournaments, organizations, venues, other clubs and their own hubs.
- * The My Club tab and Administration (in the account menu) already have a place, so they are left out.
+ * Club office when it is the person's tab, and Administration (in the account menu), already have a place, so they are left out.
  */
-export function workspaceDestinations(capabilities: NavigationCapabilities | undefined, myClubPath: string | null, copy: Copy = english): WorkPlace[] {
+export function workspaceDestinations(capabilities: NavigationCapabilities | undefined, tabPath: string | null, copy: Copy = english): WorkPlace[] {
     return connectedWorkspaces(capabilities)
-        .filter(item => item.path !== myClubPath && item.path !== '/admin')
+        .filter(item => item.path !== tabPath && item.path !== '/admin')
         .map(item => {
             const own = personal[item.path];
             if (own) return { path: item.path, label: copy(own[0], own[1]), icon: own[2], kind: copy('Your work', 'თქვენი საქმე') };
-            const label = item.group === 'Clubs' && item.path.endsWith('/workspace') ? copy(`Workspace · ${item.label}`, `სამუშაო სივრცე · ${item.label}`) : item.label;
+            const label = item.group === 'Clubs' && item.path.endsWith('/office') ? copy(`Club office · ${item.label}`, `კლუბის ოფისი · ${item.label}`) : item.label;
             return { path: item.path, label, icon: groupIcon[item.group], kind: kindOf(item, copy) };
         });
 }
 
 /** Everything a person can open from their own work, so nothing is lost when it is not a tab. */
-export function workDestinations(capabilities: NavigationCapabilities | undefined, myClubPath: string | null, copy: Copy = english): Pin[] {
-    const work: Pin[] = workspaceDestinations(capabilities, myClubPath, copy).map(({ path, label, icon }) => ({ path, label, icon }));
+export function workDestinations(capabilities: NavigationCapabilities | undefined, tabPath: string | null, copy: Copy = english): Pin[] {
+    const work: Pin[] = workspaceDestinations(capabilities, tabPath, copy).map(({ path, label, icon }) => ({ path, label, icon }));
     for (const club of accessibleClubs(capabilities)) {
         if (club.canOpenWorkspace) work.push({ path: `/clubs/${club.id}`, label: club.name, icon: 'club' });
     }
-    if (capabilities === undefined || hasNavigationCapability(capabilities, 'squad.workspace')) work.push({ path: '/squads', label: copy('My squads', 'ჩემი გუნდები'), icon: 'squad' });
+    if (capabilities === undefined || hasNavigationCapability(capabilities, 'squad.workspace')) work.push({ path: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: 'squad' });
     work.push({ path: '/calendar', label: copy('My schedule', 'ჩემი განრიგი'), icon: 'calendar' });
     if (hasNavigationCapability(capabilities, 'team.work')) work.push({ path: '/team-work', label: copy('Team work', 'გუნდის სამუშაო'), icon: 'clipboard' });
     return work.filter((item, index, all) => all.findIndex(other => other.path === item.path) === index);
@@ -62,7 +62,7 @@ const explore: Array<[path: string, group: ExploreDestination['group'], signedIn
     ['/world/clubs', 'world'], ['/world/opportunities', 'world'], ['/world/matches', 'world'],
     ['/world/tournaments', 'world'], ['/world/people', 'world'],
     ['/world/opportunities?type=trials', 'more'], ['/world/matches?tab=events', 'more'],
-    ['/store', 'support'], ['/campaigns', 'support'], ['/clubs/following', 'support', true],
+    ['/store', 'support'], ['/campaigns', 'support'], ['/world/clubs?view=following', 'support', true],
 ];
 
 /**
@@ -72,7 +72,7 @@ const explore: Array<[path: string, group: ExploreDestination['group'], signedIn
 export function exploreDestinations(copy: Copy = english): ExploreDestination[] {
     return explore.map(([path, group, signedIn]) => {
         const [pathname, search = ''] = path.split('?');
-        const { label, icon } = describeRoute(pathname, search && `?${search}`, { myClubPath: null, copy });
+        const { label, icon } = describeRoute(pathname, search && `?${search}`, { tabPath: null, copy });
         return { path, label: label ?? path, icon, group, ...(signedIn ? { signedIn } : {}) };
     });
 }

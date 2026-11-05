@@ -25,7 +25,7 @@ export function GuardianPermissions({ items, selected, busy, onAction }: {
     const card = (p: GuardianPermission) => <PermissionCard key={p.id} request={p} selected={selected === String(p.id)}
         journey={journeys.find(j => j.permission_id === p.id)} busy={busy} onAction={status => onAction(p, status)} />;
     return <section className="connections-permissions connections-section" aria-labelledby="guardian-permissions-title">
-        <header><span className="connections-section-icon"><ClipboardCheck size={20} /></span><div><h2 id="guardian-permissions-title">Permissions for your children</h2>
+        <header><span className="connections-section-icon"><ClipboardCheck size={20} /></span><div><h2 id="guardian-permissions-title">{items.some(p => p.kind.endsWith('_CONSENT') && p.subject_user_id === p.assigned_user_id) ? 'Your permissions' : 'Permissions for your children'}</h2>
             <p>{pending.length ? `${pending.length} ${pending.length === 1 ? 'request needs' : 'requests need'} your decision.` : 'You’re up to date. Your previous decisions are kept here.'}</p></div>
             <span className="connections-count" data-pending={pending.length > 0}>{pending.length ? `${pending.length} to review` : <Check size={16} aria-label="Up to date" />}</span></header>
         <div className="permission-list">{pending.map(card)}</div>
@@ -55,7 +55,7 @@ function PermissionCard({ request: p, selected, journey, busy, onAction }: {
         <button ref={summary} type="button" className="permission-summary" aria-expanded={expanded} aria-controls={`permission-body-${p.id}`} onClick={() => setExpanded(v => !v)}>
             <span className="permission-avatar" aria-hidden="true">{p.child_name.split(' ').slice(0, 2).map(n => n[0]).join('')}</span>
             <span className="permission-summary-text"><span>{p.child_name} <span className="permission-club">· {p.club_name}</span></span><strong>{p.title}</strong>
-                <small>{p.data.purpose ? `${label(p.data.purpose)} permission` : 'Collection authorisation'}{p.due_on ? ` · ${appointmentDate(p.due_on)}` : ''}</small></span>
+                <small>{p.kind.endsWith('_CONSENT') ? 'Private care consent' : p.data.purpose ? `${label(p.data.purpose)} permission` : 'Collection authorisation'}{p.due_on ? ` · ${appointmentDate(p.due_on)}` : ''}</small></span>
             <span className="permission-state" data-state={p.status}>{label(p.status === 'PENDING' ? 'AWAITING_REPLY' : p.status)}</span><ChevronDown className="permission-chevron" size={18} />
         </button>
         <div className="permission-reveal" data-open={expanded} id={`permission-body-${p.id}`} inert={!expanded} aria-hidden={!expanded}><div><div className="permission-body">
@@ -71,12 +71,13 @@ function PermissionCard({ request: p, selected, journey, busy, onAction }: {
             {p.kind === 'COLLECTION' && <dl className="permission-arrangements">
                 {[['Authorised collector', p.data.collector], ['Relationship', p.data.relationship], ['Contact', p.data.contact]].filter(([, value]) => value).map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}
             </dl>}
+            {p.kind.endsWith('_CONSENT') && <p>Permission covers new {p.kind === 'MEDICAL_CONSENT' ? 'medical' : 'wellbeing'} records for this player and squad, held by {p.careContext?.professional ?? 'the named professional'} in {p.careContext?.squad ?? 'the specified squad'}. Only short participation information is shared with authorised staff and family. Withdrawal stops private access; it does not delete retained records or open them under a later permission.</p>}
             <section className="permission-terms" aria-label="Exact permission terms"><h3>{p.kind === 'COLLECTION' ? 'Collection instructions' : 'What you’re agreeing to'}</h3>
                 <p>{p.data.wording || p.data.instructions || 'Review the collector and contact details above before deciding.'}</p>
                 <div className="permission-version">{p.data.version && <span>Terms version · {p.data.version}</span>}{p.data.expiresOn && <span>Valid until {appointmentDate(p.data.expiresOn)}</span>}</div>
             </section>
             {!!additional.length && <details className="permission-extra"><summary>Additional details</summary><dl className="permission-arrangements">{additional.map(([key, value]) => <div key={key}><dt>{label(key.replace(/([A-Z])/g, '_$1'))}</dt><dd>{value}</dd></div>)}</dl></details>}
-            <footer className="permission-actions"><p>{p.status === 'GRANTED' ? 'Permission given. You can withdraw it when the request allows.' : p.status === 'PENDING' ? 'Your decision is recorded for this child and these terms.' : `Your decision: ${label(p.status).toLowerCase()}.`}</p>
+            <footer className="permission-actions"><p>{p.status === 'GRANTED' ? 'Permission given. You can withdraw it when the request allows.' : p.status === 'PENDING' ? `Your decision is recorded for this ${p.kind.endsWith('_CONSENT') ? 'player' : 'child'} and these terms.` : `Your decision: ${label(p.status).toLowerCase()}.`}</p>
                 {!!p.transitions.length && <div>{p.transitions.map(status => <button type="button" key={status} className={status === 'GRANTED' ? 'ops-primary' : ''} disabled={busy} onClick={() => void onAction(status)}>{busy ? 'Saving…' : transitionLabel(p.kind, status)}</button>)}</div>}
             </footer>
         </div></div></div>

@@ -3,6 +3,8 @@ import { appLanguage } from '../utils/formatting';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { isAndroidApp, nativeCall, nativeSession } from '../android/bridge';
 import { normalizeNavigationCapabilities, type NavigationCapabilities } from './navigationCapabilities';
+import { announceAccessRefresh } from '../hooks/accessRefresh';
+import type { AccountState } from '../utils/authRedirect';
 import {
     apiClient,
     ensureCsrfToken,
@@ -49,6 +51,10 @@ export interface AuthUser {
     onboardingRequired: boolean;
     mustChangePassword: boolean;
     emailVerified: boolean;
+    /** AWAITING_PARENT: a 13 to 15-year-old's account until a parent approves it (F1). */
+    accountState?: AccountState;
+    /** A 13 to 15-year-old's account made before parents approved: the day it starts waiting for one (release 7). */
+    parentApprovalDueAt?: string | null;
     navigationCapabilities?: NavigationCapabilities;
 }
 
@@ -79,6 +85,8 @@ const normalizeAuthUser = (payload: Record<string, unknown>) => ({
     onboardingRequired: payload.onboardingRequired === true || payload.profileComplete === false,
     mustChangePassword: payload.mustChangePassword === true,
     emailVerified: payload.emailVerified === true,
+    accountState: payload.accountState === 'AWAITING_PARENT' ? 'AWAITING_PARENT' : 'ACTIVE',
+    parentApprovalDueAt: typeof payload.parentApprovalDueAt === 'string' ? payload.parentApprovalDueAt : null,
     navigationCapabilities: normalizeNavigationCapabilities(payload.navigationCapabilities, Number(payload.id)),
 } satisfies AuthUser);
 
@@ -116,7 +124,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await apiClient.get<Record<string, unknown>>('/users/me', config);
         assertCurrentAuthSession(sessionId);
         const normalizedUser = normalizeAuthUser(response.data);
-        if (request === currentUserRequestRef.current) applyAuthenticatedState(normalizedUser, sessionId);
+        if (request === currentUserRequestRef.current) {
+            applyAuthenticatedState(normalizedUser, sessionId);
+            announceAccessRefresh();
+        }
         return normalizedUser;
     }, [applyAuthenticatedState]);
 
@@ -131,10 +142,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const next = normalizeAuthUser(response.data);
             setUser(current => current?.id === next.id ? next
                 : current ? { ...current, navigationCapabilities: { version: 1, workspaces: [] } } : current);
+            // Jobs can change posting authority without changing any workspace shortcut.
+            announceAccessRefresh();
         } catch {
             if (!isCurrentAuthSession(session) || request !== currentUserRequestRef.current) return;
             // Retire stale shortcuts on failure without discarding the authenticated account.
             setUser(current => current ? { ...current, navigationCapabilities: { version: 1, workspaces: [] } } : current);
+            announceAccessRefresh();
         }
     }, [status, resolvedSessionId]);
 

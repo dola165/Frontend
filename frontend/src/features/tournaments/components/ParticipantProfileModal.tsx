@@ -73,7 +73,7 @@ export const ParticipantProfileModal = ({ entry, tournamentId, canManage, onRefr
 
     const profileLink = (): { to: string; label: string } | null => {
         if (entry.clubId != null && entry.squadId != null) {
-            return { to: `/clubs/${entry.clubId}/squads`, label: t('tournaments.diagram.squads') };
+            return { to: `/clubs/${entry.clubId}?tab=teams`, label: t('tournaments.diagram.squads') };
         }
         if (entry.clubId != null) {
             return { to: `/clubs/${entry.clubId}`, label: t('tournaments.diagram.clubProfile') };

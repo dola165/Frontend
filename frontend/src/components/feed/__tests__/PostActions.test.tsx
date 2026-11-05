@@ -40,3 +40,14 @@ it('protects a restricted audience from reposting and chat sharing', async () =>
     mount(<SharePostDialog post={{ ...post, isPublic: false }} onClose={vi.fn()} onShared={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'Share now' })).toBeDisabled(); expect(await screen.findByRole('button', { name: 'Send to Dinamo staff' })).toBeDisabled(); expect(api.post).not.toHaveBeenCalled();
 });
+
+it('retries desired hide and restore states without toggling them', async () => {
+    const user = userEvent.setup(); api.put.mockRejectedValueOnce(new Error('lost acknowledgement')).mockResolvedValue({ data: { hidden: true } }); mount(card({ authorId: 21 }));
+    const menu = screen.getByLabelText('Actions for post by Academy Coach');
+    await user.click(menu); await user.click(screen.getByRole('button', { name: 'Hide post' }));
+    await screen.findByRole('alert'); await user.click(menu); await user.click(screen.getByRole('button', { name: 'Hide post' }));
+    expect(api.put.mock.calls.slice(0,2)).toEqual([['/posts/7/hide', { hidden: true }], ['/posts/7/hide', { hidden: true }]]);
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(api.put).toHaveBeenLastCalledWith('/posts/7/hide', { hidden: false });
+    expect(await screen.findByText('Training today')).toBeVisible(); expect(api.post).not.toHaveBeenCalled();
+});

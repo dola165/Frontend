@@ -14,6 +14,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { isCurrentAuthSession } from '../../../utils/authStorage';
 import { emitNotificationsChanged } from '../../../utils/notifications';
 import { useJourneyCopy } from '../../squadCommunication/journeyCopy';
+import { useOtherClub } from '../../clubOperations/leaving/useOtherClub';
+import { promptEmailConfirmation } from '../../../components/auth/emailConfirmationPrompt';
 
 interface MyClubInvitationsPanelProps {
     onInvitationAccepted?: (invitation: MyClubInvitation) => void;
@@ -74,6 +76,7 @@ const ClubInvitations = ({ onInvitationAccepted }: MyClubInvitationsPanelProps) 
 
     const mounted = useRef(false);
     const submitting = useRef(false);
+    const other = useOtherClub();
 
     useEffect(() => {
         mounted.current = true;
@@ -140,6 +143,9 @@ const ClubInvitations = ({ onInvitationAccepted }: MyClubInvitationsPanelProps) 
 
             if (nextStatus === 'DECLINED') setSuccessMessage(copy(`Invite to ${invitation.clubName} declined.`, `${invitation.clubName}-ის მოწვევა უარყოფილია.`));
         } catch (error) {
+            // Staff means one club: "Leave {club} first", then accept again.
+            if (mounted.current && isCurrentAuthSession(sessionId) && other.catchOther(error, () => void runDecision(invitation, decision))) return;
+            if (mounted.current && isCurrentAuthSession(sessionId) && promptEmailConfirmation(error)) return;
             if (mounted.current && isCurrentAuthSession(sessionId)) {
                 setErrorMessage(extractApiErrorMessage(error, copy('Failed to update invitation.', 'მოწვევის განახლება ვერ მოხერხდა.')));
                 window.dispatchEvent(new Event('requests-updated'));
@@ -163,6 +169,7 @@ const ClubInvitations = ({ onInvitationAccepted }: MyClubInvitationsPanelProps) 
             ) : undefined}
             bodyClassName="divide-y divide-[var(--color-border)]"
         >
+            {other.notice}
             {errorMessage && (
                 <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-4">
                     <div role="alert" className="border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">

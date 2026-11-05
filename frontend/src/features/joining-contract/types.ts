@@ -11,13 +11,27 @@ export type PlayerIdentity = {
 export type PlayerIdentityInput = Omit<PlayerIdentity, 'playerId' | 'version' | 'canEdit' | 'minor'> & {
   requestId: string; expectedVersion: number;
 };
-/** What the club has recorded as due for this child (backend needed: older servers omit it, which reads "Not recorded", never zero). */
-export type ChildFeeLine = { label: string; amount: number; currency: string; dueDate: string | null; status: 'DUE' | 'OVERDUE' | 'PAID' };
-export type ChildFees = { status: 'DUE' | 'OVERDUE' | 'PAID'; amount: number | null; currency: string | null; dueDate: string | null; period: string | null; lines?: ChildFeeLine[] };
-export type ChildClub = { clubId: number; clubName: string; cardId: number | null; affiliationStatus: string | null; consentStatus: string | null; squadNames: string[]; fees?: ChildFees | null };
+/**
+ * What the club recorded as due for this child, its membership instalments (null when it keeps none, or the family
+ * may not read them yet: never zero). `period` is the club's own words ("November").
+ */
+export type ChildFeeLine = { label: string; amount: number | null; currency: string | null; dueDate: string | null; status: 'DUE' | 'OVERDUE' | 'PAID' | 'WAIVED' | 'UNKNOWN' | 'NO_BALANCE'; period?: string | null; squadId?: number | null };
+export type ChildFees = { status: 'DUE' | 'OVERDUE' | 'PAID' | 'UNKNOWN' | 'NO_BALANCE'; amount: number | null; currency: string | null; dueDate: string | null; period: string | null; lines?: ChildFeeLine[] };
+/** The club's published price for a squad ("Programmes and fees"); null on the squad: no fee set by the club. */
+export type SquadPrice = { type: 'FIXED' | 'FREE' | 'VARIES' | 'UNPUBLISHED'; amount: number | null; currency: string | null; period: 'SESSION' | 'MONTH' | 'TERM' | 'YEAR' | 'ONE_OFF' | null; programme: string | null };
+export type ChildSquad = { id: number; name: string; price: SquadPrice | null };
+/** `squads` and `fees`: step 5 (older servers omit them). */
+export type ChildClub = { clubId: number; clubName: string; cardId: number | null; affiliationStatus: string | null; consentStatus: string | null; squadNames: string[]; squads?: ChildSquad[]; fees?: ChildFees | null };
 /** `guardians`: everyone who looks after the card, the viewer included (backend needed: older servers omit it). */
 export type ChildGuardian = { id: number; name: string; self: boolean };
-export type JoiningChild = { playerId: number; identity: PlayerIdentity; clubs: ChildClub[]; cases: AdmissionCase[]; inquiries: ConnectedInquiry[]; guardians?: ChildGuardian[] };
+/**
+ * A child's own sign-in (release 7): NONE until a parent gives it, INVITED once the link went to the child's email,
+ * ACTIVE once the child set a password; NOT_ELIGIBLE under 13. Backend: fnd-signup-b (older servers omit it).
+ */
+export type OwnAccount = { status: 'NONE' | 'INVITED' | 'ACTIVE' | 'NOT_ELIGIBLE'; email?: string | null; sentAt?: string | null };
+/** A 13 to 15-year-old's account waiting for a parent (dueAt: removal, or null when never removed), or an older one working until dueAt. */
+export type ChildParentApproval = { status: 'WAITING' | 'GRACE'; dueAt: string | null };
+export type JoiningChild = { playerId: number; identity: PlayerIdentity; clubs: ChildClub[]; cases: AdmissionCase[]; inquiries: ConnectedInquiry[]; guardians?: ChildGuardian[]; ownAccount?: OwnAccount; parentApproval?: ChildParentApproval | null; travelAvailable?: boolean };
 export type ChildDirectory = { children: JoiningChild[] };
 export type JoiningOption = { squadId: number | null; squadName: string; programmeIds: number[]; opportunity: Opportunity | null; availability: 'AVAILABLE' | 'WAITLIST' | 'CLOSED' | 'ENQUIRY_ONLY'; destination: string | null };
 export type ClubJoiningOptions = { clubId: number; organizationId: number; options: JoiningOption[] };

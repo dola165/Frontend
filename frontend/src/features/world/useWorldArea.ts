@@ -46,9 +46,9 @@ export interface WorldArea {
  */
 export function useWorldArea() {
     const { membership } = useWorldSession();
-    const { status, user } = useAuth();
+    const { status, user, sessionId } = useAuth();
     const signedIn = status === 'authenticated' && Boolean(user?.id);
-    const own = useWorldData(signedIn ? `own-place:${user?.id}` : null, () => shared(`own-place:${user?.id}`, () => fetchPlace(detached()).catch(() => null), 600_000));
+    const own = useWorldData(signedIn ? `own-place:${sessionId}:${user?.id}` : null, () => shared(`own-place:${sessionId}:${user?.id}`, () => fetchPlace(detached()).catch(() => null), 600_000));
     const ownTown = own.data && own.data.source === 'SAVED' ? own.data : null;
     const connection = own.data && own.data.source === 'CONNECTION' ? own.data : null;
     const [params, setParams] = useSearchParams();
@@ -65,18 +65,18 @@ export function useWorldArea() {
         if (placed) return { lat: placed.latitude!, lng: placed.longitude! };
         if (city.toLowerCase() === DEFAULT_AREA.city.toLowerCase()) return DEFAULT_AREA;
         const [match] = await geocodePlace(city, { type: 'CITY' });
-        return match ? { lat: match.latitude, lng: match.longitude } : DEFAULT_AREA;
+        return match ? { lat: match.latitude, lng: match.longitude } : null;
     }, 600_000));
-    const centre = located.data ?? (located.error ? DEFAULT_AREA : null);
+    const centre = located.data ?? null;
     const country = chosen || anywhere ? null : own.data?.countryCode ?? (signedIn ? null : DEFAULT_AREA.country);
     const guessed = !chosen && !ownTown && !clubCity.data && Boolean(connection);
-    const area: WorldArea = { city, source: chosen ? 'chosen' : ownTown || connection ? 'own' : clubCity.data ? 'club' : 'default', centre, ready, anywhere, country, guessed };
+    const area: WorldArea = { city, source: chosen ? 'chosen' : ownTown || connection ? 'own' : clubCity.data ? 'club' : 'default', centre, ready: ready && !located.loading, anywhere, country, guessed };
 
     /** A city, `ANYWHERE`, or '' to go back to the person's own area. A new area ends the choice of one result. */
     const setCity = (next: string) => setParams(current => {
         const copy = new URLSearchParams(current);
         if (next) copy.set('near', next); else copy.delete('near');
-        copy.delete('selected');
+        ['selected', 'shown', 'peek', 'side', 'bbox', 'region', 'within'].forEach(key => copy.delete(key));
         return copy;
     }, { replace: true, preventScrollReset: true });
     return { area, setCity };

@@ -15,7 +15,7 @@ import { PasteDialog } from './PasteDialog';
 import { WaitingPage } from './WaitingPage';
 import { PlanPage, type PlanDialog } from './PlanPage';
 import { TeamPanel } from './TeamPanel';
-import { TeamWorkDola } from './TeamWorkDola';
+import { AGENT_DOLA_CHANGED } from '../dola/agentDolaEvents';
 import { TeamSearch } from '../search/TeamSearch';
 import { TeamWorkNav, type TeamWorkPlace } from './TeamWorkNav';
 import { WhatChangedPage } from './WhatChangedPage';
@@ -89,6 +89,12 @@ export function TeamWorkPage() {
     const open = Number(params.get('step') ?? params.get('open')) || null;
     const task = Number(params.get('task')) || null;
     const reload = () => setRevision(value => value + 1);
+    // Agent Dola lives app-wide now; a change it made here reloads the board.
+    useEffect(() => {
+        const changed = () => setRevision(value => value + 1);
+        window.addEventListener(AGENT_DOLA_CHANGED, changed);
+        return () => window.removeEventListener(AGENT_DOLA_CHANGED, changed);
+    }, []);
     const set = (changes: Record<string, string | null>) => {
         const next = new URLSearchParams(params);
         for (const [old, key] of Object.entries(OLD_KEYS)) { const value = next.get(old); if (value !== null) { next.delete(old); if (!next.has(key)) next.set(key, value); } }
@@ -189,7 +195,6 @@ export function TeamWorkPage() {
         {dialog === 'ai' && view && <CopyForAiDialog view={view} onClose={() => setDialog(null)} />}
         {dialog === 'history' && view && <PlanHistoryDialog view={view} onClose={() => setDialog(null)} />}
         {dialog === 'addStep' && view && <AddPlanStepDialog view={view} plans={plans} onClose={() => setDialog(null)} onDone={next => { setDialog(null); keep(next); reload(); }} />}
-        <TeamWorkDola onChanged={reload} />
         {(dialog === 'new' || dialog === 'copy' || dialog === 'rename') && <NameDialog mode={dialog} current={view?.plan ?? null} onClose={() => setDialog(null)} onDone={next => { setDialog(null); show(next); }} />}
     </PageFrame></GkRoot>;
 }

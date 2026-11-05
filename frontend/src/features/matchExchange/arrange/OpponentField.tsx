@@ -36,7 +36,7 @@ export function OpponentField({ opponent, onOpponent, ownClubId, squads, targetS
 
     const choices = [...(squads.data ?? []).map(squad => ({ value: squad.id, label: squad.name })), { value: 0, label: t("Let them choose") }];
     return (
-        <div className="gk-field">
+        <div className="gk-field" data-dola-field="arrange-opponent" data-dola-filled="true">
             <span className="gk-field__label" id="arrange-opponent-label">{t('Opponent')}</span>
             <div className="gk-arrange__picked" aria-labelledby="arrange-opponent-label">
                 <Avatar src={opponent.logoUrl} name={opponent.name} size={40} square />

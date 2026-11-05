@@ -42,6 +42,15 @@ describe('the start sheet', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Change town' })).toHaveTextContent('Rustavi'));
   });
 
+  it('opens on Club from Agent Dola with the name, the town and Create marked for its club guide', async () => {
+    mount({ kind: 'CLUB', from: 'dola' });
+    expect(screen.getByRole('radio', { name: /^Club/ })).toHaveAttribute('aria-checked', 'true');
+    // Backend GuideTool.clubSteps frames these keys.
+    expect(document.querySelector('[data-dola-field="club-name"]')).toContainElement(screen.getByLabelText('Club name'));
+    expect(screen.getByRole('button', { name: 'Change town' })).toHaveAttribute('data-dola-field', 'club-town');
+    expect(screen.getByRole('button', { name: 'Create club' })).toHaveAttribute('data-dola-action', 'create-club');
+  });
+
   it('starts on Club when the person came from a football entry point', () => {
     mount({ from: 'my-club' });
     expect(screen.getByRole('radio', { name: /^Club/ })).toHaveAttribute('aria-checked', 'true');

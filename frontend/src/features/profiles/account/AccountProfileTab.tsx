@@ -29,6 +29,7 @@ export const AccountProfileTab = ({ account, form, setForm, isPlayer, profileDra
                 actions={
                     <button
                         type="button"
+                        data-dola-action="save"
                         onClick={() => void saveProfile()}
                         disabled={saving || profileDraft.refreshing || Boolean(uploading)}
                         aria-busy={saving}
@@ -41,7 +42,7 @@ export const AccountProfileTab = ({ account, form, setForm, isPlayer, profileDra
             >
                 <AccountProfileFeedback draft={profileDraft} />
                 <div className="grid gap-4 md:grid-cols-2">
-                    <Field label={copy("Display Name")}>
+                    <Field label={copy("Display Name")} dola="fullName">
                         <input value={form.fullName} onChange={(event) => updateForm('fullName', event.target.value)} placeholder={copy("Full name")} className={inputClass} />
                     </Field>
                     <Field label={copy("Email")}>
@@ -50,14 +51,14 @@ export const AccountProfileTab = ({ account, form, setForm, isPlayer, profileDra
                 </div>
 
                 <div className="mt-4">
-                    <Field label={copy("Bio")}>
+                    <Field label={copy("Bio")} dola="bio">
                         <textarea value={form.bio} onChange={(event) => updateForm('bio', event.target.value)} rows={5} placeholder={copy("Football background, experience, or role summary")} className={`${inputClass} min-h-[120px] resize-none`} />
                     </Field>
                 </div>
 
                 {isPlayer && (
                     <div className="mt-5 grid gap-4 md:grid-cols-2">
-                        <Field label={copy("Primary Position")}>
+                        <Field label={copy("Primary Position")} dola="position">
                             <select value={form.position} onChange={(event) => updateForm('position', event.target.value)} className={inputClass}>
                                 <option value="">{copy("Select position")}</option>
                                 {positions.map(p => (
@@ -65,10 +66,10 @@ export const AccountProfileTab = ({ account, form, setForm, isPlayer, profileDra
                                 ))}
                             </select>
                         </Field>
-                        <Field label={copy("Secondary Position")}>
+                        <Field label={copy("Secondary Position")} dola="secondaryPosition">
                             <input value={form.secondaryPosition} onChange={(event) => updateForm('secondaryPosition', event.target.value)} className={inputClass} />
                         </Field>
-                        <Field label={copy("Preferred Foot")}>
+                        <Field label={copy("Preferred Foot")} dola="preferredFoot">
                             <select value={form.preferredFoot} onChange={(event) => updateForm('preferredFoot', event.target.value)} className={inputClass}>
                                 <option value="">{copy("Select")}</option>
                                 <option value="RIGHT">{copy("Right")}</option>
@@ -76,17 +77,17 @@ export const AccountProfileTab = ({ account, form, setForm, isPlayer, profileDra
                                 <option value="BOTH">{copy("Both")}</option>
                             </select>
                         </Field>
-                        <Field label={copy("Availability")}>
+                        <Field label={copy("Availability")} dola="availabilityStatus">
                             <select value={form.availabilityStatus} onChange={(event) => updateForm('availabilityStatus', event.target.value)} className={inputClass}>
                                 <option value="AVAILABLE">{copy("Available")}</option>
                                 <option value="LIMITED">{copy("Limited")}</option>
                                 <option value="UNAVAILABLE">{copy("Unavailable")}</option>
                             </select>
                         </Field>
-                        <Field label={copy("Height (cm)")}>
+                        <Field label={copy("Height (cm)")} dola="heightCm">
                             <input type="number" value={form.heightCm} onChange={(event) => updateForm('heightCm', event.target.value)} className={inputClass} />
                         </Field>
-                        <Field label={copy("Weight (kg)")}>
+                        <Field label={copy("Weight (kg)")} dola="weightKg">
                             <input type="number" value={form.weightKg} onChange={(event) => updateForm('weightKg', event.target.value)} className={inputClass} />
                         </Field>
                     </div>
@@ -100,7 +101,8 @@ export const AccountProfileTab = ({ account, form, setForm, isPlayer, profileDra
                 </Section>
 
                 <Section title={copy("Profile Assets")} description={copy("Banner and avatar media for your public profile.")}>
-                    <div className="relative h-32 overflow-hidden rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
+                    <div className="relative h-32 overflow-hidden rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]"
+                        data-dola-field="banner" data-dola-label={copy("Banner")} data-dola-filled={bannerPreview ? 'true' : 'false'}>
                         {bannerPreview ? (
                             <MediaImage src={bannerPreview} alt={copy("Account banner")} className="h-full w-full object-cover" />
                         ) : (
@@ -121,7 +123,8 @@ export const AccountProfileTab = ({ account, form, setForm, isPlayer, profileDra
                         <input ref={bannerInputRef} aria-label={copy("Upload profile banner")} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'banner')} />
                     </div>
 
-                    <div className="mt-4 flex items-center gap-4">
+                    <div className="mt-4 flex items-center gap-4" data-dola-field="avatar" data-dola-label={copy("Avatar")}
+                        data-dola-filled={avatarPreview ? 'true' : 'false'}>
                         <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[14px] border-2 border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] text-xl font-bold text-[color:var(--fc-text-primary)]">
                             {avatarPreview ? <MediaImage src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
                         </div>

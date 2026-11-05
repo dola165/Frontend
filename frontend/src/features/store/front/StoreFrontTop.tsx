@@ -32,7 +32,7 @@ export function StoreHead() {
                 <SearchInput aria-label={ct("Search products or clubs")} placeholder={ct("Search products or clubs")} maxLength={100} value={text} onChange={event => setText(event.target.value)} />
             </form>
             <div className="gk-store-head__actions">
-                {seller && <ButtonLink variant="ghost" to={`/clubs/${seller.clubId}/store?add=1`} aria-label={ct("Add a product to {v0}’s store", { v0: seller.clubName ?? ct("your club") })}><Plus aria-hidden="true" />{ct("Add a product")}</ButtonLink>}
+                {seller && <ButtonLink variant="ghost" data-first-tip="add-product" to={`/clubs/${seller.clubId}/store?add=1`} aria-label={ct("Add a product to {v0}’s store", { v0: seller.clubName ?? ct("your club") })}><Plus aria-hidden="true" />{ct("Add a product")}</ButtonLink>}
                 <ButtonLink to={cataloguePath()}>{ct("Browse all")}</ButtonLink>
                 <ButtonLink className="gk-store-cart-btn" to="/store/cart" aria-label={count ? `${ct('Cart')}, ${commerceCount(count, 'item')}` : ct("Cart")}><ShoppingBag aria-hidden="true" />{ct("Cart")}<Count value={count} /></ButtonLink>
             </div>

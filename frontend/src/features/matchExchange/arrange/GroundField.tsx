@@ -53,7 +53,7 @@ export function GroundField({ mode, value, hosting, onChange, onHosting, ours, t
     const travel = mode === 'open' ? { title: t("We travel to the opponent"), detail: t("The team you choose hosts the match") }
         : { title: opponentName ? t('At {club}’s ground', { club: opponentName }) : t('At their ground'), detail: t("They host and name the ground") };
     return (
-        <fieldset className="gk-arrange__fieldset" aria-describedby={error ? 'arrange-ground-error' : 'arrange-ground-hint'}>
+        <fieldset className="gk-arrange__fieldset" data-dola-field="arrange-ground" data-dola-filled="true" aria-describedby={error ? 'arrange-ground-error' : 'arrange-ground-hint'}>
             <legend className="gk-field__label">{t("Ground")}</legend>
             <ul className="gk-arrange__grounds">
                 {ours.loading && <li className="gk-arrange__ground"><Skeleton height={44} /></li>}

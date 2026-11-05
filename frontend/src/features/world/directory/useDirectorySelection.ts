@@ -19,13 +19,15 @@ function scrollWithin(element: Element | null | undefined) {
  * Which result is chosen and what the map does about it. One result is chosen at a time and kept in the address
  * (`selected`), so Back and shared links return to it; a pin holding several results lights them all without
  * choosing one. Choosing a result in the Browse area flies the map to its pin, and the camera then stays on it until
- * the person asks to see every pin again; choosing a pin never moves the camera.
+ * the person asks to see every pin again; choosing a pin never moves the camera. A link that chooses a result while
+ * the list is open (a club Dola found, beside the map) flies there too, each time it is followed.
  */
-export function useDirectorySelection({ state, keys, placed, panel, list }: {
+export function useDirectorySelection({ state, keys, placed, panel, list, asked }: {
     state: Pick<DirectoryState, 'selected' | 'setSelected'>; /** The keys of the results on screen. */ keys: string[];
     placed: Pick<PlacedResults, 'pinOf' | 'keysOf' | 'points'>;
     /** The Browse area panel while its results show (not folded). */ panel: HTMLElement | null;
     /** The results under the map. */ list: RefObject<HTMLElement | null>;
+    /** The result a followed link chose, and that visit, so following it again flies again. */ asked?: { key: string; visit: string };
 }) {
     const chosen = state.selected && keys.includes(state.selected) ? state.selected : undefined;
     const chosenPin = chosen ? placed.pinOf.get(chosen) : undefined;
@@ -35,6 +37,14 @@ export function useDirectorySelection({ state, keys, placed, panel, list }: {
     const flights = useRef(0);
     // A link that arrives with a choice flies to it once its pin exists, like a press would.
     const [request, setRequest] = useState<{ key: string; token: string } | undefined>(() => state.selected ? { key: state.selected, token: `${mount}0` } : undefined);
+    // A followed link flies like a press, also to the result already chosen (the person may have moved the map since).
+    // A link that opened the list has its flight from the address already.
+    const [followed, setFollowed] = useState(asked?.visit);
+    if (asked && asked.visit !== followed) {
+        setFollowed(asked.visit);
+        setGroupPin(undefined);
+        setRequest({ key: asked.key, token: `${mount}:${asked.visit}` });
+    }
     const [frame, setFrame] = useState(0);
     const [hoverKey, setHoverKey] = useState<string>();
     const [hoverPin, setHoverPin] = useState<string>();

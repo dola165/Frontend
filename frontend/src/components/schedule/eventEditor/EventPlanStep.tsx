@@ -17,6 +17,8 @@ export function EventPlanStep({ editor }: { editor: EventEditor }) {
                     <span>{t('schedule.editor.eventType')}</span>
                     <div
                         className="schedule-compose-types"
+                        data-dola-field="event-type"
+                        data-dola-filled="true"
                         role="group"
                         aria-label={t('schedule.editor.eventType')}
                     >
@@ -52,6 +54,7 @@ export function EventPlanStep({ editor }: { editor: EventEditor }) {
                 <input
                     ref={titleInput}
                     data-field="title"
+                    data-dola-field="event-title"
                     aria-label={recurring && !audience?.privateInvitations ? t('schedule.editor.trainingName') : t('schedule.editor.eventName')}
                     value={form.title}
                     onChange={(event) => update('title', event.target.value)}

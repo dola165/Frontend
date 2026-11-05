@@ -37,6 +37,8 @@ const RightSidebar = isAndroidApp ? null : lazy(() => import('./components/layou
 // Agent Dola's conversation shows only on /assistant or once its panel is opened, so its code and styles load after the first screen.
 const AgentDolaPage = lazy(() => import('./features/dola/AgentDolaPage').then(module => ({ default: module.AgentDolaPage })));
 const DolaDock = lazy(() => import('./features/dola/AgentDolaPage').then(module => ({ default: module.DolaDock })));
+const AgentDolaDock = lazy(() => import('./features/dola/AgentDolaDock').then(module => ({ default: module.AgentDolaDock })));
+const FirstTipHost = lazy(() => import('./features/firstTips/FirstTipHost').then(module => ({ default: module.FirstTipHost })));
 
 const FundraisingPage = lazy(() => import('./pages/FundraisingPage').then(module => ({default: module.FundraisingPage})));
 const FundraisingCataloguePage = lazy(() => import('./pages/FundraisingCataloguePage').then(module => ({default: module.FundraisingCataloguePage})));
@@ -533,7 +535,7 @@ export default function App() {
     return (
         <Router>
             <AuthProvider>
-                <AuthSessionBoundary><DolaProvider><MainLayout /><Suspense fallback={null}><DolaDock /></Suspense></DolaProvider></AuthSessionBoundary>
+                <AuthSessionBoundary><DolaProvider><MainLayout /><Suspense fallback={null}><DolaDock /><AgentDolaDock /><FirstTipHost /></Suspense></DolaProvider></AuthSessionBoundary>
             </AuthProvider>
         </Router>
     );

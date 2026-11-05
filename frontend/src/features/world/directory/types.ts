@@ -169,6 +169,11 @@ export interface DirectorySource<T> {
     refreshMs?: number | ((query: DirectoryQuery) => number | undefined);
     load: (query: DirectoryQuery, page: number, context: LoadContext) => Promise<DirectoryPage<T>>;
     key: (item: T) => string;
+    /**
+     * One result by its key, for a chosen result the loaded pages do not hold (a club Dola found outside the filters
+     * on screen): it is put on the map beside them, so the map can fly to it.
+     */
+    one?: (key: string, context: { signal: AbortSignal }) => Promise<T | null>;
     /** The result as one row of the list (`ResultRow`, the clubs list's row: every list reads the same way); it returns a list item. */
     Item: ComponentType<{ item: T }>;
     /** The result as one line of the map's "Browse area" panel; `places` give it crests (looked up while the map is open). */

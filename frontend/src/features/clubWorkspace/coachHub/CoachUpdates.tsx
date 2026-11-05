@@ -124,7 +124,7 @@ export function CoachUpdates({ data }: { data: CoachData }) {
         {writing && <MessageParentsDialog data={data} onClose={() => setWriting(false)} />}
     </>;
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title={copy('updates')} actions={<ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />{copy('newAnnouncement')}</ButtonLink>} />
+        <PageHeader title={copy('updates')} actions={<ButtonLink variant="primary" data-first-tip="squad-update" to={data.link('updates', { compose: '1' })}><Plus aria-hidden="true" />{copy('newAnnouncement')}</ButtonLink>} />
         <SquadSwitch data={data} />
         {body}
     </PageFrame>;

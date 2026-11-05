@@ -1,0 +1,59 @@
+/*
+ * First-time tips: a card that pops out of Agent Dola's header button, with a pointer aimed at it. Above World's
+ * drawers (4000) and the guide's step card (4150), under Dola's own panel (4200), which "Help me" opens.
+ */
+.gk.first-tip-layer { position: fixed; inset: 0 auto auto 0; z-index: 4190; width: 0; height: 0; }
+.gk .first-tip {
+    position: fixed; width: min(352px, calc(100vw - 24px)); box-sizing: border-box;
+    display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) var(--gk-3);
+    background: var(--gk-raised); color: var(--gk-text); border: 1px solid var(--gk-line-strong);
+    border-radius: var(--gk-r-lg); box-shadow: var(--gk-elevation); font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg);
+    visibility: hidden;
+}
+.gk .first-tip[data-placed] { visibility: visible; animation: first-tip-in 180ms var(--gk-ease, ease-out); }
+.gk .first-tip[data-side='left'] { transform-origin: right top; }
+.gk .first-tip[data-side='below'] { transform-origin: right top; }
+@keyframes first-tip-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* The pointer: a turned square sharing the card's border, on the side facing the button. */
+.gk .first-tip::before {
+    content: ''; position: absolute; width: 14px; height: 14px; background: var(--gk-raised);
+    border: 1px solid var(--gk-line-strong); box-sizing: border-box; transform: rotate(45deg);
+}
+.gk .first-tip[data-side='left']::before {
+    top: calc(var(--first-tip-pointer) - 7px); right: -8px; border-left-color: transparent; border-bottom-color: transparent;
+}
+.gk .first-tip[data-side='below']::before {
+    left: calc(var(--first-tip-pointer) - 7px); top: -8px; border-right-color: transparent; border-bottom-color: transparent;
+}
+.gk .first-tip[data-side='corner']::before { display: none; }
+
+.gk .first-tip p { margin: 0; }
+.gk .first-tip__head { display: flex; align-items: center; gap: var(--gk-2); margin-right: calc(-1 * var(--gk-2)); }
+.gk .first-tip__from {
+    flex: 1; display: inline-flex; align-items: center; gap: 6px; color: var(--gk-text-2);
+    font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 650;
+}
+.gk .first-tip__from svg { width: 15px; height: 15px; color: var(--gk-accent); }
+.gk .first-tip__new {
+    margin-left: 2px; padding: 1px var(--gk-2); border-radius: var(--gk-r-pill); background: var(--gk-accent-soft);
+    color: var(--gk-accent); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 650;
+}
+.gk .first-tip__title { margin: 0; font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 700; letter-spacing: -0.01em; }
+.gk .first-tip__body { color: var(--gk-text-2); }
+.gk .first-tip__offer { margin-top: var(--gk-1); color: var(--gk-text); font-weight: 600; font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); }
+.gk .first-tip__buttons { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .first-tip__help { max-width: 100%; height: auto; min-height: 32px; white-space: normal; text-align: left; }
+.gk .first-tip__help svg { width: 14px; height: 14px; flex: none; }
+.gk .first-tip__off {
+    align-self: flex-start; margin-top: 2px; padding: 0; border: 0; background: none; color: var(--gk-text-3);
+    font: inherit; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); cursor: pointer;
+}
+.gk .first-tip__off:hover { color: var(--gk-text-2); text-decoration: underline; }
+
+/* The button the card points at glows while it is open. */
+.gk .gk-hbtn[data-first-tip-anchor] { box-shadow: 0 0 0 3px var(--gk-accent-soft), inset 0 0 0 1px var(--gk-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+    .gk .first-tip[data-placed] { animation: none; }
+}

@@ -88,7 +88,7 @@ export function TryoutsPage({ clubId, tryoutApplicants, tryoutsLoading, pendingK
     let sessions;
     if (tryouts == null) sessions = error ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={() => void load()}>{r('retry')}</Button></div>
         : <Panel><div className="cw-skeleton-rows" role="status" aria-label={r('sessions')}><Skeleton height={56} /><Skeleton height={56} /></div></Panel>;
-    else if (!tryouts.length) sessions = <Panel><EmptyNote title={r('noTryouts')} action={postings.canManage ? <Button size="sm" onClick={() => setEditing('new')}><Plus aria-hidden="true" />{r('postTryout')}</Button> : undefined}>{r('noTryoutsIntro')}</EmptyNote></Panel>;
+    else if (!tryouts.length) sessions = <Panel><EmptyNote title={r('noTryouts')} action={postings.canManage ? <Button size="sm" data-first-tip="post-tryout" onClick={() => setEditing('new')}><Plus aria-hidden="true" />{r('postTryout')}</Button> : undefined}>{r('noTryoutsIntro')}</EmptyNote></Panel>;
     else sessions = <Panel flush><List label={r('sessions')}>{tryouts.map(tryout => {
         const lifecycle = lifecycleFor(tryout);
         const editable = postings.canManage && !['CANCELLED', 'EXPIRED', 'UNAVAILABLE'].includes(lifecycle);
@@ -102,7 +102,7 @@ export function TryoutsPage({ clubId, tryoutApplicants, tryoutsLoading, pendingK
     })}</List></Panel>;
 
     return <PageFrame className="cw-page tr-page">
-        <PageHeader title={r('tryouts')} subtitle={r('tryoutsIntro')} actions={postings.canManage && <Button variant="primary" onClick={() => setEditing('new')}><Plus aria-hidden="true" />{r('postTryout')}</Button>} />
+        <PageHeader title={r('tryouts')} subtitle={r('tryoutsIntro')} actions={postings.canManage && <Button variant="primary" data-first-tip="post-tryout" onClick={() => setEditing('new')}><Plus aria-hidden="true" />{r('postTryout')}</Button>} />
         <div className="gk-stack">
             <div className="gk-stats" role="group" aria-label={r('tryouts')}>
                 <StatTile label={r('reviewApplicants')} value={tryoutsLoading ? '–' : waiting} tone={waiting ? 'attention' : undefined} />

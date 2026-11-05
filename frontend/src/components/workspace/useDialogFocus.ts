@@ -11,6 +11,13 @@ const FOCUSABLE_SELECTOR = [
     '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
+/**
+ * Something that stays usable over any dialog: Agent Dola's guide, which points at the dialog's own fields. It is never
+ * made inert, and focus may move into it. Put the attribute on an element directly under <body>.
+ */
+export const DIALOG_COMPANION = 'data-dialog-companion';
+const COMPANION = `[${DIALOG_COMPANION}]`;
+
 const dialogStack: Array<{ token: symbol; returnFocus: HTMLElement | null }> = [];
 let scrollLockCount = 0;
 let previousBodyOverflow = '';
@@ -29,7 +36,7 @@ const suppressBackground = (dialog: HTMLElement) => {
     while (parent) {
         for (const sibling of Array.from(parent.children)) {
             // A dialog's own backdrop stays interactive, so a tap outside the dialog can close it.
-            if (sibling === activeBranch || !(sibling instanceof HTMLElement) || sibling.hasAttribute('data-dialog-backdrop')) continue;
+            if (sibling === activeBranch || !(sibling instanceof HTMLElement) || sibling.hasAttribute('data-dialog-backdrop') || sibling.matches(COMPANION)) continue;
             const lock = backgroundLocks.get(sibling) ?? { count: 0, inert: sibling.hasAttribute('inert'), ariaHidden: sibling.getAttribute('aria-hidden') };
             lock.count += 1;
             backgroundLocks.set(sibling, lock);
@@ -122,6 +129,7 @@ export function useDialogFocus(
             const last = focusable[focusable.length - 1];
             const active = document.activeElement;
             if (alsoInside && active?.closest(alsoInside) && !dialogElement?.contains(active)) return;
+            if (active?.closest(COMPANION)) return;
             if (event.shiftKey && (active === first || !dialogElement?.contains(active))) {
                 event.preventDefault();
                 last.focus();
@@ -133,6 +141,7 @@ export function useDialogFocus(
         const handleFocusIn = (event: FocusEvent) => {
             if (!isTopDialog() || dialogRef.current?.contains(event.target as Node)) return;
             if (alsoInside && event.target instanceof Element && event.target.closest(alsoInside)) return;
+            if (event.target instanceof Element && event.target.closest(COMPANION)) return;
             (focusableElements(dialogRef.current)[0] ?? dialogRef.current)?.focus();
         };
         document.addEventListener('keydown', handleKeyDown);

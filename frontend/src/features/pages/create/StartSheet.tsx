@@ -26,6 +26,8 @@ const KIND_WORD: Record<PageKind, string> = { CLUB: 'Club', FAN_CLUB: 'Fan club'
  * The start sheet, about ten seconds: what it is (four picture tiles), its name with the town already filled in, and
  * Create. While the name is typed, known pages that look like it are shown with "Claim it", so a copy of a known club
  * goes to that club and never becomes a second page. Nothing else is asked here.
+ * Agent Dola's club guide frames the name, the town and Create by `data-dola-field` / `data-dola-action` (backend
+ * `GuideTool.clubSteps`): keep the keys when changing the sheet.
  */
 export function StartSheet({ kind, business = null, from, draw, onClose, onClaim }: { kind: PageKind | null; business?: BusinessKind | null; from: CreateFrom; draw: boolean; onClose: () => void; onClaim: (ref: PageRef) => void }) {
   const t = usePagesCopy();
@@ -111,7 +113,7 @@ export function StartSheet({ kind, business = null, from, draw, onClose, onClaim
       footer={<>
         <Button variant="ghost" onClick={onClose}>{t('Not now')}</Button>
         {oneClub && club ? <ButtonLink variant="primary" to={`/clubs/${club.id}`} onClick={onClose}>{t('Open {name}', { name: club.name })}</ButtonLink>
-          : exact ? matchAction(exact) : <Button variant="primary" disabled={!ready} onClick={() => void submit()}>
+          : exact ? matchAction(exact) : <Button variant="primary" data-dola-action="create-club" disabled={!ready} onClick={() => void submit()}>
           {busy ? <><Loader2 className="gk-spin" aria-hidden="true" />{t('Creating…')}</> : t(tile?.create ?? 'Create page')}
         </Button>}
       </>}>
@@ -140,10 +142,10 @@ export function StartSheet({ kind, business = null, from, draw, onClose, onClaim
       {chosen && tile && !oneClub && (
         <div className="gk-cname">
           <label className="gk-field__label" htmlFor={nameId}>{t(tile.nameLabel)}</label>
-          <div className="gk-cname__row">
+          <div className="gk-cname__row" data-dola-field="club-name">
             <input id={nameId} ref={nameRef} className="gk-input" value={name} maxLength={120} autoComplete="organization" placeholder={tile.placeholder}
               aria-describedby={shown.length ? `${nameId}-match` : undefined} onChange={event => { setName(event.target.value); clearError(); setFound(current => (current?.key === 'exists' ? null : current)); }} onKeyDown={onKey} />
-            <button type="button" className="gk-chip gk-cname__town" aria-expanded={townOpen} aria-label={t('Change town')} onClick={() => setTownOpen(open => !open)}>
+            <button type="button" className="gk-chip gk-cname__town" data-dola-field="club-town" data-dola-filled="true" aria-expanded={townOpen} aria-label={t('Change town')} onClick={() => setTownOpen(open => !open)}>
               <MapPin aria-hidden="true" />{town.name}
             </button>
           </div>

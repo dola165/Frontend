@@ -50,7 +50,7 @@ export function MySquads({ data }: { data: CoachData }) {
     return <PageFrame className="cw-page ch-page">
         <PageHeader title={copy('mySquads')} subtitle={formatDate(new Date(data.now), { weekday: 'long', day: 'numeric', month: 'long' })}
             actions={<><Button variant="secondary" onClick={() => setSharing(true)}><Camera aria-hidden="true" />{copy('sharePhoto')}</Button>
-                <ButtonLink variant="primary" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink></>} />
+                <ButtonLink variant="primary" data-first-tip="squad-update" to={data.link('updates', { compose: '1' })}><Megaphone aria-hidden="true" />{copy('postUpdate')}</ButtonLink></>} />
         <ul className="ch-cards" aria-label={copy('mySquads')}>
             {data.mine.map(squad => <SquadCard key={squad.id} squad={squad} data={data} need={needs.find(need => need.squad === squad.id) ?? null} onCancel={session => setCancelling({ squad: squad.id, session })} />)}
             <li><Link className="ch-card ch-card--ask" to={data.link('coaches')}><Plus aria-hidden="true" />{copy('askSquad')}</Link></li>
@@ -131,7 +131,7 @@ function SquadCard({ squad, data, need, onCancel }: { squad: RolesWorkspace['squ
         <div className="ch-card__actions">
             <ButtonLink size="sm" variant="primary" to={`/messages?squadId=${squad.id}`}><MessageCircle aria-hidden="true" />{copy('squadChat')}</ButtonLink>
             {/* Already seeded with this squad and the home ground: only the opponent and the day are left to choose. */}
-            <ButtonLink size="sm" variant="secondary" className="ch-card__arrange" to={data.link('matches', { squad: String(squad.id), arrange: '1' })}><Plus aria-hidden="true" />{copy('arrangeMatch')}</ButtonLink>
+            <ButtonLink size="sm" variant="secondary" className="ch-card__arrange" data-first-tip="arrange-match" to={data.link('matches', { squad: String(squad.id), arrange: '1' })}><Plus aria-hidden="true" />{copy('arrangeMatch')}</ButtonLink>
         </div>
     </article></li>;
 }

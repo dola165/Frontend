@@ -96,7 +96,7 @@ function StoreProducts({ clubId }: { clubId: number }) {
         <PageFrame className="cw-page cm-page" hidden={!!editing}>
             <PageHeader title={ct("Store")} subtitle={ct("Products, prices and stock for your club store.")}
                 actions={<><ButtonLink variant="ghost" to={`/clubs/${clubId}/store`}>{ct("View public store")}</ButtonLink>
-                    <Button variant="primary" disabled={locked} onClick={() => { setEditing('new'); setFormError(''); }}><Plus aria-hidden="true" />{ct("Add product")}</Button></>} />
+                    <Button variant="primary" disabled={locked} data-first-tip="add-product" onClick={() => { setEditing('new'); setFormError(''); }}><Plus aria-hidden="true" />{ct("Add product")}</Button></>} />
             <div className="gk-stack">
                 {!editing && <StoreCreateReviewNotice clubId={clubId} />}
                 {!editing && recoveryNotice}

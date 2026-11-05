@@ -8,7 +8,8 @@ import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
 import { DolaLink } from '../../../features/dola/DolaProvider';
 import { DolaContext } from '../../../features/dola/DolaContext';
-import { TEAM_WORK_DOLA_PATH, useDolaEntry } from '../../../features/dola/dolaEntry';
+import { HOME_DOLA_PATH, TEAM_WORK_DOLA_PATH, useDolaEntry } from '../../../features/dola/dolaEntry';
+import { openAgentDola } from '../../../features/dola/agentDolaEvents';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { themeForRoute, type ThemePreference } from '../../../theme';
 import { AccountMenu } from './AccountMenu';
@@ -82,8 +83,10 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);
     const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);
-    // Agent Dola in Team work for team members, the old assistant only while it is on, otherwise no link at all.
+    // Agent Dola for every signed-in customer (its panel opens over the page), the old assistant only while it is on,
+    // otherwise no link at all. A new tab opens Team work for the team and Home for everyone else, with the panel open.
     const dolaEntry = useDolaEntry(user.id);
+    const dolaHref = hasNavigationCapability(user.navigationCapabilities, 'team.work') ? TEAM_WORK_DOLA_PATH : HOME_DOLA_PATH;
 
     return (
         <>
@@ -100,8 +103,13 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
                         <PinsBar state={pins} page={page} work={work} activePath={pinned?.path ?? null} crowded={crowded} onCrowdedChange={setCrowded} />
                     </nav>
                     <div className="gk-header__actions">
-                        {dolaEntry === 'team-work' && <Link to={TEAM_WORK_DOLA_PATH} className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola"
-                            title={copy('Ask Agent Dola in Team work', 'ჰკითხეთ Agent Dola-ს Team work-ში')}>
+                        {dolaEntry === 'agent-dola' && <Link to={dolaHref} className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola"
+                            title={copy('Ask Agent Dola', 'ჰკითხეთ Agent Dola-ს')} onClick={event => {
+                                // The panel opens over the page the person is on; a new tab gets its own page with it open.
+                                if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+                                event.preventDefault();
+                                openAgentDola();
+                            }}>
                             <Sparkles aria-hidden="true" /><span className="gk-hbtn__label">Agent Dola</span>
                         </Link>}
                         {dolaEntry === 'assistant' && <DolaLink className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola" title={copy('Ask Agent Dola', 'ჰკითხეთ Agent Dola-ს')}

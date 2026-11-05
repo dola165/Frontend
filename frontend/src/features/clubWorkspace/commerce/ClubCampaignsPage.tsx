@@ -117,7 +117,7 @@ function ClubCampaigns({ clubId }: { clubId: number }) {
         <PageFrame className="cw-page cm-page" hidden={!!editing || !!updates}>
             <PageHeader title={ct("Campaigns")} subtitle={ct("Fundraising projects with a clear story, a goal and progress updates.")}
                 actions={<><ButtonLink variant="ghost" to={`/clubs/${clubId}/campaigns?state=ALL`}>{ct("View public campaigns")}</ButtonLink>
-                    <Button variant="primary" disabled={locked} onClick={create}><Plus aria-hidden="true" />{ct("Create campaign")}</Button></>} />
+                    <Button variant="primary" disabled={locked} data-first-tip="start-fundraiser" onClick={create}><Plus aria-hidden="true" />{ct("Create campaign")}</Button></>} />
             <div className="gk-stack">
                 <p className="gk-notice">{ct("Online contributions are not available yet. Amounts you report are shown as your club’s own figures.")}</p>
                 {items && items.length > 0 && <div className="rec-toolbar">

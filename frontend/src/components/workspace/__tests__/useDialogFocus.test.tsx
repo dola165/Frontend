@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useDialogFocus } from '../useDialogFocus';
+import { DIALOG_COMPANION, useDialogFocus } from '../useDialogFocus';
 
 const DialogHarness = () => {
     const [open, setOpen] = useState(false);
@@ -43,6 +43,23 @@ const NestedHarness = () => {
 };
 
 describe('useDialogFocus', () => {
+    it('leaves a companion under <body> (Dola’s guide) usable: never inert, and focus may go into it', async () => {
+        const companion = document.createElement('div');
+        companion.setAttribute(DIALOG_COMPANION, '');
+        companion.innerHTML = '<button type="button">Next step</button>';
+        document.body.appendChild(companion);
+        try {
+            render(<PortalDialog name="Drawer"><button type="button">Inside</button></PortalDialog>);
+            await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Inside' })));
+            expect(companion.inert).toBe(false);
+            const next = companion.querySelector('button')!;
+            next.focus();
+            expect(document.activeElement).toBe(next);
+        } finally {
+            companion.remove();
+        }
+    });
+
     it('restores the background when parent and nested dialogs close in the same update', async () => {
         const nativeFocus = HTMLElement.prototype.focus;
         const focus = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, options) {

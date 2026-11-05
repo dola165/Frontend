@@ -2,7 +2,8 @@
 .schedule-compose-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 9999;
+    /* The app's dialog layer (design/dialog.css): Agent Dola's guide, tips and panel sit above dialogs. */
+    z-index: 4000;
     display: flex;
     align-items: center;
     justify-content: center;

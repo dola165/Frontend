@@ -8,9 +8,10 @@
 .gk .tw-dola-launch:hover { background: var(--gk-hover); }
 .gk .tw-dola-launch svg { width: 18px; height: 18px; color: var(--gk-accent); }
 
-/* Below the sticky app header on wide screens (its own head stays visible), above everything on phones. */
+/* Below the sticky app header on wide screens (its own head stays visible), above everything on phones; over World's
+   drawers (4000) and the guide (4150), since "Ask Dola" on the guide opens it over the form being filled. */
 .gk .tw-dola {
-    position: fixed; top: var(--app-header-height, 72px); right: 0; bottom: 0; z-index: 1400; width: min(400px, 100vw);
+    position: fixed; top: var(--app-header-height, 72px); right: 0; bottom: 0; z-index: 4200; width: min(400px, 100vw);
     display: flex; flex-direction: column; background: var(--gk-surface); border-left: 1px solid var(--gk-line);
     box-shadow: var(--gk-elevation);
 }
@@ -42,16 +43,66 @@
 }
 .gk .tw-dola__cards a:hover { background: var(--gk-hover); }
 .gk .tw-dola__cards span span { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+/* The button under a guide's answer that (again) frames its fields on the page, one at a time. */
+.gk .tw-dola__guide { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .tw-dola__guide .gk-btn, .gk .tw-dola__guide button { align-self: flex-start; }
+/* The page an answer opens, and the web pages behind a web-search answer (third-party, new tab). */
+.gk .tw-dola__open {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: var(--gk-1); min-height: 32px; padding: 0 var(--gk-3);
+    border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); color: var(--gk-accent); font-size: var(--gk-fs-xs);
+    font-weight: 600; text-decoration: none;
+}
+.gk .tw-dola__open:hover { background: var(--gk-hover); }
+.gk .tw-dola__open svg, .gk .tw-dola__sources svg { width: 14px; height: 14px; flex: none; }
+.gk .tw-dola__sources { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .tw-dola__sources li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .tw-dola__sources a { display: inline-flex; align-items: center; gap: var(--gk-1); color: var(--gk-accent); text-decoration: none; overflow-wrap: anywhere; }
+.gk .tw-dola__sources a:hover { text-decoration: underline; }
+.gk .tw-dola__sources span { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
 .gk .tw-dola__chips { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 .gk .tw-dola__chip {
     min-height: 32px; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill);
     background: var(--gk-surface); color: var(--gk-text); font-size: var(--gk-fs-xs); cursor: pointer;
 }
 .gk .tw-dola__chip:hover:not(:disabled) { background: var(--gk-hover); }
-.gk .tw-dola__thinking { margin: 0; color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+/* What Dola is doing. A step can last a third of a second, so it shows at once, with no fade to spend that on. */
+.gk .tw-dola__thinking { display: flex; align-items: center; gap: var(--gk-2); margin: 0; color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .tw-dola__thinking::before {
+    content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-accent, currentColor);
+    animation: tw-dola-pulse 1s ease-in-out infinite;
+}
+.gk .tw-dola__caret {
+    display: inline-block; width: 2px; height: 1em; margin-inline-start: 2px; vertical-align: text-bottom;
+    background: currentColor; animation: tw-dola-caret 1s steps(2, jump-none) infinite;
+}
+@keyframes tw-dola-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.75); } }
+@keyframes tw-dola-caret { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .gk .tw-dola__thinking::before, .gk .tw-dola__caret { animation: none; }
+}
 .gk .tw-dola__error { margin: 0 var(--gk-4); }
+/* The field the guide is framing: what a question now is about, with a one-tap question and the way back. */
+.gk .tw-dola__about { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) 0; border-top: 1px solid var(--gk-line); }
+.gk .tw-dola__about p { margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--gk-fs-sm); }
+.gk .tw-dola__about p span { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .tw-dola__chip--back { display: inline-flex; align-items: center; gap: var(--gk-1); }
+.gk .tw-dola__chip--back svg { width: 14px; height: 14px; }
+.gk .tw-dola__about + .tw-dola__compose { border-top: 0; }
 .gk .tw-dola__compose { display: flex; gap: var(--gk-2); align-items: flex-end; padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); }
 .gk .tw-dola__compose textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; }
+
+/* Pictures: the one waiting to go with the next message, the person's own in the chat, and the one a preview uses. */
+.gk .tw-dola__attached {
+    display: flex; align-items: center; gap: var(--gk-2); padding: var(--gk-2) var(--gk-4) 0; border-top: 1px solid var(--gk-line);
+    font-size: var(--gk-fs-xs); color: var(--gk-text-2);
+}
+.gk .tw-dola__attached img { width: 48px; height: 48px; object-fit: cover; border-radius: var(--gk-r); border: 1px solid var(--gk-line); flex: none; }
+.gk .tw-dola__attached > span { flex: 1; min-width: 0; }
+.gk .tw-dola__attached + .tw-dola__compose { border-top: 0; }
+.gk .tw-dola__about + .tw-dola__attached { border-top: 0; }
+.gk .tw-dola__picture { display: block; max-width: 100%; height: auto; border-radius: var(--gk-r); border: 1px solid var(--gk-line); background: var(--gk-raised); }
+.gk .tw-dola__picture--mine { align-self: flex-end; max-width: min(85%, 240px); max-height: 240px; object-fit: cover; }
+.gk .tw-dola__picture--proposal { max-height: 180px; width: auto; object-fit: contain; align-self: flex-start; }
 
 /* "How Dola understood this": a toggle in the head (off by default) and a quiet fold under each traced reply. */
 .gk .tw-dola__trace-toggle[aria-pressed='true'] { background: var(--gk-accent-soft); color: var(--gk-accent); }
@@ -66,6 +117,6 @@
 .gk .tw-dola__trace code { font-size: var(--gk-fs-xs); padding: 0 4px; border-radius: 4px; background: var(--gk-raised); color: var(--gk-text); }
 
 @media (max-width: 680px) {
-    .gk .tw-dola { top: 0; z-index: 1600; width: 100vw; border-left: 0; padding-top: env(safe-area-inset-top); }
+    .gk .tw-dola { top: 0; width: 100vw; border-left: 0; padding-top: env(safe-area-inset-top); }
     .gk .tw-dola-launch { right: var(--gk-4); bottom: var(--gk-4); }
 }

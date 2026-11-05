@@ -76,19 +76,19 @@ export function CoachMatches({ data }: { data: CoachData }) {
     const loading = items === null;
 
     return <PageFrame className="cw-page ch-page">
-        <PageHeader title={copy('matches')} actions={<Button variant="primary" onClick={() => setArranging(true)}><Plus aria-hidden="true" />{copy('arrangeMatch')}</Button>} />
+        <PageHeader title={copy('matches')} actions={<Button variant="primary" data-first-tip="arrange-match" onClick={() => setArranging(true)}><Plus aria-hidden="true" />{copy('arrangeMatch')}</Button>} />
         <SquadSwitch data={data} />
         {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
         <div className="gk-stack">
             <Section boxed title={copy('comingUp')} hint={upcoming.length ? `${upcoming.length}` : undefined}>
                 <Panel flush>{loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('comingUp')}>{[0, 1].map(i => <Skeleton key={i} height={48} />)}</div>
                     : upcoming.length ? <List label={copy('comingUp')}>{upcoming.map(match => row(match, false))}</List>
-                        : <EmptyNote title={copy('noMatchesSoon')} action={<Button size="sm" onClick={() => setArranging(true)}>+ {copy('arrangeMatch')}</Button>}>{copy('noMatchesSoonHint')}</EmptyNote>}</Panel>
+                        : <EmptyNote title={copy('noMatchesSoon')} action={<Button size="sm" data-first-tip="arrange-match" onClick={() => setArranging(true)}>+ {copy('arrangeMatch')}</Button>}>{copy('noMatchesSoonHint')}</EmptyNote>}</Panel>
             </Section>
             {/* One green-edged box between what is coming and what was played: the question, and the one button. */}
             <div className="ch-arrange-box">
                 <span className="ch-arrange-box__ask">{copy('arrangeAsk')}</span>
-                <Button variant="primary" onClick={() => setArranging(true)}><Plus aria-hidden="true" />{copy('arrangeMatch')}</Button>
+                <Button variant="primary" data-first-tip="arrange-match" onClick={() => setArranging(true)}><Plus aria-hidden="true" />{copy('arrangeMatch')}</Button>
             </div>
             <Section boxed title={copy('played')} hint={played.length ? `${played.length}` : undefined}>
                 <Panel flush>{loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('played')}>{[0, 1, 2].map(i => <Skeleton key={i} height={48} />)}</div>

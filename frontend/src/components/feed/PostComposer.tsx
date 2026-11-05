@@ -262,6 +262,7 @@ const PostComposerEditor = ({
           }}
           onFocus={expandComposer}
           onClick={expandComposer}
+          data-first-tip="post"
           placeholder={collapsed ? copy('Share an update…', 'გააზიარეთ სიახლე…') : clubId ? copy('Share an update from your club…', 'გააზიარეთ კლუბის სიახლე…') : organizationId ? copy('Share an update from your page…', 'გააზიარეთ გვერდის სიახლე…') : copy(`What do you want to share, ${authorName.split(' ')[0]}?`, `რისი გაზიარება გსურთ, ${authorName.split(' ')[0]}?`)}
           aria-label={clubId ? copy('Create a club post', 'კლუბის პოსტის შექმნა') : organizationId ? copy('Create a page post', 'გვერდის პოსტის შექმნა') : copy('Create a post', 'პოსტის შექმნა')}
           className={`min-w-0 flex-1 resize-none border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 text-sm leading-6 text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] transition-colors focus:border-[var(--feed-accent)] ${isExpanded ? 'min-h-[104px] rounded-2xl py-3' : 'h-10 min-h-10 overflow-hidden whitespace-nowrap rounded-full py-1.5'}`}
@@ -272,7 +273,7 @@ const PostComposerEditor = ({
             <button type="button" onClick={openAttachmentPicker} className={compactActionClass} aria-label={copy('Add photo', 'ფოტოს დამატება')} title={copy('Photo', 'ფოტო')}>
               <Camera className="h-5 w-5 text-[var(--social-primary)]" />
             </button>
-            <button type="button" onClick={openEventCreator} className={compactActionClass} aria-label={copy('Create event', 'ღონისძიების შექმნა')} title={copy('Event', 'ღონისძიება')}>
+            <button type="button" data-first-tip="new-event" onClick={openEventCreator} className={compactActionClass} aria-label={copy('Create event', 'ღონისძიების შექმნა')} title={copy('Event', 'ღონისძიება')}>
               <CalendarPlus className="h-5 w-5 text-[var(--social-schedule)]" />
             </button>
           </div>
@@ -307,10 +308,10 @@ const PostComposerEditor = ({
           <button type="button" onClick={openAttachmentPicker} disabled={photos.length >= MAX_PHOTOS} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)] disabled:opacity-40">
             <Camera className="h-4 w-4 text-[var(--social-primary)]" /> {copy('Photo', 'ფოტო')}
           </button>
-          <button type="button" onClick={openEventCreator} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)]">
+          <button type="button" data-first-tip="new-event" onClick={openEventCreator} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)]">
             <CalendarPlus className="h-4 w-4 text-[var(--social-schedule)]" /> {copy('Event', 'ღონისძიება')}
           </button>
-          {home && collapsed && <button type="button" onClick={expandComposer} className="home-compose-start">{copy('Write a post', 'პოსტის დაწერა')}</button>}
+          {home && collapsed && <button type="button" data-first-tip="post" onClick={expandComposer} className="home-compose-start">{copy('Write a post', 'პოსტის დაწერა')}</button>}
         </div>
       )}
 

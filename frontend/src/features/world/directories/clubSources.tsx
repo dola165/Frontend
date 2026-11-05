@@ -4,7 +4,7 @@ import type { Participant } from '../../admissions/types';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import type { ClubLocationItem } from '../../../components/discovery/clubLocationTypes';
 import { distanceKm } from '../../../components/map/walkingGraph';
-import { fetchClubDirectory } from '../api';
+import { fetchClubDirectory, fetchClubProfile } from '../api';
 import { ClubRow } from '../cards/ClubRow';
 import { first, rangeOf, type DirectoryQuery, type DirectorySource, type FilterOption } from '../directory/types';
 import { wt } from '../copy';
@@ -97,6 +97,7 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
             return { items: result.content, total: result.totalElements, hasMore: page + 1 < result.totalPages };
         },
         key: club => String(club.id),
+        one: (key, { signal }) => /^\d+$/.test(key) ? fetchClubProfile(Number(key), signal) : Promise.resolve(null),
         Item: ({ item }) => <ClubRow club={item} distanceKm={distance(item)} />,
         line: club => {
             const km = distance(club);

@@ -1,12 +1,13 @@
 import { useId } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, LayoutGrid, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
+import { CalendarDays, LayoutGrid, Lightbulb, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import type { AuthUser } from '../../../context/AuthContext';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { CreateLink } from '../../../features/pages/create/CreateLink';
+import { resetTips } from '../../../features/firstTips/firstTips';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import type { ThemePreference } from '../../../theme';
 import { PinGlyph } from './pins/PinsPanel';
@@ -66,6 +67,10 @@ export function AccountItems({ user, workspaces, themePreference, setThemePrefer
                 </Link>
             )}
             {accountSettings && <AccountSettingsLink menu={menu} />}
+            {/* First-time tips (the cards beside Agent Dola) come back on each page's next visit, also after "Don't show". */}
+            <button type="button" role={item} className="gk-menu__item" onClick={select(() => void resetTips(user.id).catch(() => undefined))}>
+                <Lightbulb aria-hidden="true" />{copy('Show page tips again', 'გვერდების მინიშნებები თავიდან')}
+            </button>
             {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                 <Link role={item} to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>
             )}

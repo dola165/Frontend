@@ -1,0 +1,58 @@
+/*
+ * Agent Dola's guide: a thick rounded frame in the GrassKickZ green around the field to fill now (label and box
+ * together, with room around them), and the step card popping out of it with a pointer (in the corner while no field
+ * is on screen). The green is the theme's accent, so it is the
+ * bright pitch green on dark pages and the deep green on light ones.
+ */
+/* Over World's drawers (4000) too: the guide frames fields in them. */
+.gk .dola-guide__frame {
+    position: fixed; top: 0; left: 0; z-index: 4100; pointer-events: none;
+    border: 4px solid var(--gk-accent); border-radius: 14px;
+    animation: dola-guide-in 180ms ease-out;
+}
+@keyframes dola-guide-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gk .dola-guide__frame { animation: none; } }
+
+.gk .dola-guide {
+    position: fixed; left: var(--gk-5); bottom: var(--gk-5); z-index: 4150; width: min(360px, calc(100vw - 32px));
+    display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) var(--gk-4);
+    background: var(--gk-raised); color: var(--gk-text); border: 1px solid var(--gk-line-strong);
+    border-radius: var(--gk-r-lg); box-shadow: var(--gk-elevation); font-size: var(--gk-fs-md);
+}
+.gk .dola-guide p { margin: 0; }
+.gk .dola-guide__head { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .dola-guide__title { flex: 1; display: inline-flex; align-items: center; gap: var(--gk-2); font-weight: 700; }
+.gk .dola-guide__title svg { width: 16px; height: 16px; color: var(--gk-accent); }
+.gk .dola-guide__step { color: var(--gk-text-3); font-size: var(--gk-fs-xs); text-transform: uppercase; letter-spacing: 0.04em; }
+.gk .dola-guide__field { margin: 0; display: flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-xl); font-weight: 700; }
+.gk .dola-guide__required {
+    padding: 1px var(--gk-2); border-radius: var(--gk-r-pill); border: 1px solid var(--gk-line); color: var(--gk-text-2);
+    font-size: var(--gk-fs-xs); font-weight: 600;
+}
+.gk .dola-guide__hint { color: var(--gk-text-2); }
+.gk .dola-guide__done { display: inline-flex; align-items: center; gap: var(--gk-1); color: var(--gk-accent); font-weight: 600; }
+.gk .dola-guide__done svg { width: 14px; height: 14px; }
+.gk .dola-guide__buttons { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); margin-top: var(--gk-1); }
+.gk .dola-guide__ask {
+    margin-left: auto; border: 0; background: none; padding: 0; color: var(--gk-accent); font-size: var(--gk-fs-sm);
+    font-weight: 600; cursor: pointer;
+}
+.gk .dola-guide__ask:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+    .gk .dola-guide { left: var(--gk-4); right: var(--gk-4); bottom: var(--gk-4); width: auto; }
+}
+
+/* Beside the framed field: placed by the guide (data-side is the side of the field the card is on), pointer aimed at it. */
+.gk .dola-guide[data-side] { top: 0; left: 0; right: auto; bottom: auto; width: min(360px, calc(100vw - 32px)); }
+.gk .dola-guide[data-side]::before {
+    content: ''; position: absolute; width: 12px; height: 12px; background: var(--gk-raised);
+    border: 0 solid var(--gk-line-strong); transform: translate(-50%, -50%) rotate(45deg);
+}
+.gk .dola-guide[data-side="bottom"]::before { top: 0; left: var(--dola-arrow, 24px); border-top-width: 1px; border-left-width: 1px; }
+.gk .dola-guide[data-side="top"]::before { top: 100%; left: var(--dola-arrow, 24px); border-bottom-width: 1px; border-right-width: 1px; }
+.gk .dola-guide[data-side="right"]::before { top: var(--dola-arrow, 24px); left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+.gk .dola-guide[data-side="left"]::before { top: var(--dola-arrow, 24px); left: 100%; border-top-width: 1px; border-right-width: 1px; }
+
+/* The app-wide mount point: its tokens reach the panel and the guide; it takes no space itself. */
+.agent-dola-dock { display: contents; }

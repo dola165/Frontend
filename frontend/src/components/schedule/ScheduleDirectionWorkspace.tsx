@@ -140,7 +140,7 @@ export function ScheduleDirectionWorkspace(props: Props) {
     const actions = <>
         {props.extraActions}
         {!props.mobile && !props.embedded && <Button iconOnly variant="ghost" aria-label={t('schedule.direction.help')} title={t('schedule.direction.help')} onClick={props.onHelp}><CircleHelp aria-hidden="true" /></Button>}
-        {props.canCreate && <Button size="sm" variant="primary" data-tutorial="calendar-new-event-btn" disabled={props.busy} onClick={() => props.onCreate()}>
+        {props.canCreate && <Button size="sm" variant="primary" data-tutorial="calendar-new-event-btn" data-first-tip="new-event" disabled={props.busy} onClick={() => props.onCreate()}>
             <Plus aria-hidden="true" />{props.createLabel ?? t('schedule.direction.newEvent')}
         </Button>}
     </>;
